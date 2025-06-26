@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import shutil
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from PrevisLib.utils.logging import get_logger
 
@@ -72,17 +72,24 @@ def count_files(directory: Path, pattern: str = "*", recursive: bool = True) -> 
     return len(find_files(directory, pattern, recursive))
 
 
-def safe_delete(file_path: Path) -> bool:
-    try:
-        if file_path.exists():
-            if file_path.is_dir():
-                shutil.rmtree(file_path)
+def safe_delete(file_path: Path, retry_count: int = 3, retry_delay: float = 1.0) -> bool:
+    """Safely delete a file or directory with retries."""
+    for attempt in range(retry_count):
+        try:
+            if file_path.exists():
+                if file_path.is_dir():
+                    shutil.rmtree(file_path)
+                else:
+                    file_path.unlink()
+                logger.debug(f"Deleted: {file_path}")
+                return True
+            return True  # Already gone
+        except Exception as e:
+            if attempt < retry_count - 1:
+                logger.warning(f"Failed to delete {file_path} (attempt {attempt + 1}/{retry_count}): {e}")
+                time.sleep(retry_delay)
             else:
-                file_path.unlink()
-            logger.debug(f"Deleted: {file_path}")
-            return True
-    except Exception as e:
-        logger.error(f"Failed to delete {file_path}: {e}")
+                logger.error(f"Failed to delete {file_path} after {retry_count} attempts: {e}")
     return False
 
 

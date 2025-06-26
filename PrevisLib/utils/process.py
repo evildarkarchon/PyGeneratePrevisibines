@@ -51,7 +51,7 @@ def run_process(
         if capture_output:
             result = subprocess.run(
                 command,
-                cwd=cwd,
+                check=False, cwd=cwd,
                 timeout=timeout,
                 capture_output=True,
                 text=True,
@@ -61,7 +61,7 @@ def run_process(
         else:
             result = subprocess.run(
                 command,
-                cwd=cwd,
+                check=False, cwd=cwd,
                 timeout=timeout,
                 shell=shell,
                 env=env,
@@ -105,6 +105,35 @@ def run_process(
             stderr=str(e),
             elapsed_time=elapsed_time,
         )
+
+
+class ProcessRunner:
+    """Wrapper class for process execution utilities."""
+    
+    def run_process(self, 
+                   command: list[str] | str,
+                   timeout: float | None = None,
+                   show_output: bool = False,
+                   cwd: Path | None = None) -> bool:
+        """Run a process and return success status.
+        
+        Args:
+            command: Command to run
+            timeout: Timeout in seconds
+            show_output: Whether to show output to console
+            cwd: Working directory
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        result = run_process(
+            command=command,
+            cwd=cwd,
+            timeout=timeout,
+            capture_output=not show_output,
+            shell=False
+        )
+        return result.success
 
 
 def check_process_running(process_name: str) -> bool:

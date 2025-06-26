@@ -30,7 +30,7 @@ def validate_plugin_name(plugin_name: str) -> tuple[bool, str]:
     
     plugin_path = Path(plugin_name)
     
-    if plugin_path.suffix not in VALID_PLUGIN_EXTENSIONS:
+    if plugin_path.suffix.lower() not in VALID_PLUGIN_EXTENSIONS:
         return False, f"Plugin must have valid extension: {', '.join(VALID_PLUGIN_EXTENSIONS)}"
     
     if plugin_name in RESERVED_PLUGIN_NAMES:
@@ -52,7 +52,7 @@ def validate_tool_path(tool_path: Path | None, tool_name: str) -> tuple[bool, st
     if tool_path.suffix.lower() != ".exe":
         return False, f"{tool_name} must be an executable (.exe): {tool_path}"
     
-    return True, ""
+    return True, f"{tool_name} found and validated"
 
 
 def validate_directory(directory: Path, name: str, must_exist: bool = True) -> tuple[bool, str]:

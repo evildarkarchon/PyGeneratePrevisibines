@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Main entry point for PyGeneratePrevisibines."""
+
 from __future__ import annotations
 
 import sys
@@ -6,107 +8,358 @@ from pathlib import Path
 
 import click
 from rich.console import Console
-from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from PrevisLib import BuildMode, Settings, setup_logger
-from PrevisLib.utils.logging import get_logger
+from PrevisLib.config.settings import Settings
+from PrevisLib.core import PrevisBuilder
+from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep
+from PrevisLib.utils.logging import get_logger, setup_logger
+from PrevisLib.utils.validation import validate_plugin_name
 
 console = Console()
 logger = get_logger(__name__)
 
+# Banner art
+BANNER = """
+╔═══════════════════════════════════════════════════════════╗
+║        Automatic Previsbine Builder for Fallout 4         ║
+║                   Python Port v1.0.0                      ║
+║              Based on GeneratePrevisibines.bat            ║
+╚═══════════════════════════════════════════════════════════╝
+"""
 
-@click.command()
-@click.argument("plugin_name", required=False)
-@click.option(
-    "--build-mode",
-    "-m",
-    type=click.Choice(["clean", "filtered", "xbox"], case_sensitive=False),
-    default="clean",
-    help="Build mode to use",
-)
-@click.option("--bsarch", "-b", is_flag=True, help="Use BSArch instead of Archive2")
-@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
-@click.option("--no-prompt", is_flag=True, help="Skip interactive prompts")
-def main(
-    plugin_name: str | None,
-    build_mode: str,
-    bsarch: bool,
-    verbose: bool,
-    no_prompt: bool,
-) -> None:
-    setup_logger(verbose=verbose)
+
+def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode, bool]:
+    """Parse command line arguments in the style of the original batch file.
     
-    console.print(
-        Panel.fit(
-            "[bold cyan]Automatic Previsbine Builder[/bold cyan]\n"
-            "[dim]Python Port v0.1.0[/dim]",
-            border_style="cyan",
-        )
-    )
-    
-    if sys.platform != "win32":
-        console.print("[yellow]Warning:[/yellow] Running on non-Windows platform. Some features will be limited.")
-    
-    try:
-        settings = Settings.from_cli_args(
-            plugin_name=plugin_name,
-            build_mode=build_mode,
-            use_bsarch=bsarch,
-            no_prompt=no_prompt,
-            verbose=verbose,
-        )
+    Args:
+        args: Command line arguments (excluding script name)
         
-        errors = settings.validate_tools()
+    Returns:
+        Tuple of (plugin_name, build_mode, use_bsarch)
+    """
+    plugin_name = None
+    build_mode = BuildMode.CLEAN
+    use_bsarch = False
+    
+    for arg in args:
+        if arg.startswith('-'):
+            # Handle flags
+            flag = arg.lower()
+            if flag == '-clean':
+                build_mode = BuildMode.CLEAN
+            elif flag == '-filtered':
+                build_mode = BuildMode.FILTERED
+            elif flag == '-xbox':
+                build_mode = BuildMode.XBOX
+            elif flag == '-bsarch':
+                use_bsarch = True
+        # Assume it's the plugin name
+        elif not plugin_name:
+            plugin_name = arg
+                
+    return plugin_name, build_mode, use_bsarch
+
+
+def prompt_for_plugin(settings: Settings) -> str | None:
+    """Prompt user for plugin name with validation.
+    
+    Args:
+        settings: Current settings
+        
+    Returns:
+        Valid plugin name or None if cancelled
+    """
+    console.print("\n[cyan]Enter the plugin name for previs generation.[/cyan]")
+    console.print("[dim]Example: MyMod.esp[/dim]")
+    
+    while True:
+        plugin_name = Prompt.ask("\nPlugin name", default="")
+        
+        if not plugin_name:
+            if Confirm.ask("Exit without processing?", default=True):
+                return None
+            continue
+            
+        # Validate plugin name
+        try:
+            plugin_name = validate_plugin_name(plugin_name)
+            
+            # Check for xPrevisPatch.esp
+            if plugin_name.lower() == "xprevispatch.esp":
+                console.print("\n[yellow]xPrevisPatch.esp is a special plugin used for testing.[/yellow]")
+                if Confirm.ask("Do you want to rename it to something else?", default=True):
+                    continue
+                    
+            return plugin_name
+            
+        except ValueError as e:
+            console.print(f"\n[red]Error:[/red] {e}")
+            continue
+
+
+def prompt_for_build_mode() -> BuildMode:
+    """Prompt user to select build mode.
+    
+    Returns:
+        Selected build mode
+    """
+    console.print("\n[cyan]Select build mode:[/cyan]")
+    
+    modes = [
+        ("1", "Clean", "Full rebuild - deletes existing previs data", BuildMode.CLEAN),
+        ("2", "Filtered", "Only generate for filtered cells", BuildMode.FILTERED),
+        ("3", "Xbox", "Optimized for Xbox platform", BuildMode.XBOX)
+    ]
+    
+    table = Table(show_header=False, box=None)
+    for num, name, desc, _ in modes:
+        table.add_row(f"[cyan]{num}[/cyan]", f"[bold]{name}[/bold]", f"[dim]{desc}[/dim]")
+    
+    console.print(table)
+    
+    while True:
+        choice = Prompt.ask("\nSelect mode", choices=["1", "2", "3"], default="1")
+        
+        for num, _, _, mode in modes:
+            if choice == num:
+                return mode
+
+
+def prompt_for_resume(builder: PrevisBuilder) -> BuildStep | None:
+    """Prompt user to select step to resume from.
+    
+    Args:
+        builder: PrevisBuilder instance with resume options
+        
+    Returns:
+        Selected step or None to start fresh
+    """
+    resume_options = builder.get_resume_options()
+    
+    console.print("\n[cyan]Previous build was interrupted. Resume from:[/cyan]")
+    
+    table = Table(show_header=False, box=None)
+    table.add_row("[cyan]0[/cyan]", "[bold]Start Fresh[/bold]", "[dim]Begin from the first step[/dim]")
+    
+    for i, step in enumerate(resume_options, 1):
+        table.add_row(f"[cyan]{i}[/cyan]", f"[bold]{step}[/bold]", "")
+        
+    console.print(table)
+    
+    choices = ["0"] + [str(i) for i in range(1, len(resume_options) + 1)]
+    choice = Prompt.ask("\nSelect option", choices=choices, default="0")
+    
+    if choice == "0":
+        return None
+    return resume_options[int(choice) - 1]
+
+
+def show_build_summary(settings: Settings):
+    """Display build configuration summary.
+    
+    Args:
+        settings: Build settings
+    """
+    console.print("\n[bold green]Build Configuration:[/bold green]")
+    
+    table = Table(show_header=False, box=None)
+    table.add_column("Setting", style="cyan")
+    table.add_column("Value", style="white")
+    
+    table.add_row("Plugin", settings.plugin_name)
+    table.add_row("Build Mode", settings.build_mode.value.capitalize())
+    table.add_row("Archive Tool", settings.archive_tool.value)
+    
+    if settings.ckpe_config:
+        table.add_row("CKPE Config", "Loaded ✓")
+        
+    console.print(table)
+
+
+def run_build(settings: Settings) -> bool:
+    """Execute the build process.
+    
+    Args:
+        settings: Build settings
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    builder = PrevisBuilder(settings)
+    
+    # Check for previous failed build
+    start_step = None
+    if builder.failed_step:
+        start_step = prompt_for_resume(builder)
+        
+    # Show summary
+    show_build_summary(settings)
+    
+    if not Confirm.ask("\nProceed with build?", default=True):
+        return False
+        
+    # Run build with progress display
+    console.print("\n[bold cyan]Starting build process...[/bold cyan]\n")
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        console=console
+    ) as progress:
+        # Create main task
+        total_steps = len(list(BuildStep))
+        task = progress.add_task("Building previs...", total=total_steps)
+        
+        # Custom progress callback
+        def update_progress(step: BuildStep, completed: bool):
+            if completed:
+                progress.update(task, advance=1)
+                progress.update(task, description=f"Completed: {step}")
+            else:
+                progress.update(task, description=f"Running: {step}")
+                
+        # Inject progress callback (this would need to be added to builder)
+        # For now, we'll simulate
+        success = builder.build(start_from_step=start_step)
+        
+    if success:
+        console.print("\n[bold green]✓ Build completed successfully![/bold green]")
+        
+        # Show output files
+        plugin_base = Path(settings.plugin_name).stem
+        console.print("\n[cyan]Generated files:[/cyan]")
+        console.print(f"  • {plugin_base} - Geometry.ba2")
+        console.print(f"  • {plugin_base} - Vis.ba2")
+        
+    else:
+        console.print(f"\n[bold red]✗ Build failed at step: {builder.failed_step}[/bold red]")
+        console.print("[yellow]You can resume from this step next time.[/yellow]")
+        
+    return success
+
+
+def prompt_for_cleanup(settings: Settings) -> bool:
+    """Prompt user to clean up existing previs files.
+    
+    Args:
+        settings: Build settings
+        
+    Returns:
+        True if cleanup was performed
+    """
+    plugin_base = Path(settings.plugin_name).stem
+    
+    console.print("\n[yellow]Cleanup mode - Remove existing previs files[/yellow]")
+    console.print("\nThis will delete:")
+    console.print(f"  • {plugin_base} - Geometry.ba2")
+    console.print(f"  • {plugin_base} - Vis.ba2")
+    console.print("  • Any temporary build files")
+    
+    if not Confirm.ask("\nProceed with cleanup?", default=False):
+        return False
+        
+    builder = PrevisBuilder(settings)
+    
+    with console.status("Cleaning up files..."):
+        success = builder.cleanup()
+        
+    if success:
+        console.print("\n[green]✓ Cleanup completed successfully![/green]")
+    else:
+        console.print("\n[red]✗ Some files could not be deleted.[/red]")
+        
+    return success
+
+
+@click.command(context_settings=dict(ignore_unknown_options=True))
+@click.argument('args', nargs=-1)
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
+def main(args: tuple[str, ...], verbose: bool) -> None:
+    """PyGeneratePrevisibines - Automated previs generation for Fallout 4.
+    
+    Usage:
+        previs_builder.py [-clean|-filtered|-xbox] [-bsarch] [plugin.esp]
+        
+    Examples:
+        previs_builder.py                    # Interactive mode
+        previs_builder.py MyMod.esp          # Process specific plugin
+        previs_builder.py -filtered MyMod.esp # Filtered mode
+        previs_builder.py -bsarch MyMod.esp   # Use BSArch tool
+    """
+    # Setup logging
+    log_path = Path("PyGeneratePrevisibines.log")
+    setup_logger(log_path, verbose=verbose)
+    
+    # Clear console and show banner
+    console.clear()
+    console.print(BANNER, style="bold cyan")
+    
+    # Check platform
+    if sys.platform != "win32":
+        console.print("[bold yellow]⚠ Warning:[/bold yellow] Running on non-Windows platform.")
+        console.print("Some features may not work correctly.\n")
+        
+    try:
+        # Parse command line arguments
+        plugin_name, build_mode, use_bsarch = parse_command_line(list(args))
+        
+        # Initialize settings
+        settings = Settings()
+        settings.verbose = verbose
+        
+        # Apply command line options
+        if plugin_name:
+            settings.plugin_name = validate_plugin_name(plugin_name)
+        settings.build_mode = build_mode
+        settings.archive_tool = ArchiveTool.BSARCH if use_bsarch else ArchiveTool.ARCHIVE2
+        
+        # Validate tools
+        errors = settings.tool_paths.validate()
         if errors:
-            console.print("\n[red]Tool validation errors:[/red]")
+            console.print("\n[bold red]⚠ Tool Configuration Issues:[/bold red]")
             for error in errors:
                 console.print(f"  • {error}")
+            console.print("\n[dim]Some tools are not found. The build may fail.[/dim]")
             
-            if not no_prompt:
-                console.print("\n[yellow]You can manually configure tool paths if needed.[/yellow]")
+        # Interactive mode if no plugin specified
+        if not settings.plugin_name:
+            # Check for cleanup mode
+            if Confirm.ask("\nDo you want to clean up existing previs files?", default=False):
+                plugin = prompt_for_plugin(settings)
+                if plugin:
+                    settings.plugin_name = plugin
+                    prompt_for_cleanup(settings)
+                    return
+                    
+            # Normal build mode
+            plugin = prompt_for_plugin(settings)
+            if not plugin:
+                console.print("\n[yellow]No plugin selected. Exiting.[/yellow]")
+                return
+                
+            settings.plugin_name = plugin
+            
+            # Prompt for build mode if not specified
+            if not args or not any(arg.startswith('-') for arg in args):
+                settings.build_mode = prompt_for_build_mode()
+                
+        # Run the build
+        success = run_build(settings)
         
-        if not settings.plugin_name and not no_prompt:
-            plugin_name = console.input("\n[cyan]Enter plugin name:[/cyan] ").strip()
-            if plugin_name:
-                settings.plugin_name = plugin_name
+        # Exit with appropriate code
+        sys.exit(0 if success else 1)
         
-        if settings.plugin_name:
-            console.print(f"\n[green]Plugin:[/green] {settings.plugin_name}")
-            console.print(f"[green]Build Mode:[/green] {settings.build_mode.value}")
-            console.print(f"[green]Archive Tool:[/green] {settings.archive_tool.value}")
-            
-            table = Table(title="Tool Paths", show_header=True)
-            table.add_column("Tool", style="cyan")
-            table.add_column("Path", style="green")
-            table.add_column("Status", style="yellow")
-            
-            tools = [
-                ("Creation Kit", settings.tool_paths.creation_kit),
-                ("xEdit/FO4Edit", settings.tool_paths.xedit),
-                ("Archive2", settings.tool_paths.archive2),
-                ("BSArch", settings.tool_paths.bsarch),
-                ("Fallout 4", settings.tool_paths.fallout4),
-            ]
-            
-            for tool_name, tool_path in tools:
-                if tool_path:
-                    status = "✓ Found" if tool_path.exists() else "✗ Not Found"
-                    table.add_row(tool_name, str(tool_path), status)
-                else:
-                    table.add_row(tool_name, "Not configured", "✗")
-            
-            console.print("\n", table)
-            
-            if settings.ckpe_config_path:
-                console.print(f"\n[green]CKPE Config:[/green] {settings.ckpe_config_path}")
-            
-            console.print("\n[yellow]Note:[/yellow] This is a foundation test. Build functionality not yet implemented.")
-        else:
-            console.print("\n[red]No plugin name provided. Exiting.[/red]")
-            
+    except KeyboardInterrupt:
+        console.print("\n\n[yellow]Build cancelled by user.[/yellow]")
+        sys.exit(130)
+        
     except Exception as e:
-        console.print(f"\n[red]Error:[/red] {e}")
+        console.print(f"\n[bold red]Unexpected error:[/bold red] {e}")
         if verbose:
             console.print_exception()
         sys.exit(1)

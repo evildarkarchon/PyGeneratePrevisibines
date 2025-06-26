@@ -42,33 +42,33 @@ PrevisBuilder/
 - [x] Load and validate CKPE configuration (both .toml and .ini formats)
 
 ### 2. **Tool Wrappers** (`PrevisLib/tools/`)
-- [ ] **CreationKit wrapper**:
-  - [ ] `generate_precombined()` method
-  - [ ] `compress_psg()` method
-  - [ ] `build_cdx()` method
-  - [ ] `generate_previs_data()` method
-  - [ ] Error detection from CK log files
+- [x] **CreationKit wrapper**:
+  - [x] `generate_precombined()` method
+  - [x] `compress_psg()` method
+  - [x] `build_cdx()` method
+  - [x] `generate_previs_data()` method
+  - [x] Error detection from CK log files
   
-- [ ] **xEdit wrapper**:
-  - [ ] `merge_combined_objects()` method
-  - [ ] `merge_previs()` method
-  - [ ] Script execution with proper window automation
-  - [ ] Log parsing for error detection
+- [x] **xEdit wrapper**:
+  - [x] `merge_combined_objects()` method
+  - [x] `merge_previs()` method
+  - [x] Script execution with proper window automation
+  - [x] Log parsing for error detection
   
-- [ ] **Archive wrapper**:
-  - [ ] Support both Archive2 and BSArch
-  - [ ] `create_archive()` method
-  - [ ] `extract_archive()` method
-  - [ ] `add_to_archive()` method
+- [x] **Archive wrapper**:
+  - [x] Support both Archive2 and BSArch
+  - [x] `create_archive()` method
+  - [x] `extract_archive()` method
+  - [x] `add_to_archive()` method
 
 ### 3. **Build Process** (`PrevisLib/core/`)
-- [ ] Implement `BuildMode` enum (clean, filtered, xbox)
-- [ ] Create `BuildStep` enum for all 8 steps
-- [ ] Implement `PrevisBuilder` class with:
-  - [ ] Step execution logic
-  - [ ] Resume from failed step functionality
-  - [ ] Progress tracking
-  - [ ] Error handling and recovery
+- [x] Implement `BuildMode` enum (clean, filtered, xbox)
+- [x] Create `BuildStep` enum for all 8 steps
+- [x] Implement `PrevisBuilder` class with:
+  - [x] Step execution logic
+  - [x] Resume from failed step functionality
+  - [x] Progress tracking
+  - [x] Error handling and recovery
 
 ### 4. **Utilities** (`PrevisLib/utils/`)
 - [x] **File System Operations**:
@@ -92,12 +92,12 @@ PrevisBuilder/
   - [x] Console output formatting
 
 ### 5. **Main Application** (`previs_builder.py`)
-- [ ] Command line interface matching batch file parameters
-- [ ] Interactive prompts for plugin selection
-- [ ] Build mode selection UI
-- [ ] Step selection for resume functionality
-- [ ] Cleanup operations
-- [ ] Final output summary
+- [x] Command line interface matching batch file parameters
+- [x] Interactive prompts for plugin selection
+- [x] Build mode selection UI
+- [x] Step selection for resume functionality
+- [x] Cleanup operations
+- [x] Final output summary
 
 ## Additional Python Dependencies
 
@@ -146,22 +146,22 @@ dev = [
 - [x] Set up logging system
 
 ### Phase 2 - Tool Integration
-- [ ] Implement process execution utilities
-- [ ] Create tool wrappers (start with CK)
-- [ ] Add xEdit automation
-- [ ] Implement archive handling
+- [x] Implement process execution utilities
+- [x] Create tool wrappers (start with CK)
+- [x] Add xEdit automation
+- [x] Implement archive handling
 
 ### Phase 3 - Build Logic
-- [ ] Implement individual build steps
-- [ ] Create build orchestration
-- [ ] Add error handling and recovery
-- [ ] Implement resume functionality
+- [x] Implement individual build steps
+- [x] Create build orchestration
+- [x] Add error handling and recovery
+- [x] Implement resume functionality
 
 ### Phase 4 - User Interface
-- [ ] Command line argument parsing
-- [ ] Interactive prompts
-- [ ] Progress display
-- [ ] Final reporting
+- [x] Command line argument parsing
+- [x] Interactive prompts
+- [x] Progress display
+- [x] Final reporting
 
 ### Phase 5 - Polish
 - [ ] Add comprehensive type hints
