@@ -35,11 +35,11 @@ PrevisBuilder/
 ## Core Components to Implement
 
 ### 1. **Configuration Management** (`PrevisLib/config/`)
-- [ ] Create `Settings` dataclass with all configuration options
-- [ ] Implement registry reader for finding tool paths (Testing not available on Linux)
-- [ ] Support for fallback/manual path configuration
-- [ ] Parse command line arguments (maintain compatibility with batch parameters)
-- [ ] Load and validate CKPE configuration (both .toml and .ini formats)
+- [x] Create `Settings` dataclass with all configuration options
+- [x] Implement registry reader for finding tool paths (Testing not available on Linux)
+- [x] Support for fallback/manual path configuration
+- [x] Parse command line arguments (maintain compatibility with batch parameters)
+- [x] Load and validate CKPE configuration (both .toml and .ini formats)
 
 ### 2. **Tool Wrappers** (`PrevisLib/tools/`)
 - [ ] **CreationKit wrapper**:
@@ -71,25 +71,25 @@ PrevisBuilder/
   - [ ] Error handling and recovery
 
 ### 4. **Utilities** (`PrevisLib/utils/`)
-- [ ] **File System Operations**:
-  - [ ] Directory cleaning/creation
-  - [ ] File existence checks
-  - [ ] MO2-aware file operations (with delays)
+- [x] **File System Operations**:
+  - [x] Directory cleaning/creation
+  - [x] File existence checks
+  - [x] MO2-aware file operations (with delays)
   
-- [ ] **Process Execution**:
-  - [ ] Subprocess wrapper with logging
-  - [ ] Window automation for xEdit (using pywinauto or similar) (Testing not available on Linux)
-  - [ ] Exit code handling
+- [x] **Process Execution**:
+  - [x] Subprocess wrapper with logging
+  - [x] Window automation for xEdit (using pywinauto or similar) (Testing not available on Linux)
+  - [x] Exit code handling
   
-- [ ] **Validation**:
-  - [ ] Plugin name validation (no spaces, reserved names)
-  - [ ] Tool availability checks
+- [x] **Validation**:
+  - [x] Plugin name validation (no spaces, reserved names)
+  - [x] Tool availability checks
   - [ ] Version checking for tools
   
-- [ ] **Logging**:
-  - [ ] Unified logging system
-  - [ ] Log file creation and management
-  - [ ] Console output formatting
+- [x] **Logging**:
+  - [x] Unified logging system
+  - [x] Log file creation and management
+  - [x] Console output formatting
 
 ### 5. **Main Application** (`previs_builder.py`)
 - [ ] Command line interface matching batch file parameters
@@ -140,10 +140,10 @@ dev = [
 ## Implementation Order
 
 ### Phase 1 - Foundation
-- [ ] Set up project structure
-- [ ] Implement configuration and registry reading
-- [ ] Create data models
-- [ ] Set up logging system
+- [x] Set up project structure
+- [x] Implement configuration and registry reading
+- [x] Create data models
+- [x] Set up logging system
 
 ### Phase 2 - Tool Integration
 - [ ] Implement process execution utilities
