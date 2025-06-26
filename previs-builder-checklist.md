@@ -36,7 +36,7 @@ PrevisBuilder/
 
 ### 1. **Configuration Management** (`PrevisLib/config/`)
 - [ ] Create `Settings` dataclass with all configuration options
-- [ ] Implement registry reader for finding tool paths
+- [ ] Implement registry reader for finding tool paths (Testing not available on Linux)
 - [ ] Support for fallback/manual path configuration
 - [ ] Parse command line arguments (maintain compatibility with batch parameters)
 - [ ] Load and validate CKPE configuration (both .toml and .ini formats)
@@ -78,7 +78,7 @@ PrevisBuilder/
   
 - [ ] **Process Execution**:
   - [ ] Subprocess wrapper with logging
-  - [ ] Window automation for xEdit (using pywinauto or similar)
+  - [ ] Window automation for xEdit (using pywinauto or similar) (Testing not available on Linux)
   - [ ] Exit code handling
   
 - [ ] **Validation**:
