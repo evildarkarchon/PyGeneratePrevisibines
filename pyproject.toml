@@ -1,0 +1,194 @@
+[project]
+name = "pygenerateprevisibines"
+version = "0.1.0"
+description = "Python port of PJM's GeneratePrevisibines batch file."
+authors = [
+    {name = "Andrew Nelson",email = "evildarkarchon@gmail.com"}
+]
+license = {text = "GNU GPL Version 3.0"}
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+
+[tool.poetry]
+package-mode=false
+[tool.poetry.dependencies]
+click = ">=8.2.1)"
+colorama = ">=0.4.6"
+rich = ">=14.0.0"
+tomli = ">=2.2.1"
+pydantic = ">=2.11.7"
+psutil = ">=7.0.0"
+loguru = ">=0.7.3"
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.4.1"
+pytest-mock = ">=3.14.1"
+mypy = ">=1.16.1"
+black = ">=25.1.0"
+ruff = ">=0.12.0"
+[tool.poetry.group.win32]
+optional = true
+
+[tool.poetry.group.win32.dependencies]
+pywin32 = ">=300"
+pywinauto = ">=0.6"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+[tool.poetry.requires-plugins]
+poetry-plugin-up = ">=0.9.0"
+
+[tool.mypy]
+enable_incomplete_feature = ["NewGenericSyntax"]
+disable_error_code = [
+	"import-untyped",
+	"index",          # Redundant with Pyright reportIndexIssue
+	"name-defined",   # Redundant with Ruff F821
+	"operator",       # Redundant with Pyright reportOperatorIssue
+	"attr-defined",	 # Redundant with reportAttributeAccessIssue
+	"no-redef",
+	"empty-body",
+	"annotation-unchecked"
+]
+
+[tool.pyright]
+typeCheckingMode = "standard"
+reportArgumentType = false         # Redundant with Mypy arg-type
+reportAssignmentType = false       # Redundant with Mypy assignment
+reportMissingParameterType = false # Redundant with Ruff ANN001
+reportReturnType = false           # Redundant with Mypy return-type
+reportUndefinedVariable = false    # Redundant with Ruff F821
+reportUnusedImport = false         # Redundant with Ruff F401
+reportAttributeAccessIssue = "warning" # Messes with my docstrings, but could be useful elsewhere
+
+[tool.ruff]
+indent-width = 4
+line-length = 140
+
+[tool.ruff.format]
+preview = true
+indent-style = "space"
+line-ending = "auto"
+quote-style = "double"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+ignore = [
+	"ANN401",  # Allow use of typing.Any
+	"E501",    # Duplicate of B950 line-too-long
+	"E722",    # Duplicate of B001 bare-except
+	"PLR0904", # too-many-public-methods
+	"PLR0911", # too-many-return-statements
+	"PLR0912", # too-many-branches
+	"PLR0914", # too-many-local-variables
+	"PLR0915", # too-many-statements
+	"PLR1702", # too-many-nested-blocks
+	"TRY003",  # Allow custom exception messages
+	"TRY400",  # Use `logging.exception` instead of `logging.error`
+	"PLR2004", # Allow magic values in comparisons
+	"PLW2901", # Allow overwriting loop variables
+	"SLF001",
+	"PLC0415"
+]
+
+extend-select = [
+	"A",     # Builtin Shadowing
+	"ANN",   # Type Annotations
+	"ASYNC", # Async Suggestions
+	"ARG",   # Unused Arguments
+	"B",     # Bugs/Design Problems
+	"BLE",   # Blind Except
+	"C4",    # Comprehensions
+	"FA",    # Future Annotations
+	"FLY",   # F-Strings
+	"FURB",  # Modernization
+	"I",     # Import Sorting
+	"ICN",   # Import Naming Conventions
+	"ISC",   # Implicit String Concatenation
+	"LOG",   # Logging
+	"PERF",  # Performance Anti-Patterns
+	"PIE",   # Misc Lints
+	"PL",    # Pylint
+	"PT",    # PyTest
+	"PTH",   # Prefer Pathlib
+	"RET",   # Return
+	"RSE",   # Raise
+	"RUF",   # Ruff
+	"SIM",   # Simplify
+	"SLF",   # Self
+	"TCH",   # Type Checking
+	"TID",   # Tidy Imports
+	"TRY",   # Exception Anti-Patterns
+	"UP",    # pyupgrade (New Syntax Suggestions)
+
+	# "D",     # pydocstyle
+	# "C901",  # Complex Structures
+	# "COM",   # Commas
+	# "DTZ",   # Unsafe/Naive Datetimes
+	# "EM",    # Exception Messages
+	# "FBT",   # Boolean Traps
+	# "G",     # Logging Formatting
+	# "N",     # PEP8 Naming Conventions
+	# "PGH",   # PyGrep Hooks
+	# "PYI",   # Stub Files
+	# "Q",     # Quotes
+	# "S",     # Security Testing
+]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/venv/*",
+    "*/env/*",
+    "*/.venv/*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+    "*/build/*",
+    "*/dist/*",
+    "*/tests/*",
+    "*/_internal/*",
+    "*/Release/*",
+    "*/CLASSIC Backup/*",
+    "*/Crash Logs/*",
+    "*/Examples/*",
+    "*/performance_baselines/*",
+    "install_requirements.py",
+    "setup.py"
+]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+sort = "Cover"
+fail_under = 85
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self\\.debug",
+    "raise AssertionError",
+    "raise NotImplementedError", 
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "if sys.platform",
+    "if platform.system",
+    "@app.route",
+    "app.run",
+    "logger\\.debug",
+    "logger\\.trace"
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+title = "CLASSIC-Fallout4 Test Coverage Report"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report=lcov:lcov.info --cov-report=term"
+
+[tool.black]
+line-length = 140
+target-version = ['py312', 'py313']
