@@ -37,7 +37,7 @@ class PrevisBuilder:
         if settings.tool_paths.xedit is None:
             raise ValueError("xEdit path is required but not configured")
 
-        self.ck_wrapper = CreationKitWrapper(settings.tool_paths.creation_kit, self.plugin_name, self.build_mode)
+        self.ck_wrapper = CreationKitWrapper(settings.tool_paths.creation_kit, self.plugin_name, self.build_mode, settings.ckpe_config)
         self.xedit_wrapper = XEditWrapper(settings.tool_paths.xedit, self.plugin_name)
 
         # Validate required paths

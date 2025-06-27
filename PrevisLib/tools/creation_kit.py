@@ -4,17 +4,18 @@ from pathlib import Path
 
 from loguru import logger
 
-from PrevisLib.models.data_classes import BuildMode
+from PrevisLib.models.data_classes import BuildMode, CKPEConfig
 from PrevisLib.utils.process import ProcessRunner
 
 
 class CreationKitWrapper:
     """Wrapper for Creation Kit operations."""
 
-    def __init__(self, ck_path: Path, plugin_name: str, build_mode: BuildMode) -> None:
+    def __init__(self, ck_path: Path, plugin_name: str, build_mode: BuildMode, ckpe_config: CKPEConfig | None = None) -> None:
         self.ck_path = ck_path
         self.plugin_name = plugin_name
         self.build_mode = build_mode
+        self.ckpe_config = ckpe_config
         self.process_runner = ProcessRunner()
         # File system operations will use module functions directly
 
@@ -23,7 +24,6 @@ class CreationKitWrapper:
 
         Args:
             data_path: Path to Fallout 4 Data directory
-            output_path: Path for output files
 
         Returns:
             True if successful, False otherwise
@@ -33,10 +33,9 @@ class CreationKitWrapper:
         args: list[str] = [str(self.ck_path), f"-GeneratePrecombined:{self.plugin_name}"]
 
         if self.build_mode == BuildMode.CLEAN:
-            args.append("clean")
+            args.extend(["clean", "all"])
         else:
-            args.append("filtered")
-        args.append("all")
+            args.extend(["filtered", "all"])
 
         success: bool = self.process_runner.run_process(
             args,
@@ -66,7 +65,7 @@ class CreationKitWrapper:
         """
         logger.info("Starting PSG file compression")
 
-        args: list[str] = [str(self.ck_path), f"-CompressPSG:{self.plugin_name} - Geometry.csg"]
+        args: list[str] = [str(self.ck_path), f"-CompressPSG:{self.plugin_name}"]
 
         success: bool = self.process_runner.run_process(
             args,
@@ -95,7 +94,7 @@ class CreationKitWrapper:
         """
         logger.info("Starting CDX file generation")
 
-        args: list[str] = [str(self.ck_path), f"-BuildCDX:{self.plugin_name}.cdx"]
+        args: list[str] = [str(self.ck_path), f"-BuildCDX:{self.plugin_name}"]
 
         success: bool = self.process_runner.run_process(
             args,
@@ -118,14 +117,13 @@ class CreationKitWrapper:
 
         Args:
             data_path: Path to Fallout 4 Data directory
-            output_path: Path for output files
 
         Returns:
             True if successful, False otherwise
         """
         logger.info("Starting previs data generation")
 
-        args: list[str] = [str(self.ck_path), f"-GeneratePrevis:{data_path}/Previs.esp"]
+        args: list[str] = [str(self.ck_path), f"-GeneratePreVisData:{self.plugin_name}", "clean", "all"]
 
         success: bool = self.process_runner.run_process(
             args,
@@ -156,26 +154,32 @@ class CreationKitWrapper:
         Returns:
             True if errors found, False otherwise
         """
+        # Skip log checking if no CKPE config or no log file configured
+        if not self.ckpe_config or not self.ckpe_config.log_output_file:
+            logger.debug("Skipping CK error checking - no log file configured in CKPE")
+            return False
+
         log_patterns: list[str] = ["OUT OF HANDLE ARRAY ENTRIES", "Failed to load", "ERROR:", "FATAL:", "Exception"]
 
-        # Check common CK log locations
-        possible_log_paths: list[Path] = [
-            data_path.parent / "Logs" / "CreationKit.log",
-            Path.home() / "Documents" / "My Games" / "Fallout4" / "Logs" / "CreationKit.log",
-            data_path / "Logs" / "CreationKit.log",
-        ]
+        # Use the configured log file path
+        log_path = Path(self.ckpe_config.log_output_file)
 
-        for log_path in possible_log_paths:
-            if log_path.exists():
-                try:
-                    with log_path.open(encoding="utf-8", errors="ignore") as f:
-                        content: str = f.read()
-                        for pattern in log_patterns:
-                            if pattern in content:
-                                logger.error(f"Found error pattern '{pattern}' in {log_path}")
-                                return True
-                except (OSError, UnicodeDecodeError) as e:
-                    logger.warning(f"Could not read log file {log_path}: {e}")
+        # If it's a relative path, resolve it relative to the data directory
+        if not log_path.is_absolute():
+            log_path = data_path / log_path
+
+        if log_path.exists():
+            try:
+                with log_path.open(encoding="utf-8", errors="ignore") as f:
+                    content: str = f.read()
+                    for pattern in log_patterns:
+                        if pattern in content:
+                            logger.error(f"Found error pattern '{pattern}' in {log_path}")
+                            return True
+            except (OSError, UnicodeDecodeError) as e:
+                logger.warning(f"Could not read log file {log_path}: {e}")
+        else:
+            logger.warning(f"Configured CK log file not found: {log_path}")
 
         return False
 
@@ -188,25 +192,32 @@ class CreationKitWrapper:
         Returns:
             True if completed successfully, False otherwise
         """
+        # Skip log checking if no CKPE config or no log file configured
+        if not self.ckpe_config or not self.ckpe_config.log_output_file:
+            logger.debug("Skipping previs completion checking - no log file configured in CKPE")
+            return True
+
         # Look for completion indicators in logs
         completion_patterns: list[str] = ["visibility task did not complete", "Previs generation failed", "Could not complete previs"]
 
-        possible_log_paths: list[Path] = [
-            data_path.parent / "Logs" / "CreationKit.log",
-            Path.home() / "Documents" / "My Games" / "Fallout4" / "Logs" / "CreationKit.log",
-            data_path / "Logs" / "CreationKit.log",
-        ]
+        # Use the configured log file path
+        log_path = Path(self.ckpe_config.log_output_file)
 
-        for log_path in possible_log_paths:
-            if log_path.exists():
-                try:
-                    with log_path.open(encoding="utf-8", errors="ignore") as f:
-                        content: str = f.read()
-                        for pattern in completion_patterns:
-                            if pattern in content:
-                                logger.error(f"Found completion failure pattern '{pattern}' in {log_path}")
-                                return False
-                except (OSError, UnicodeDecodeError) as e:
-                    logger.warning(f"Could not read log file {log_path}: {e}")
+        # If it's a relative path, resolve it relative to the data directory
+        if not log_path.is_absolute():
+            log_path = data_path / log_path
+
+        if log_path.exists():
+            try:
+                with log_path.open(encoding="utf-8", errors="ignore") as f:
+                    content: str = f.read()
+                    for pattern in completion_patterns:
+                        if pattern in content:
+                            logger.error(f"Found completion failure pattern '{pattern}' in {log_path}")
+                            return False
+            except (OSError, UnicodeDecodeError) as e:
+                logger.warning(f"Could not read log file {log_path}: {e}")
+        else:
+            logger.warning(f"Configured CK log file not found: {log_path}")
 
         return True

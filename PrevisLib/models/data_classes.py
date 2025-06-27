@@ -71,7 +71,7 @@ class CKPEConfig:
             handle_setting=data.get("CreationKitPlatformExtended", {}).get(
                 "bBSPointerHandleExtremly", False
             ),  # Placeholder as CKPE release with TOML has not been released
-            log_output_file=data.get("CreationKitPlatformExtended", {}).get("sOutputFile", ""),
+            log_output_file=data.get("Log", {}).get("sOutputFile", ""),
             config_path=config_path,
             raw_config=data,
         )
@@ -83,13 +83,15 @@ class CKPEConfig:
         parser: ConfigParser = configparser.ConfigParser()
         parser.read(config_path)
 
+        # Check for both CreationKit and Log sections
         ckpe_section: SectionProxy | dict[Any, Any] = parser["CreationKit"] if parser.has_section("CreationKit") else {}
+        log_section: SectionProxy | dict[Any, Any] = parser["Log"] if parser.has_section("Log") else {}
 
         return cls(
             handle_setting=ckpe_section.getboolean("bBSPointerHandleExtremly", False)
             if isinstance(ckpe_section, SectionProxy)
             else ckpe_section.get("bBSPointerHandleExtremly", False),
-            log_output_file=ckpe_section.get("sOutputFile", ""),
+            log_output_file=log_section.get("sOutputFile", "") if log_section else "",
             config_path=config_path,
             raw_config={s: dict(parser.items(s)) for s in parser.sections()},
         )
