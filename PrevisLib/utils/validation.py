@@ -65,11 +65,54 @@ def validate_directory(directory: Path, name: str, must_exist: bool = True) -> t
     return True, ""
 
 
-def check_tool_version(tool_path: Path, expected_version: str | None = None) -> tuple[bool, str]:  # noqa: ARG001
+def check_tool_version(tool_path: Path, expected_version: str | None = None) -> tuple[bool, str]:
+    """Check the version of a Windows executable tool.
+    
+    Args:
+        tool_path: Path to the executable
+        expected_version: Expected version string (optional)
+        
+    Returns:
+        Tuple of (success, message/version)
+    """
     if not tool_path.exists():
         return False, "Tool not found"
-
-    return True, "Version check not implemented"
+    
+    try:
+        import pefile
+    except ImportError:
+        return True, "pefile not available - version check skipped"
+    
+    pe = None
+    try:
+        pe = pefile.PE(str(tool_path))
+        
+        # Look for version info in the file
+        if hasattr(pe, 'VS_VERSIONINFO'):
+            for file_info in pe.FileInfo[0]:
+                if file_info.Key.decode() == 'StringFileInfo':
+                    for string_table in file_info.StringTable:
+                        for entry in string_table.entries.items():
+                            key = entry[0].decode()
+                            value = entry[1].decode()
+                            if key in ('FileVersion', 'ProductVersion'):
+                                version = value.strip()
+                                if expected_version:
+                                    if version == expected_version:
+                                        return True, f"Version matches: {version}"
+                                    return False, f"Version mismatch: found {version}, expected {expected_version}"
+                                return True, f"Version: {version}"
+        
+        # If no version info found
+        if expected_version:
+            return False, "No version information found in executable"
+        return True, "No version information available"  # noqa: TRY300
+            
+    except (OSError, ValueError, AttributeError) as e:
+        return False, f"Failed to read executable version: {e}"
+    finally:
+        if pe is not None:
+            pe.close()
 
 
 def validate_ckpe_config(config_path: Path) -> tuple[bool, str]:
