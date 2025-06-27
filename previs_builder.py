@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import platform
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 from rich.console import Console
@@ -18,8 +20,11 @@ from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep
 from PrevisLib.utils.logging import get_logger, setup_logger
 from PrevisLib.utils.validation import validate_plugin_name
 
-console = Console()
-logger = get_logger(__name__)
+if TYPE_CHECKING:
+    from loguru import Logger
+
+console: Console = Console()
+logger: Logger = get_logger(__name__)
 
 # Banner art
 BANNER = """
@@ -313,7 +318,7 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
     console.print(BANNER, style="bold cyan")
 
     # Check platform
-    if sys.platform != "win32":
+    if sys.platform != "win32" or platform.system() != "Windows":
         console.print("[bold yellow]⚠ Warning:[/bold yellow] Running on non-Windows platform.")
         console.print("Some features may not work correctly.\n")
 
