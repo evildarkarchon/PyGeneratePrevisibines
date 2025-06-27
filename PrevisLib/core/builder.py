@@ -196,6 +196,13 @@ class PrevisBuilder:
                 return False
             logger.info(f"Generated {mesh_count} precombined mesh files")
             
+            # Check for CombinedObjects.esp output file
+            combined_objects_path = self.data_path / "CombinedObjects.esp"
+            if not fs.wait_for_output_file(combined_objects_path, timeout=60.0, check_interval=1.0):
+                logger.error("CombinedObjects.esp was not created by Creation Kit")
+                raise FileNotFoundError
+            logger.info("CombinedObjects.esp successfully created")
+            
         return success
         
     def _step_merge_combined_objects(self) -> bool:
@@ -267,6 +274,13 @@ class PrevisBuilder:
                 logger.error("No visibility data files were generated")
                 return False
             logger.info(f"Generated {vis_count} visibility data files")
+            
+            # Check for Previs.esp output file
+            previs_path = self.data_path / "Previs.esp"
+            if not fs.wait_for_output_file(previs_path, timeout=120.0, check_interval=2.0):
+                logger.error("Previs.esp was not created by Creation Kit")
+                raise FileNotFoundError
+            logger.info("Previs.esp successfully created")
             
         return success
         

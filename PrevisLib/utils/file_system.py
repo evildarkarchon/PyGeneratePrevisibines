@@ -43,6 +43,49 @@ def wait_for_file(file_path: Path, timeout: float = 30.0, check_interval: float 
     return False
 
 
+def wait_for_output_file(file_path: Path, timeout: float = 30.0, check_interval: float = 0.5) -> bool:
+    """Wait for an output file with MO2-aware delay if ModOrganizer is running."""
+    from PrevisLib.utils.process import check_process_running
+    
+    # Check if ModOrganizer is running
+    mo2_running = check_process_running("ModOrganizer")
+    
+    if mo2_running:
+        logger.info(f"ModOrganizer detected - using extended delay for {file_path.name}")
+        # Use longer timeout and check interval for MO2
+        timeout = max(timeout, 10.0)  # Minimum 10 seconds
+        check_interval = max(check_interval, 1.0)  # Check every second
+        
+        # Add initial delay to let MO2 VFS catch up
+        time.sleep(3.0)
+    
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        # Check for case-insensitive file existence
+        if _file_exists_case_insensitive(file_path):
+            if mo2_running:
+                logger.info(f"Found {file_path.name} after {time.time() - start_time:.1f}s")
+            return True
+        time.sleep(check_interval)
+    
+    return False
+
+
+def _file_exists_case_insensitive(file_path: Path) -> bool:
+    """Check if file exists with case-insensitive matching."""
+    if file_path.exists():
+        return True
+    
+    # Check parent directory for case-insensitive match
+    parent = file_path.parent
+    if not parent.exists():
+        return False
+    
+    target_name = file_path.name.lower()
+    return any(item.name.lower() == target_name for item in parent.iterdir())
+
+
 def mo2_aware_move(source: Path, destination: Path, delay: float = 2.0) -> None:
     logger.debug(f"Moving {source} to {destination} (MO2 delay: {delay}s)")
     
