@@ -8,7 +8,7 @@ from pathlib import Path
 
 import click
 from rich.console import Console
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TextColumn
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
@@ -40,14 +40,14 @@ def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode, bool]:
     Returns:
         Tuple of (plugin_name, build_mode, use_bsarch)
     """
-    plugin_name = None
-    build_mode = BuildMode.CLEAN
-    use_bsarch = False
+    plugin_name: str | None = None
+    build_mode: BuildMode = BuildMode.CLEAN
+    use_bsarch: bool = False
 
     for arg in args:
         if arg.startswith("-"):
             # Handle flags
-            flag = arg.lower()
+            flag: str = arg.lower()
             if flag == "-clean":
                 build_mode = BuildMode.CLEAN
             elif flag == "-filtered":
@@ -73,7 +73,7 @@ def prompt_for_plugin() -> str | None:
     console.print("[dim]Example: MyMod.esp[/dim]")
 
     while True:
-        plugin_name = Prompt.ask("\nPlugin name", default="")
+        plugin_name: str = Prompt.ask("\nPlugin name", default="")
 
         if not plugin_name:
             if Confirm.ask("Exit without processing?", default=True):
@@ -81,7 +81,7 @@ def prompt_for_plugin() -> str | None:
             continue
 
         # Validate plugin name
-        validation_result = validate_plugin_name(plugin_name)
+        validation_result: tuple[bool, str] | str = validate_plugin_name(plugin_name)
         if isinstance(validation_result, tuple):
             is_valid, result_value = validation_result
             if not is_valid:
@@ -108,7 +108,7 @@ def prompt_for_build_mode() -> BuildMode:
     """
     console.print("\n[cyan]Select build mode:[/cyan]")
 
-    modes = [
+    modes: list[tuple[str, str, str, BuildMode]] = [
         ("1", "Clean", "Full rebuild - deletes existing previs data", BuildMode.CLEAN),
         ("2", "Filtered", "Only generate for filtered cells", BuildMode.FILTERED),
         ("3", "Xbox", "Optimized for Xbox platform", BuildMode.XBOX),
@@ -121,7 +121,7 @@ def prompt_for_build_mode() -> BuildMode:
     console.print(table)
 
     while True:
-        choice = Prompt.ask("\nSelect mode", choices=["1", "2", "3"], default="1")
+        choice: str = Prompt.ask("\nSelect mode", choices=["1", "2", "3"], default="1")
 
         for num, _, _, mode in modes:
             if choice == num:
@@ -137,7 +137,7 @@ def prompt_for_resume(builder: PrevisBuilder) -> BuildStep | None:
     Returns:
         Selected step or None to start fresh
     """
-    resume_options = builder.get_resume_options()
+    resume_options: list[BuildStep] = builder.get_resume_options()
 
     console.print("\n[cyan]Previous build was interrupted. Resume from:[/cyan]")
 
@@ -149,8 +149,8 @@ def prompt_for_resume(builder: PrevisBuilder) -> BuildStep | None:
 
     console.print(table)
 
-    choices = ["0"] + [str(i) for i in range(1, len(resume_options) + 1)]
-    choice = Prompt.ask("\nSelect option", choices=choices, default="0")
+    choices: list[str] = ["0"] + [str(i) for i in range(1, len(resume_options) + 1)]
+    choice: str = Prompt.ask("\nSelect option", choices=choices, default="0")
 
     if choice == "0":
         return None
@@ -191,7 +191,7 @@ def run_build(settings: Settings) -> bool:
     builder = PrevisBuilder(settings)
 
     # Check for previous failed build
-    start_step = None
+    start_step: BuildStep | None = None
     if builder.failed_step:
         start_step = prompt_for_resume(builder)
 
@@ -212,8 +212,8 @@ def run_build(settings: Settings) -> bool:
         console=console,
     ) as progress:
         # Create main task
-        total_steps = len(list(BuildStep))
-        task = progress.add_task("Building previs...", total=total_steps)
+        total_steps: int = len(list(BuildStep))
+        task: TaskID = progress.add_task("Building previs...", total=total_steps)
 
         # Custom progress callback
         def update_progress(step: BuildStep, completed: bool) -> None:
@@ -225,13 +225,13 @@ def run_build(settings: Settings) -> bool:
 
         # Inject progress callback (this would need to be added to builder)
         # For now, we'll simulate
-        success = builder.build(start_from_step=start_step)
+        success: bool = builder.build(start_from_step=start_step)
 
     if success:
         console.print("\n[bold green]✓ Build completed successfully![/bold green]")
 
         # Show output files (corrected to match actual output)
-        plugin_base = Path(settings.plugin_name).stem
+        plugin_base: str = Path(settings.plugin_name).stem
         console.print("\n[cyan]Generated files:[/cyan]")
         console.print(f"  • {plugin_base} - Main.ba2")
         if settings.build_mode == BuildMode.CLEAN:
@@ -241,7 +241,7 @@ def run_build(settings: Settings) -> bool:
         # Post-build cleanup prompt (matches original batch file)
         if Confirm.ask("\nRemove working files?", default=True):
             console.print("\n[dim]Removing working files...[/dim]")
-            cleanup_success = builder.cleanup_working_files()
+            cleanup_success: bool = builder.cleanup_working_files()
             if cleanup_success:
                 console.print("[green]✓ Working files cleaned up[/green]")
             else:
@@ -263,7 +263,7 @@ def prompt_for_cleanup(settings: Settings) -> bool:
     Returns:
         True if cleanup was performed
     """
-    plugin_base = Path(settings.plugin_name).stem
+    plugin_base: str = Path(settings.plugin_name).stem
 
     console.print("\n[yellow]Cleanup mode - Remove existing previs files[/yellow]")
     console.print("\nThis will delete:")
@@ -279,7 +279,7 @@ def prompt_for_cleanup(settings: Settings) -> bool:
     builder = PrevisBuilder(settings)
 
     with console.status("Cleaning up files..."):
-        success = builder.cleanup()
+        success: bool = builder.cleanup()
 
     if success:
         console.print("\n[green]✓ Cleanup completed successfully![/green]")
@@ -322,7 +322,7 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
         plugin_name, build_mode, use_bsarch = parse_command_line(list(args))
 
         # Initialize settings
-        settings = Settings()
+        settings: Settings = Settings()
         settings.verbose = verbose
 
         # Apply command line options
@@ -337,7 +337,7 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
         settings.archive_tool = ArchiveTool.BSARCH if use_bsarch else ArchiveTool.ARCHIVE2
 
         # Validate tools
-        errors = settings.tool_paths.validate()
+        errors: list[str] = settings.tool_paths.validate()
         if errors:
             console.print("\n[bold red]⚠ Tool Configuration Issues:[/bold red]")
             for error in errors:
@@ -367,7 +367,7 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
                 settings.build_mode = prompt_for_build_mode()
 
         # Run the build
-        success = run_build(settings)
+        success: bool = run_build(settings)
 
         # Exit with appropriate code
         sys.exit(0 if success else 1)
