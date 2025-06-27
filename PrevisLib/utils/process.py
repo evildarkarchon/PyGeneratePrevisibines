@@ -3,10 +3,12 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PrevisLib.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -18,7 +20,7 @@ class ProcessResult:
         stdout: str,
         stderr: str,
         elapsed_time: float,
-    ):
+    ) -> None:
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
@@ -26,7 +28,7 @@ class ProcessResult:
         self.success = returncode == 0
 
 
-def run_process(
+def run_process(  # noqa: PLR0913
     command: list[str] | str,
     cwd: Path | None = None,
     timeout: float | None = None,
@@ -67,6 +69,7 @@ def run_process(
                 timeout=timeout,
                 shell=shell,
                 env=env,
+                text=True,
             )
             result.stdout = ""
             result.stderr = ""
@@ -87,8 +90,6 @@ def run_process(
             if capture_output and result.stderr:
                 logger.error(f"Error output: {result.stderr}")
 
-        return process_result
-
     except subprocess.TimeoutExpired:
         elapsed_time = time.time() - start_time
         logger.error(f"Command timed out after {elapsed_time:.2f}s")
@@ -98,7 +99,7 @@ def run_process(
             stderr=f"Process timed out after {timeout}s",
             elapsed_time=elapsed_time,
         )
-    except Exception as e:
+    except (OSError, ValueError) as e:
         elapsed_time = time.time() - start_time
         logger.error(f"Failed to run command: {e}")
         return ProcessResult(
@@ -107,6 +108,8 @@ def run_process(
             stderr=str(e),
             elapsed_time=elapsed_time,
         )
+    else:
+        return process_result
 
 
 class ProcessRunner:
@@ -139,7 +142,7 @@ def check_process_running(process_name: str) -> bool:
                 return True
     except ImportError:
         logger.warning("psutil not available, cannot check running processes")
-    except Exception as e:
+    except (OSError, AttributeError) as e:
         logger.error(f"Error checking process: {e}")
 
     return False
@@ -156,10 +159,10 @@ def kill_process(process_name: str) -> bool:
                 proc.kill()
                 killed = True
 
-        return killed
+        return killed  # noqa: TRY300
     except ImportError:
         logger.warning("psutil not available, cannot kill processes")
-    except Exception as e:
+    except (OSError, AttributeError) as e:
         logger.error(f"Error killing process: {e}")
 
     return False
@@ -182,10 +185,28 @@ def run_with_window_automation(
         )
 
     try:
-        import pywinauto
-        from pywinauto.application import Application
+        from pywinauto.application import Application  # type: ignore[reportMissingImports, import-not-found]
     except ImportError:
         logger.error("pywinauto not available for window automation")
+        
+        # Create stubs for pywinauto classes
+        class WindowStub:
+            def wait(self, condition: str, timeout: float = 30) -> None:
+                pass
+            
+            def wait_not(self, condition: str, timeout: float = 300) -> None:
+                pass
+        
+        class Application:
+            def __init__(self, backend: str = "win32") -> None:
+                pass
+            
+            def start(self, cmd_line: str, work_dir: str | None = None) -> "Application":  # noqa: ARG002, UP037
+                return self
+            
+            def window(self, title_re: str) -> WindowStub:  # noqa: ARG002
+                return WindowStub()
+        
         return ProcessResult(
             returncode=-1,
             stdout="",
@@ -195,10 +216,7 @@ def run_with_window_automation(
 
     logger.info(f"Starting process with window automation: {window_title}")
 
-    if isinstance(command, list):
-        command_str = " ".join(command)
-    else:
-        command_str = command
+    command_str = " ".join(command) if isinstance(command, list) else command
 
     try:
         app = Application(backend="win32").start(command_str, work_dir=str(cwd) if cwd else None)
@@ -220,7 +238,7 @@ def run_with_window_automation(
             elapsed_time=timeout,
         )
 
-    except Exception as e:
+    except (OSError, AttributeError, ValueError) as e:
         logger.error(f"Window automation failed: {e}")
         return ProcessResult(
             returncode=-1,

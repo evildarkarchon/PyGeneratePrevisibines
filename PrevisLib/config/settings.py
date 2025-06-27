@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -10,7 +10,10 @@ from PrevisLib.config.registry import find_tool_paths
 from PrevisLib.models.data_classes import ArchiveTool, BuildMode, CKPEConfig, ToolPaths
 from PrevisLib.utils.logging import get_logger
 
-logger = get_logger(__name__)
+if TYPE_CHECKING:
+    from loguru import Logger
+
+logger: Logger = get_logger(__name__)
 
 
 class Settings(BaseModel):
@@ -73,7 +76,7 @@ class Settings(BaseModel):
                     self.ckpe_config = CKPEConfig.from_toml(self.ckpe_config_path)
                 else:
                     self.ckpe_config = CKPEConfig.from_ini(self.ckpe_config_path)
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 logger.warning(f"Failed to load CKPE config: {e}")
         else:
             self.ckpe_config = None
@@ -107,8 +110,8 @@ class Settings(BaseModel):
         else:
             logger.warning("Running on non-Windows platform. Tool paths must be configured manually.")
 
-        ckpe_toml = settings.working_directory / "CreationKitPlatformExtended.toml"
-        ckpe_ini = settings.working_directory / "CreationKitPlatformExtended.ini"
+        ckpe_toml: Path = settings.working_directory / "CreationKitPlatformExtended.toml"
+        ckpe_ini: Path = settings.working_directory / "CreationKitPlatformExtended.ini"
 
         if ckpe_toml.exists():
             settings.ckpe_config_path = ckpe_toml

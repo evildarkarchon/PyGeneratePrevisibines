@@ -63,11 +63,8 @@ def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode, bool]:
     return plugin_name, build_mode, use_bsarch
 
 
-def prompt_for_plugin(settings: Settings) -> str | None:
+def prompt_for_plugin() -> str | None:
     """Prompt user for plugin name with validation.
-
-    Args:
-        settings: Current settings
 
     Returns:
         Valid plugin name or None if cancelled
@@ -84,20 +81,23 @@ def prompt_for_plugin(settings: Settings) -> str | None:
             continue
 
         # Validate plugin name
-        try:
-            plugin_name = validate_plugin_name(plugin_name)
+        validation_result = validate_plugin_name(plugin_name)
+        if isinstance(validation_result, tuple):
+            is_valid, result_value = validation_result
+            if not is_valid:
+                console.print(f"\n[red]Error:[/red] {result_value}")
+                continue
+            plugin_name = result_value
+        else:
+            plugin_name = validation_result
 
-            # Check for xPrevisPatch.esp
-            if plugin_name.lower() == "xprevispatch.esp":
-                console.print("\n[yellow]xPrevisPatch.esp is a special plugin used for testing.[/yellow]")
-                if Confirm.ask("Do you want to rename it to something else?", default=True):
-                    continue
+        # Check for xPrevisPatch.esp
+        if plugin_name.lower() == "xprevispatch.esp":
+            console.print("\n[yellow]xPrevisPatch.esp is a special plugin used for testing.[/yellow]")
+            if Confirm.ask("Do you want to rename it to something else?", default=True):
+                continue
 
-            return plugin_name
-
-        except ValueError as e:
-            console.print(f"\n[red]Error:[/red] {e}")
-            continue
+        return plugin_name
 
 
 def prompt_for_build_mode() -> BuildMode:
@@ -157,7 +157,7 @@ def prompt_for_resume(builder: PrevisBuilder) -> BuildStep | None:
     return resume_options[int(choice) - 1]
 
 
-def show_build_summary(settings: Settings):
+def show_build_summary(settings: Settings) -> None:
     """Display build configuration summary.
 
     Args:
@@ -216,7 +216,7 @@ def run_build(settings: Settings) -> bool:
         task = progress.add_task("Building previs...", total=total_steps)
 
         # Custom progress callback
-        def update_progress(step: BuildStep, completed: bool):
+        def update_progress(step: BuildStep, completed: bool) -> None:
             if completed:
                 progress.update(task, advance=1)
                 progress.update(task, description=f"Completed: {step}")
@@ -230,11 +230,22 @@ def run_build(settings: Settings) -> bool:
     if success:
         console.print("\n[bold green]✓ Build completed successfully![/bold green]")
 
-        # Show output files
+        # Show output files (corrected to match actual output)
         plugin_base = Path(settings.plugin_name).stem
         console.print("\n[cyan]Generated files:[/cyan]")
-        console.print(f"  • {plugin_base} - Geometry.ba2")
-        console.print(f"  • {plugin_base} - Vis.ba2")
+        console.print(f"  • {plugin_base} - Main.ba2")
+        if settings.build_mode == BuildMode.CLEAN:
+            console.print(f"  • {plugin_base} - Geometry.csg")
+            console.print(f"  • {plugin_base}.cdx")
+
+        # Post-build cleanup prompt (matches original batch file)
+        if Confirm.ask("\nRemove working files?", default=True):
+            console.print("\n[dim]Removing working files...[/dim]")
+            cleanup_success = builder.cleanup_working_files()
+            if cleanup_success:
+                console.print("[green]✓ Working files cleaned up[/green]")
+            else:
+                console.print("[yellow]⚠ Some working files could not be removed[/yellow]")
 
     else:
         console.print(f"\n[bold red]✗ Build failed at step: {builder.failed_step}[/bold red]")
@@ -256,9 +267,11 @@ def prompt_for_cleanup(settings: Settings) -> bool:
 
     console.print("\n[yellow]Cleanup mode - Remove existing previs files[/yellow]")
     console.print("\nThis will delete:")
-    console.print(f"  • {plugin_base} - Geometry.ba2")
-    console.print(f"  • {plugin_base} - Vis.ba2")
-    console.print("  • Any temporary build files")
+    console.print(f"  • {plugin_base} - Main.ba2")
+    console.print(f"  • {plugin_base} - Geometry.csg (if exists)")
+    console.print(f"  • {plugin_base}.cdx (if exists)")
+    console.print("  • Working files (CombinedObjects.esp, Previs.esp)")
+    console.print("  • Temporary build directories")
 
     if not Confirm.ask("\nProceed with cleanup?", default=False):
         return False
@@ -276,7 +289,7 @@ def prompt_for_cleanup(settings: Settings) -> bool:
     return success
 
 
-@click.command(context_settings=dict(ignore_unknown_options=True))
+@click.command(context_settings={"ignore_unknown_options": True})
 @click.argument("args", nargs=-1)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 def main(args: tuple[str, ...], verbose: bool) -> None:
@@ -314,7 +327,12 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
 
         # Apply command line options
         if plugin_name:
-            settings.plugin_name = validate_plugin_name(plugin_name)
+            is_valid, validated_name = validate_plugin_name(plugin_name)
+            if is_valid:
+                settings.plugin_name = validated_name
+            else:
+                console.print(f"[red]Invalid plugin name: {plugin_name}[/red]")
+                return
         settings.build_mode = build_mode
         settings.archive_tool = ArchiveTool.BSARCH if use_bsarch else ArchiveTool.ARCHIVE2
 
@@ -330,14 +348,14 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
         if not settings.plugin_name:
             # Check for cleanup mode
             if Confirm.ask("\nDo you want to clean up existing previs files?", default=False):
-                plugin = prompt_for_plugin(settings)
+                plugin = prompt_for_plugin()
                 if plugin:
                     settings.plugin_name = plugin
                     prompt_for_cleanup(settings)
                     return
 
             # Normal build mode
-            plugin = prompt_for_plugin(settings)
+            plugin = prompt_for_plugin()
             if not plugin:
                 console.print("\n[yellow]No plugin selected. Exiting.[/yellow]")
                 return
@@ -358,7 +376,7 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
         console.print("\n\n[yellow]Build cancelled by user.[/yellow]")
         sys.exit(130)
 
-    except Exception as e:
+    except (ValueError, OSError, RuntimeError) as e:
         console.print(f"\n[bold red]Unexpected error:[/bold red] {e}")
         if verbose:
             console.print_exception()

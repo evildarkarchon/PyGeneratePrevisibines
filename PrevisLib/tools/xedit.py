@@ -1,26 +1,58 @@
 """xEdit/FO4Edit wrapper for previs operations."""
 
+import subprocess
 import time
 from pathlib import Path
+from typing import Any, Literal, Self
 
 from loguru import logger
 
-from ..utils.process import ProcessRunner
+from PrevisLib.utils.process import ProcessRunner
 
 try:
-    from pywinauto import Application
-    from pywinauto.timings import TimeoutError as PywinautoTimeoutError
+    from pywinauto import Application  # type: ignore[reportMissingImports, import-not-found]
+    from pywinauto.timings import TimeoutError as PywinautoTimeoutError  # type: ignore[reportMissingImports, import-not-found]
 
     PYWINAUTO_AVAILABLE = True
 except ImportError:
     PYWINAUTO_AVAILABLE = False
     logger.warning("pywinauto not available - xEdit automation will be limited")
 
+    # Create stubs for pywinauto classes/functions
+    class WindowStub:
+        def exists(self) -> Literal[False]:
+            return False
+
+        def window_text(self) -> Literal[""]:
+            return ""
+
+        def close(self) -> None:
+            pass
+
+        def child_window(self, control_type: Any = None) -> Self:  # noqa: ARG002
+            return self
+
+        def descendants(self, control_type: Any = None) -> list[Any]:  # noqa: ARG002
+            return []
+
+    class Application:
+        def __init__(self, backend: str = "uia") -> None:
+            pass
+
+        def connect(self, process: Any = None) -> Self:  # noqa: ARG002
+            return self
+
+        def window(self, title_re: Any = None) -> WindowStub:  # noqa: ARG002
+            return WindowStub()
+
+    class PywinautoTimeoutError(Exception):
+        pass
+
 
 class XEditWrapper:
     """Wrapper for xEdit/FO4Edit operations."""
 
-    def __init__(self, xedit_path: Path, plugin_name: str):
+    def __init__(self, xedit_path: Path, plugin_name: str) -> None:
         self.xedit_path = xedit_path
         self.plugin_name = plugin_name
         self.process_runner = ProcessRunner()
@@ -126,8 +158,6 @@ class XEditWrapper:
             logger.info(f"Starting xEdit with automation for {operation_name}")
 
             # Start xEdit process
-            import subprocess
-
             process = subprocess.Popen(args)
             time.sleep(3)  # Give xEdit time to start
 
@@ -149,7 +179,7 @@ class XEditWrapper:
                             title = dialog.window_text()
                             if "error" in title.lower() or "exception" in title.lower():
                                 logger.error(f"Error dialog detected: {title}")
-                                try:
+                                try:  # noqa: SIM105
                                     # Try to close error dialog
                                     dialog.close()
                                 except:
@@ -176,13 +206,14 @@ class XEditWrapper:
 
             # Check exit code
             return_code = process.wait(timeout=10)
-            return return_code == 0
 
-        except Exception as e:
+        except (subprocess.SubprocessError, PywinautoTimeoutError, OSError, TimeoutError) as e:
             logger.error(f"Window automation failed: {e}")
             return False
+        else:
+            return return_code == 0
 
-    def _is_xedit_busy(self, window) -> bool:
+    def _is_xedit_busy(self, window) -> bool:  # noqa: ANN001
         """Check if xEdit is still processing.
 
         Args:
@@ -227,7 +258,7 @@ class XEditWrapper:
         for log_path in possible_log_paths:
             if log_path.exists():
                 try:
-                    with open(log_path, encoding="utf-8", errors="ignore") as f:
+                    with log_path.open(encoding="utf-8", errors="ignore") as f:
                         content = f.read()
 
                         # Check for errors first
@@ -242,7 +273,7 @@ class XEditWrapper:
                                 logger.info(f"Found success pattern '{pattern}' in xEdit log")
                                 return True
 
-                except Exception as e:
+                except (OSError, UnicodeDecodeError) as e:
                     logger.warning(f"Could not read log file {log_path}: {e}")
 
         logger.warning(f"Could not find xEdit log for {operation}")

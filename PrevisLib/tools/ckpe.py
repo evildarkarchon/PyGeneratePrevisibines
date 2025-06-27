@@ -4,13 +4,13 @@ from pathlib import Path
 
 from loguru import logger
 
-from ..models.data_classes import CKPEConfig
+from PrevisLib.models.data_classes import CKPEConfig
 
 
 class CKPEConfigHandler:
     """Handler for reading and parsing CKPE configuration files."""
 
-    def __init__(self, fo4_path: Path):
+    def __init__(self, fo4_path: Path) -> None:
         self.fo4_path = fo4_path
         self.data_path = fo4_path / "Data"
 
@@ -52,11 +52,12 @@ class CKPEConfigHandler:
         try:
             config = CKPEConfig.from_toml(config_path)
             logger.success(f"Loaded TOML CKPE configuration from {config_path}")
-            return config
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.error(f"Failed to load TOML config {config_path}: {e}")
             return None
+        else:
+            return config
 
     def _load_ini_config(self, config_path: Path) -> CKPEConfig | None:
         """Load CKPE configuration from INI file.
@@ -70,9 +71,9 @@ class CKPEConfigHandler:
         try:
             config = CKPEConfig.from_ini(config_path)
             logger.success(f"Loaded INI CKPE configuration from {config_path}")
-            return config
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.error(f"Failed to load INI config {config_path}: {e}")
             return None
-
+        else:
+            return config

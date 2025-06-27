@@ -6,7 +6,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from ..utils.process import ProcessRunner
+from PrevisLib.utils.process import ProcessRunner
 
 
 class ArchiveTool(Enum):
@@ -19,7 +19,7 @@ class ArchiveTool(Enum):
 class ArchiveWrapper:
     """Wrapper for archive operations using Archive2 or BSArch."""
 
-    def __init__(self, tool: ArchiveTool, tool_path: Path):
+    def __init__(self, tool: ArchiveTool, tool_path: Path) -> None:
         self.tool = tool
         self.tool_path = tool_path
         self.process_runner = ProcessRunner()
@@ -84,9 +84,8 @@ class ArchiveWrapper:
 
         try:
             # Extract existing archive
-            if archive_path.exists():
-                if not self.extract_archive(archive_path, temp_dir):
-                    return False
+            if archive_path.exists() and not self.extract_archive(archive_path, temp_dir):
+                return False
 
             # Copy new files
             for file_path in files_to_add:
@@ -105,9 +104,7 @@ class ArchiveWrapper:
 
             # Recreate archive
             archive_path.unlink(missing_ok=True)
-            success = self.create_archive(archive_path, temp_dir)
-
-            return success
+            return self.create_archive(archive_path, temp_dir)
 
         finally:
             # Cleanup temp directory
@@ -116,25 +113,36 @@ class ArchiveWrapper:
 
     def _create_archive2(self, archive_path: Path, source_dir: Path, file_list: list[str] | None, compress: bool) -> bool:
         """Create archive using Archive2.exe."""
-        args = [str(self.tool_path), str(archive_path), "-create"]
-
-        if compress:
-            args.append("-compress")
+        # Archive2 expects files/folders as positional args, then options
+        args = [str(self.tool_path)]
+        list_file = None
 
         if file_list:
-            # Create a file list
+            # Create a source file list
             list_file = archive_path.parent / f"{archive_path.stem}_files.txt"
-            with open(list_file, "w") as f:
+            with list_file.open("w") as f:
                 f.writelines(f"{file_name}\n" for file_name in file_list)
-            args.extend(["-filelist", str(list_file)])
+            args.extend(["-sourceFile=" + str(list_file)])
         else:
-            # Add all files from source directory
-            args.extend(["-root", str(source_dir)])
+            # Add source directory as positional argument
+            args.append(str(source_dir))
+
+        # Add create option with archive path
+        args.append(f"-create={archive_path}")
+
+        # Add root directory option
+        args.append(f"-root={source_dir}")
+
+        # Set compression option
+        if compress:
+            args.append("-compression=Default")
+        else:
+            args.append("-compression=None")
 
         success = self.process_runner.run_process(args, timeout=600)
 
         # Cleanup file list if created
-        if file_list and "list_file" in locals():
+        if list_file is not None:
             list_file.unlink(missing_ok=True)
 
         if success and archive_path.exists():
@@ -187,7 +195,7 @@ class ArchiveWrapper:
 
     def _extract_archive2(self, archive_path: Path, output_dir: Path) -> bool:
         """Extract archive using Archive2.exe."""
-        args = [str(self.tool_path), str(archive_path), "-extract", str(output_dir)]
+        args = [str(self.tool_path), str(archive_path), f"-extract={output_dir}"]
 
         success = self.process_runner.run_process(args, timeout=300)
 

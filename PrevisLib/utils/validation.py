@@ -65,7 +65,7 @@ def validate_directory(directory: Path, name: str, must_exist: bool = True) -> t
     return True, ""
 
 
-def check_tool_version(tool_path: Path, expected_version: str | None = None) -> tuple[bool, str]:
+def check_tool_version(tool_path: Path, expected_version: str | None = None) -> tuple[bool, str]:  # noqa: ARG001
     if not tool_path.exists():
         return False, "Tool not found"
 
@@ -83,14 +83,14 @@ def validate_ckpe_config(config_path: Path) -> tuple[bool, str]:
         if config_path.suffix == ".toml":
             import tomli
 
-            with open(config_path, "rb") as f:
+            with config_path.open("rb") as f:
                 tomli.load(f)
         else:
             import configparser
 
             parser = configparser.ConfigParser()
             parser.read(config_path)
-    except Exception as e:
+    except (OSError, ImportError, ValueError, KeyError) as e:
         return False, f"Failed to parse CKPE config: {e}"
 
     return True, ""

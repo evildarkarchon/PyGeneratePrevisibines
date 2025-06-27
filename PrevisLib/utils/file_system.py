@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import shutil
 import time
-from collections.abc import Callable
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PrevisLib.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -126,13 +129,14 @@ def safe_delete(file_path: Path, retry_count: int = 3, retry_delay: float = 1.0)
                     file_path.unlink()
                 logger.debug(f"Deleted: {file_path}")
                 return True
-            return True  # Already gone
-        except Exception as e:
+        except (OSError, PermissionError, FileNotFoundError) as e:
             if attempt < retry_count - 1:
                 logger.warning(f"Failed to delete {file_path} (attempt {attempt + 1}/{retry_count}): {e}")
                 time.sleep(retry_delay)
             else:
                 logger.error(f"Failed to delete {file_path} after {retry_count} attempts: {e}")
+        else:
+            return True
     return False
 
 

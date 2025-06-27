@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from configparser import SectionProxy
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
@@ -63,11 +64,13 @@ class CKPEConfig:
     def from_toml(cls, config_path: Path) -> CKPEConfig:
         import tomli
 
-        with open(config_path, "rb") as f:
+        with config_path.open("rb") as f:
             data = tomli.load(f)
 
         return cls(
-            handle_setting=data.get("CreationKitPlatformExtended", {}).get("bBSPointerHandleExtremly", False), # Placeholder as CKPE release with TOML has not been released
+            handle_setting=data.get("CreationKitPlatformExtended", {}).get(
+                "bBSPointerHandleExtremly", False
+            ),  # Placeholder as CKPE release with TOML has not been released
             log_output_file=data.get("CreationKitPlatformExtended", {}).get("sOutputFile", ""),
             config_path=config_path,
             raw_config=data,
@@ -80,10 +83,12 @@ class CKPEConfig:
         parser = configparser.ConfigParser()
         parser.read(config_path)
 
-        ckpe_section = parser["CreationKit"] if "CreationKit" in parser else {}
+        ckpe_section: SectionProxy | dict[Any, Any] = parser["CreationKit"] if parser.has_section("CreationKit") else {}
 
         return cls(
-            handle_setting=ckpe_section.getboolean("bBSPointerHandleExtremly", False),
+            handle_setting=ckpe_section.getboolean("bBSPointerHandleExtremly", False)
+            if isinstance(ckpe_section, SectionProxy)
+            else ckpe_section.get("bBSPointerHandleExtremly", False),
             log_output_file=ckpe_section.get("sOutputFile", ""),
             config_path=config_path,
             raw_config={s: dict(parser.items(s)) for s in parser.sections()},

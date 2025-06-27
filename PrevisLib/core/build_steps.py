@@ -6,14 +6,14 @@ from typing import Any
 
 from loguru import logger
 
-from ..models.data_classes import BuildMode
-from ..utils import file_system as fs
+from PrevisLib.models.data_classes import BuildMode
+from PrevisLib.utils import file_system as fs
 
 
 class BuildStepExecutor:
     """Handles detailed execution logic for individual build steps."""
 
-    def __init__(self, plugin_name: str, fo4_path: Path, build_mode: BuildMode):
+    def __init__(self, plugin_name: str, fo4_path: Path, build_mode: BuildMode) -> None:
         self.plugin_name = plugin_name
         self.plugin_base = self._get_plugin_base_name(plugin_name)
         self.fo4_path = fo4_path
@@ -108,11 +108,12 @@ class BuildStepExecutor:
 
                     logger.info(f"Reorganized {len(nif_files)} files for archiving")
 
-            return True
-
-        except Exception as e:
+        except (OSError, shutil.Error) as e:
             logger.error(f"Failed to prepare files for archiving: {e}")
             return False
+
+        else:
+            return True
 
     def validate_visibility_output(self, output_path: Path) -> dict[str, Any]:
         """Validate visibility data generation output.
@@ -166,13 +167,16 @@ class BuildStepExecutor:
             warnings.append(f"Plugin is very large ({size_mb:.1f} MB), may cause CK issues")
 
         # Check for other previs files that might conflict
-        existing_geometry = self.data_path / f"{self.plugin_base} - Geometry.ba2"
-        existing_vis = self.data_path / f"{self.plugin_base} - Vis.ba2"
+        existing_main = self.data_path / f"{self.plugin_base} - Main.ba2"
+        existing_csg = self.data_path / f"{self.plugin_base} - Geometry.csg"
+        existing_cdx = self.data_path / f"{self.plugin_base}.cdx"
 
-        if existing_geometry.exists():
-            warnings.append("Existing Geometry.ba2 found - will be overwritten")
-        if existing_vis.exists():
-            warnings.append("Existing Vis.ba2 found - will be overwritten")
+        if existing_main.exists():
+            warnings.append("Existing Main.ba2 found - will be overwritten")
+        if existing_csg.exists():
+            warnings.append("Existing Geometry.csg found - will be overwritten")
+        if existing_cdx.exists():
+            warnings.append("Existing .cdx file found - will be overwritten")
 
         return warnings
 
@@ -230,10 +234,11 @@ class BuildStepExecutor:
         try:
             shutil.copy2(file_path, backup_path)
             logger.info(f"Created backup: {backup_path.name}")
-            return backup_path
-        except Exception as e:
+        except (OSError, shutil.Error) as e:
             logger.error(f"Failed to create backup: {e}")
             return None
+        else:
+            return backup_path
 
     def restore_backup(self, backup_path: Path) -> bool:
         """Restore a file from backup.
@@ -253,7 +258,8 @@ class BuildStepExecutor:
         try:
             shutil.copy2(backup_path, original_path)
             logger.info(f"Restored from backup: {original_path.name}")
-            return True
-        except Exception as e:
+        except (OSError, shutil.Error) as e:
             logger.error(f"Failed to restore backup: {e}")
             return False
+        else:
+            return True

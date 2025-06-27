@@ -4,14 +4,14 @@ from pathlib import Path
 
 from loguru import logger
 
-from ..models.data_classes import BuildMode
-from ..utils.process import ProcessRunner
+from PrevisLib.models.data_classes import BuildMode
+from PrevisLib.utils.process import ProcessRunner
 
 
 class CreationKitWrapper:
     """Wrapper for Creation Kit operations."""
 
-    def __init__(self, ck_path: Path, plugin_name: str, build_mode: BuildMode):
+    def __init__(self, ck_path: Path, plugin_name: str, build_mode: BuildMode) -> None:
         self.ck_path = ck_path
         self.plugin_name = plugin_name
         self.build_mode = build_mode
@@ -172,13 +172,13 @@ class CreationKitWrapper:
         for log_path in possible_log_paths:
             if log_path.exists():
                 try:
-                    with open(log_path, encoding="utf-8", errors="ignore") as f:
+                    with log_path.open(encoding="utf-8", errors="ignore") as f:
                         content = f.read()
                         for pattern in log_patterns:
                             if pattern in content:
                                 logger.error(f"Found error pattern '{pattern}' in {log_path}")
                                 return True
-                except Exception as e:
+                except (OSError, UnicodeDecodeError) as e:
                     logger.warning(f"Could not read log file {log_path}: {e}")
 
         return False
@@ -204,13 +204,13 @@ class CreationKitWrapper:
         for log_path in possible_log_paths:
             if log_path.exists():
                 try:
-                    with open(log_path, encoding="utf-8", errors="ignore") as f:
+                    with log_path.open(encoding="utf-8", errors="ignore") as f:
                         content = f.read()
                         for pattern in completion_patterns:
                             if pattern in content:
                                 logger.error(f"Found completion failure pattern '{pattern}' in {log_path}")
                                 return False
-                except Exception as e:
+                except (OSError, UnicodeDecodeError) as e:
                     logger.warning(f"Could not read log file {log_path}: {e}")
 
         return True
