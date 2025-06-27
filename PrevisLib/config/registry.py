@@ -70,7 +70,7 @@ def _find_fallout4_paths(winreg: type) -> tuple[Path | None, Path | None]:
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Wow6432Node\Bethesda Softworks\Fallout4") as key:
             install_path, _ = winreg.QueryValueEx(key, "installed path")
             if install_path:
-                install_path = Path(install_path)
+                install_path: Path = Path(install_path)
                 fo4_exe: Path = install_path / "Fallout4.exe"
                 ck_exe: Path = install_path / "CreationKit.exe"
 

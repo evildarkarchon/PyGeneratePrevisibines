@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from PrevisLib.utils.logging import get_logger
 
-logger = get_logger(__name__)
+if TYPE_CHECKING:
+    from configparser import ConfigParser
+
+    from loguru import Logger
+
+logger: Logger = get_logger(__name__)
 
 
-RESERVED_PLUGIN_NAMES = {
+RESERVED_PLUGIN_NAMES: set[str] = {
     "Fallout4.esm",
     "DLCRobot.esm",
     "DLCworkshop01.esm",
@@ -18,7 +24,7 @@ RESERVED_PLUGIN_NAMES = {
     "DLCUltraHighResolution.esm",
 }
 
-VALID_PLUGIN_EXTENSIONS = {".esp", ".esm", ".esl"}
+VALID_PLUGIN_EXTENSIONS: set[str] = {".esp", ".esm", ".esl"}
 
 
 def validate_plugin_name(plugin_name: str) -> tuple[bool, str]:
@@ -28,7 +34,7 @@ def validate_plugin_name(plugin_name: str) -> tuple[bool, str]:
     if " " in plugin_name:
         return False, "Plugin name cannot contain spaces"
 
-    plugin_path = Path(plugin_name)
+    plugin_path: Path = Path(plugin_name)
 
     if plugin_path.suffix.lower() not in VALID_PLUGIN_EXTENSIONS:
         return False, f"Plugin must have valid extension: {', '.join(VALID_PLUGIN_EXTENSIONS)}"
@@ -83,7 +89,7 @@ def check_tool_version(tool_path: Path, expected_version: str | None = None) -> 
     except ImportError:
         return True, "pefile not available - version check skipped"
     
-    pe = None
+    pe: pefile.PE | None = None
     try:
         pe = pefile.PE(str(tool_path))
         
@@ -93,10 +99,10 @@ def check_tool_version(tool_path: Path, expected_version: str | None = None) -> 
                 if file_info.Key.decode() == 'StringFileInfo':
                     for string_table in file_info.StringTable:
                         for entry in string_table.entries.items():
-                            key = entry[0].decode()
-                            value = entry[1].decode()
+                            key: Any = entry[0].decode()
+                            value: Any = entry[1].decode()
                             if key in ('FileVersion', 'ProductVersion'):
-                                version = value.strip()
+                                version: Any = value.strip()
                                 if expected_version:
                                     if version == expected_version:
                                         return True, f"Version matches: {version}"
@@ -131,7 +137,7 @@ def validate_ckpe_config(config_path: Path) -> tuple[bool, str]:
         else:
             import configparser
 
-            parser = configparser.ConfigParser()
+            parser: ConfigParser = configparser.ConfigParser()
             parser.read(config_path)
     except (OSError, ImportError, ValueError, KeyError) as e:
         return False, f"Failed to parse CKPE config: {e}"

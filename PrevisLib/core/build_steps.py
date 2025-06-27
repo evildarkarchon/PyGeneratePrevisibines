@@ -32,11 +32,11 @@ class BuildStepExecutor:
         Raises:
             ValueError: If plugin has invalid extension
         """
-        valid_extensions = {".esp", ".esm", ".esl"}
+        valid_extensions: set[str] = {".esp", ".esm", ".esl"}
 
         # Check if plugin has a valid extension
-        plugin_path = Path(plugin_name)
-        extension = plugin_path.suffix.lower()
+        plugin_path: Path = Path(plugin_name)
+        extension: str = plugin_path.suffix.lower()
 
         if extension not in valid_extensions:
             raise ValueError(f"Invalid plugin extension '{extension}'. Must be one of: {', '.join(valid_extensions)}")
@@ -52,10 +52,10 @@ class BuildStepExecutor:
         Returns:
             Validation results dictionary
         """
-        results = {"valid": True, "mesh_count": 0, "total_size": 0, "errors": []}
+        results: dict[str, Any] = {"valid": True, "mesh_count": 0, "total_size": 0, "errors": []}
 
         # Count mesh files
-        mesh_files = fs.find_files(output_path, "*.nif", recursive=True)
+        mesh_files: list[Path] = fs.find_files(output_path, "*.nif", recursive=True)
         results["mesh_count"] = len(mesh_files)
 
         if results["mesh_count"] == 0:
@@ -93,17 +93,17 @@ class BuildStepExecutor:
         try:
             # Ensure proper directory structure for BA2
             # Meshes should be in meshes/precombined/[plugin]/ structure
-            expected_structure = source_path / "meshes" / "precombined" / self.plugin_base
+            expected_structure: Path = source_path / "meshes" / "precombined" / self.plugin_base
 
             if not expected_structure.exists():
                 # Reorganize if needed
-                nif_files = fs.find_files(source_path, "*.nif", recursive=True)
+                nif_files: list[Path] = fs.find_files(source_path, "*.nif", recursive=True)
                 if nif_files:
                     fs.ensure_directory(expected_structure)
 
                     for nif_file in nif_files:
                         # Move to proper location
-                        dest = expected_structure / nif_file.name
+                        dest: Path = expected_structure / nif_file.name
                         shutil.move(str(nif_file), str(dest))
 
                     logger.info(f"Reorganized {len(nif_files)} files for archiving")
@@ -124,10 +124,10 @@ class BuildStepExecutor:
         Returns:
             Validation results dictionary
         """
-        results = {"valid": True, "uvd_count": 0, "total_size": 0, "errors": []}
+        results: dict[str, Any] = {"valid": True, "uvd_count": 0, "total_size": 0, "errors": []}
 
         # Count UVD files
-        uvd_files = fs.find_files(output_path, "*.uvd", recursive=True)
+        uvd_files: list[Path] = fs.find_files(output_path, "*.uvd", recursive=True)
         results["uvd_count"] = len(uvd_files)
 
         if results["uvd_count"] == 0:
@@ -154,22 +154,22 @@ class BuildStepExecutor:
         Returns:
             List of warnings/issues found
         """
-        warnings = []
+        warnings: list[str] = []
 
-        plugin_path = self.data_path / self.plugin_name
+        plugin_path: Path = self.data_path / self.plugin_name
         if not plugin_path.exists():
             warnings.append(f"Plugin file not found: {self.plugin_name}")
             return warnings
 
         # Check file size (very large plugins might have issues)
-        size_mb = plugin_path.stat().st_size / (1024 * 1024)
+        size_mb: float = plugin_path.stat().st_size / (1024 * 1024)
         if size_mb > 100:
             warnings.append(f"Plugin is very large ({size_mb:.1f} MB), may cause CK issues")
 
         # Check for other previs files that might conflict
-        existing_main = self.data_path / f"{self.plugin_base} - Main.ba2"
-        existing_csg = self.data_path / f"{self.plugin_base} - Geometry.csg"
-        existing_cdx = self.data_path / f"{self.plugin_base}.cdx"
+        existing_main: Path = self.data_path / f"{self.plugin_base} - Main.ba2"
+        existing_csg: Path = self.data_path / f"{self.plugin_base} - Geometry.csg"
+        existing_cdx: Path = self.data_path / f"{self.plugin_base}.cdx"
 
         if existing_main.exists():
             warnings.append("Existing Main.ba2 found - will be overwritten")
@@ -180,42 +180,6 @@ class BuildStepExecutor:
 
         return warnings
 
-    def estimate_processing_time(self) -> dict[str, int]:
-        """Estimate processing time for each step based on plugin size.
-
-        Returns:
-            Dictionary of step names to estimated minutes
-        """
-        plugin_path = self.data_path / self.plugin_name
-        if not plugin_path.exists():
-            # Default estimates
-            return {
-                "generate_precombined": 30,
-                "merge_combined_objects": 10,
-                "archive_meshes": 5,
-                "compress_psg": 5,
-                "build_cdx": 10,
-                "generate_previs": 40,
-                "merge_previs": 10,
-                "final_packaging": 5,
-            }
-
-        # Scale estimates based on plugin size
-        size_mb = plugin_path.stat().st_size / (1024 * 1024)
-        scale_factor = max(1.0, size_mb / 10.0)  # Scale up for plugins > 10MB
-
-        base_estimates = {
-            "generate_precombined": 20,
-            "merge_combined_objects": 5,
-            "archive_meshes": 3,
-            "compress_psg": 3,
-            "build_cdx": 5,
-            "generate_previs": 25,
-            "merge_previs": 5,
-            "final_packaging": 2,
-        }
-
-        return {step: int(minutes * scale_factor) for step, minutes in base_estimates.items()}
 
     def create_backup(self, file_path: Path) -> Path | None:
         """Create a backup of a file before modification.
@@ -229,7 +193,7 @@ class BuildStepExecutor:
         if not file_path.exists():
             return None
 
-        backup_path = file_path.with_suffix(f"{file_path.suffix}.backup")
+        backup_path: Path = file_path.with_suffix(f"{file_path.suffix}.backup")
 
         try:
             shutil.copy2(file_path, backup_path)
@@ -253,7 +217,7 @@ class BuildStepExecutor:
             logger.error(f"Backup file not found: {backup_path}")
             return False
 
-        original_path = backup_path.with_suffix("")  # Remove .backup
+        original_path: Path = backup_path.with_suffix("")  # Remove .backup
 
         try:
             shutil.copy2(backup_path, original_path)

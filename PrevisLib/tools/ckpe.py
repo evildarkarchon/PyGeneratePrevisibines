@@ -24,14 +24,14 @@ class CKPEConfigHandler:
             CKPEConfig if found and valid, None otherwise
         """
         # Try TOML format first (newer)
-        toml_path = self.data_path / f"{plugin_name}_CKPEConfig.toml"
+        toml_path: Path = self.data_path / f"{plugin_name}_CKPEConfig.toml"
         if toml_path.exists():
-            config = self._load_toml_config(toml_path)
+            config: CKPEConfig | None = self._load_toml_config(toml_path)
             if config:
                 return config
 
         # Try INI format (older)
-        ini_path = self.data_path / f"{plugin_name}_CKPEConfig.ini"
+        ini_path: Path = self.data_path / f"{plugin_name}_CKPEConfig.ini"
         if ini_path.exists():
             config = self._load_ini_config(ini_path)
             if config:
@@ -50,7 +50,7 @@ class CKPEConfigHandler:
             CKPEConfig if valid, None otherwise
         """
         try:
-            config = CKPEConfig.from_toml(config_path)
+            config: CKPEConfig = CKPEConfig.from_toml(config_path)
             logger.success(f"Loaded TOML CKPE configuration from {config_path}")
 
         except (OSError, ValueError) as e:
@@ -69,7 +69,7 @@ class CKPEConfigHandler:
             CKPEConfig if valid, None otherwise
         """
         try:
-            config = CKPEConfig.from_ini(config_path)
+            config: CKPEConfig = CKPEConfig.from_ini(config_path)
             logger.success(f"Loaded INI CKPE configuration from {config_path}")
 
         except (OSError, ValueError) as e:

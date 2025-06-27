@@ -189,7 +189,7 @@ class PrevisBuilder:
         fs.clean_directory(self.output_path)
 
         # Run Creation Kit
-        success: bool = self.ck_wrapper.generate_precombined(self.data_path, self.output_path)
+        success: bool = self.ck_wrapper.generate_precombined(self.data_path)
 
         if success:
             # Check if files were generated
@@ -258,7 +258,7 @@ class PrevisBuilder:
         fs.clean_directory(self.temp_path)
 
         # Run Creation Kit
-        success: bool = self.ck_wrapper.generate_previs_data(self.data_path, self.temp_path)
+        success: bool = self.ck_wrapper.generate_previs_data(self.data_path)
 
         if success:
             # Check if files were generated
@@ -300,7 +300,7 @@ class PrevisBuilder:
         # Add visibility data to existing archive (matches original batch file behavior)
         if self.temp_path.exists() and not fs.is_directory_empty(self.temp_path):
             # Get all files from temp directory to add to archive
-            vis_files = list(self.temp_path.rglob("*"))
+            vis_files: list[Path] = list(self.temp_path.rglob("*"))
             vis_files = [f for f in vis_files if f.is_file()]  # Only files, not directories
 
             if vis_files:

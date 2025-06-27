@@ -1,8 +1,10 @@
+
 from __future__ import annotations
 
 import subprocess
 import sys
 import time
+from subprocess import CompletedProcess
 from typing import TYPE_CHECKING, Any
 
 from PrevisLib.utils.logging import get_logger
@@ -10,7 +12,9 @@ from PrevisLib.utils.logging import get_logger
 if TYPE_CHECKING:
     from pathlib import Path
 
-logger = get_logger(__name__)
+    from loguru import Logger
+
+logger: Logger = get_logger(__name__)
 
 
 class ProcessResult:
@@ -36,6 +40,7 @@ def run_process(  # noqa: PLR0913
     shell: bool = False,
     env: dict[str, str] | None = None,
 ) -> ProcessResult:
+    command_str: str | list[str]
     if isinstance(command, str):
         command_str = command
         if not shell:
@@ -47,11 +52,11 @@ def run_process(  # noqa: PLR0913
     if cwd:
         logger.debug(f"Working directory: {cwd}")
 
-    start_time = time.time()
+    start_time: float = time.time()
 
     try:
         if capture_output:
-            result = subprocess.run(
+            result: CompletedProcess[str] = subprocess.run(
                 command,
                 check=False,
                 cwd=cwd,
@@ -76,7 +81,7 @@ def run_process(  # noqa: PLR0913
 
         elapsed_time = time.time() - start_time
 
-        process_result = ProcessResult(
+        process_result: ProcessResult = ProcessResult(
             returncode=result.returncode,
             stdout=result.stdout if capture_output else "",
             stderr=result.stderr if capture_output else "",
@@ -91,7 +96,7 @@ def run_process(  # noqa: PLR0913
                 logger.error(f"Error output: {result.stderr}")
 
     except subprocess.TimeoutExpired:
-        elapsed_time = time.time() - start_time
+        elapsed_time: float = time.time() - start_time
         logger.error(f"Command timed out after {elapsed_time:.2f}s")
         return ProcessResult(
             returncode=-1,
@@ -129,7 +134,7 @@ class ProcessRunner:
         Returns:
             True if successful, False otherwise
         """
-        result = run_process(command=command, cwd=cwd, timeout=timeout, capture_output=not show_output, shell=False)
+        result: ProcessResult = run_process(command=command, cwd=cwd, timeout=timeout, capture_output=not show_output, shell=False)
         return result.success
 
 
@@ -216,14 +221,14 @@ def run_with_window_automation(
 
     logger.info(f"Starting process with window automation: {window_title}")
 
-    command_str = " ".join(command) if isinstance(command, list) else command
+    command_str: str = " ".join(command) if isinstance(command, list) else command
 
     try:
-        app = Application(backend="win32").start(command_str, work_dir=str(cwd) if cwd else None)
+        app: Application | Any = Application(backend="win32").start(command_str, work_dir=str(cwd) if cwd else None)
 
         time.sleep(2)
 
-        window = app.window(title_re=f".*{window_title}.*")
+        window: WindowStub | Any = app.window(title_re=f".*{window_title}.*")
         window.wait("ready", timeout=30)
 
         if automation_func:

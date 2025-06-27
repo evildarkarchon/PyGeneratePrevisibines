@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from configparser import SectionProxy
+from configparser import ConfigParser, SectionProxy
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
@@ -41,7 +41,7 @@ class ToolPaths:
     fallout4: Path | None = None
 
     def validate(self) -> list[str]:
-        errors = []
+        errors: list[Any] = []
         if not self.creation_kit or not self.creation_kit.exists():
             errors.append("Creation Kit not found")
         if not self.xedit or not self.xedit.exists():
@@ -65,7 +65,7 @@ class CKPEConfig:
         import tomli
 
         with config_path.open("rb") as f:
-            data = tomli.load(f)
+            data: dict[str, Any] = tomli.load(f)
 
         return cls(
             handle_setting=data.get("CreationKitPlatformExtended", {}).get(
@@ -80,7 +80,7 @@ class CKPEConfig:
     def from_ini(cls, config_path: Path) -> CKPEConfig:
         import configparser
 
-        parser = configparser.ConfigParser()
+        parser: ConfigParser = configparser.ConfigParser()
         parser.read(config_path)
 
         ckpe_section: SectionProxy | dict[Any, Any] = parser["CreationKit"] if parser.has_section("CreationKit") else {}

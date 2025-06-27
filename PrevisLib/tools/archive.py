@@ -80,7 +80,7 @@ class ArchiveWrapper:
         logger.info(f"Adding {len(files_to_add)} files to {archive_path.name}")
 
         # For both tools, we need to extract, add files, and recreate
-        temp_dir = archive_path.parent / f"{archive_path.stem}_temp"
+        temp_dir: Path = archive_path.parent / f"{archive_path.stem}_temp"
 
         try:
             # Extract existing archive
@@ -94,8 +94,8 @@ class ArchiveWrapper:
                     continue
 
                 if base_dir:
-                    relative_path = file_path.relative_to(base_dir)
-                    dest_path = temp_dir / relative_path
+                    relative_path: Path = file_path.relative_to(base_dir)
+                    dest_path: Path = temp_dir / relative_path
                 else:
                     dest_path = temp_dir / file_path.name
 
@@ -114,8 +114,8 @@ class ArchiveWrapper:
     def _create_archive2(self, archive_path: Path, source_dir: Path, file_list: list[str] | None, compress: bool) -> bool:
         """Create archive using Archive2.exe."""
         # Archive2 expects files/folders as positional args, then options
-        args = [str(self.tool_path)]
-        list_file = None
+        args: list[str] = [str(self.tool_path)]
+        list_file: Path | None = None
 
         if file_list:
             # Create a source file list
@@ -139,7 +139,7 @@ class ArchiveWrapper:
         else:
             args.append("-compression=None")
 
-        success = self.process_runner.run_process(args, timeout=600)
+        success: bool = self.process_runner.run_process(args, timeout=600)
 
         # Cleanup file list if created
         if list_file is not None:
@@ -153,7 +153,7 @@ class ArchiveWrapper:
 
     def _create_bsarch(self, archive_path: Path, source_dir: Path, file_list: list[str] | None, compress: bool) -> bool:
         """Create archive using BSArch.exe."""
-        args = [str(self.tool_path), "pack", str(source_dir), str(archive_path)]
+        args: list[str] = [str(self.tool_path), "pack", str(source_dir), str(archive_path)]
 
         if compress:
             args.extend(["-z", "1"])  # Enable compression
@@ -165,20 +165,20 @@ class ArchiveWrapper:
 
         if file_list:
             # BSArch doesn't support file lists directly, need to create temp dir
-            temp_dir = source_dir.parent / f"{archive_path.stem}_temp"
+            temp_dir: Path = source_dir.parent / f"{archive_path.stem}_temp"
             temp_dir.mkdir(exist_ok=True)
 
             try:
                 for file_name in file_list:
-                    src = source_dir / file_name
+                    src: Path = source_dir / file_name
                     if src.exists():
-                        dst = temp_dir / file_name
+                        dst: Path = temp_dir / file_name
                         dst.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(src, dst)
 
                 # Pack from temp directory
                 args[2] = str(temp_dir)
-                success = self.process_runner.run_process(args, timeout=600)
+                success: bool = self.process_runner.run_process(args, timeout=600)
 
             finally:
                 # Cleanup temp directory
@@ -195,9 +195,9 @@ class ArchiveWrapper:
 
     def _extract_archive2(self, archive_path: Path, output_dir: Path) -> bool:
         """Extract archive using Archive2.exe."""
-        args = [str(self.tool_path), str(archive_path), f"-extract={output_dir}"]
+        args: list[str] = [str(self.tool_path), str(archive_path), f"-extract={output_dir}"]
 
-        success = self.process_runner.run_process(args, timeout=300)
+        success: bool = self.process_runner.run_process(args, timeout=300)
 
         if success:
             logger.success(f"Archive extracted successfully to {output_dir}")
@@ -207,9 +207,9 @@ class ArchiveWrapper:
 
     def _extract_bsarch(self, archive_path: Path, output_dir: Path) -> bool:
         """Extract archive using BSArch.exe."""
-        args = [str(self.tool_path), "unpack", str(archive_path), str(output_dir)]
+        args: list[str] = [str(self.tool_path), "unpack", str(archive_path), str(output_dir)]
 
-        success = self.process_runner.run_process(args, timeout=300)
+        success: bool = self.process_runner.run_process(args, timeout=300)
 
         if success:
             logger.success(f"Archive extracted successfully to {output_dir}")

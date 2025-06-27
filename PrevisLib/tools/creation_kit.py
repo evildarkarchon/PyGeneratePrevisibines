@@ -18,7 +18,7 @@ class CreationKitWrapper:
         self.process_runner = ProcessRunner()
         # File system operations will use module functions directly
 
-    def generate_precombined(self, data_path: Path, output_path: Path) -> bool:
+    def generate_precombined(self, data_path: Path) -> bool:
         """Generate precombined meshes using Creation Kit.
 
         Args:
@@ -30,16 +30,17 @@ class CreationKitWrapper:
         """
         logger.info("Starting precombined mesh generation")
 
-        args = [str(self.ck_path), f"-GeneratePrecombined:{self.plugin_name}", f"-DataPath:{data_path}", f"-OutputPath:{output_path}"]
+        args: list[str] = [str(self.ck_path), f"-GeneratePrecombined:{self.plugin_name}"]
 
-        if self.build_mode == BuildMode.FILTERED:
-            args.append("-FilteredOnly:1")
-        elif self.build_mode == BuildMode.XBOX:
-            args.append("-XboxOne:1")
+        if self.build_mode == BuildMode.CLEAN:
+            args.append("clean")
+        else:
+            args.append("filtered")
+        args.append("all")
 
-        success = self.process_runner.run_process(
+        success: bool = self.process_runner.run_process(
             args,
-            timeout=1800,  # 30 minutes for CK operations
+            timeout=172800,  # 2 Days for CK operations
             show_output=True,
         )
 
@@ -65,9 +66,9 @@ class CreationKitWrapper:
         """
         logger.info("Starting PSG file compression")
 
-        args = [str(self.ck_path), f"-CompressPSG:{self.plugin_name}", f"-DataPath:{data_path}"]
+        args: list[str] = [str(self.ck_path), f"-CompressPSG:{self.plugin_name} - Geometry.csg"]
 
-        success = self.process_runner.run_process(
+        success: bool = self.process_runner.run_process(
             args,
             timeout=600,  # 10 minutes for PSG compression
             show_output=True,
@@ -94,9 +95,9 @@ class CreationKitWrapper:
         """
         logger.info("Starting CDX file generation")
 
-        args = [str(self.ck_path), f"-BuildCDX:{self.plugin_name}", f"-DataPath:{data_path}"]
+        args: list[str] = [str(self.ck_path), f"-BuildCDX:{self.plugin_name}.cdx"]
 
-        success = self.process_runner.run_process(
+        success: bool = self.process_runner.run_process(
             args,
             timeout=900,  # 15 minutes for CDX building
             show_output=True,
@@ -112,7 +113,7 @@ class CreationKitWrapper:
 
         return success
 
-    def generate_previs_data(self, data_path: Path, output_path: Path) -> bool:
+    def generate_previs_data(self, data_path: Path) -> bool:
         """Generate visibility data using Creation Kit.
 
         Args:
@@ -124,16 +125,11 @@ class CreationKitWrapper:
         """
         logger.info("Starting previs data generation")
 
-        args = [str(self.ck_path), f"-GeneratePrevis:{self.plugin_name}", f"-DataPath:{data_path}", f"-OutputPath:{output_path}"]
+        args: list[str] = [str(self.ck_path), f"-GeneratePrevis:{data_path}/Previs.esp"]
 
-        if self.build_mode == BuildMode.FILTERED:
-            args.append("-FilteredOnly:1")
-        elif self.build_mode == BuildMode.XBOX:
-            args.append("-XboxOne:1")
-
-        success = self.process_runner.run_process(
+        success: bool = self.process_runner.run_process(
             args,
-            timeout=2400,  # 40 minutes for previs generation
+            timeout=172800,  # 2 Days for previs generation
             show_output=True,
         )
 
@@ -160,10 +156,10 @@ class CreationKitWrapper:
         Returns:
             True if errors found, False otherwise
         """
-        log_patterns = ["OUT OF HANDLE ARRAY ENTRIES", "Failed to load", "ERROR:", "FATAL:", "Exception"]
+        log_patterns: list[str] = ["OUT OF HANDLE ARRAY ENTRIES", "Failed to load", "ERROR:", "FATAL:", "Exception"]
 
         # Check common CK log locations
-        possible_log_paths = [
+        possible_log_paths: list[Path] = [
             data_path.parent / "Logs" / "CreationKit.log",
             Path.home() / "Documents" / "My Games" / "Fallout4" / "Logs" / "CreationKit.log",
             data_path / "Logs" / "CreationKit.log",
@@ -173,7 +169,7 @@ class CreationKitWrapper:
             if log_path.exists():
                 try:
                     with log_path.open(encoding="utf-8", errors="ignore") as f:
-                        content = f.read()
+                        content: str = f.read()
                         for pattern in log_patterns:
                             if pattern in content:
                                 logger.error(f"Found error pattern '{pattern}' in {log_path}")
@@ -193,9 +189,9 @@ class CreationKitWrapper:
             True if completed successfully, False otherwise
         """
         # Look for completion indicators in logs
-        completion_patterns = ["visibility task did not complete", "Previs generation failed", "Could not complete previs"]
+        completion_patterns: list[str] = ["visibility task did not complete", "Previs generation failed", "Could not complete previs"]
 
-        possible_log_paths = [
+        possible_log_paths: list[Path] = [
             data_path.parent / "Logs" / "CreationKit.log",
             Path.home() / "Documents" / "My Games" / "Fallout4" / "Logs" / "CreationKit.log",
             data_path / "Logs" / "CreationKit.log",
@@ -205,7 +201,7 @@ class CreationKitWrapper:
             if log_path.exists():
                 try:
                     with log_path.open(encoding="utf-8", errors="ignore") as f:
-                        content = f.read()
+                        content: str = f.read()
                         for pattern in completion_patterns:
                             if pattern in content:
                                 logger.error(f"Found completion failure pattern '{pattern}' in {log_path}")

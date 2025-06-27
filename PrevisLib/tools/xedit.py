@@ -3,6 +3,7 @@
 import subprocess
 import time
 from pathlib import Path
+from subprocess import Popen
 from typing import Any, Literal, Self
 
 from loguru import logger
@@ -80,7 +81,7 @@ class XEditWrapper:
         ]
 
         if PYWINAUTO_AVAILABLE:
-            success = self._run_with_automation(args, "Merge Combined Objects")
+            success: bool = self._run_with_automation(args, "Merge Combined Objects")
         else:
             success = self.process_runner.run_process(
                 args,
@@ -111,17 +112,15 @@ class XEditWrapper:
         """
         logger.info("Starting previs data merge with xEdit")
 
-        args = [
+        args: list[str] = [
             str(self.xedit_path),
-            "-IKnowWhatImDoing",
-            "-AllowMasterFilesEdit",
             f"-D:{data_path}",
             f"-script:{script_path.stem}",
             self.plugin_name,
         ]
 
         if PYWINAUTO_AVAILABLE:
-            success = self._run_with_automation(args, "Merge Previs")
+            success: bool = self._run_with_automation(args, "Merge Previs")
         else:
             success = self.process_runner.run_process(
                 args,
@@ -158,25 +157,25 @@ class XEditWrapper:
             logger.info(f"Starting xEdit with automation for {operation_name}")
 
             # Start xEdit process
-            process = subprocess.Popen(args)
+            process: Popen[bytes] = subprocess.Popen(args)
             time.sleep(3)  # Give xEdit time to start
 
             # Connect to xEdit window
-            app = Application(backend="uia").connect(process=process.pid)
-            main_window = app.window(title_re=".*Edit.*")
+            app: Application = Application(backend="uia").connect(process=process.pid)
+            main_window: WindowStub = app.window(title_re=".*Edit.*")
 
             # Wait for script completion
-            max_wait = 1200  # 20 minutes
-            start_time = time.time()
+            max_wait: float = 1200  # 20 minutes
+            start_time: float = time.time()
 
             while time.time() - start_time < max_wait:
                 try:
                     # Look for completion indicators
                     if main_window.exists():
                         # Check if any dialogs appeared
-                        dialogs = main_window.descendants(control_type="Window")
+                        dialogs: list[WindowStub] = main_window.descendants(control_type="Window")
                         for dialog in dialogs:
-                            title = dialog.window_text()
+                            title: str = dialog.window_text()
                             if "error" in title.lower() or "exception" in title.lower():
                                 logger.error(f"Error dialog detected: {title}")
                                 try:  # noqa: SIM105
@@ -205,7 +204,7 @@ class XEditWrapper:
                 process.terminate()
 
             # Check exit code
-            return_code = process.wait(timeout=10)
+            return_code: int = process.wait(timeout=10)
 
         except (subprocess.SubprocessError, PywinautoTimeoutError, OSError, TimeoutError) as e:
             logger.error(f"Window automation failed: {e}")
@@ -224,9 +223,9 @@ class XEditWrapper:
         """
         try:
             # Check status bar or other indicators
-            status_bar = window.child_window(control_type="StatusBar")
+            status_bar: WindowStub = window.child_window(control_type="StatusBar")
             if status_bar.exists():
-                status_text = status_bar.window_text()
+                status_text: str = status_bar.window_text()
                 if "processing" in status_text.lower() or "running" in status_text.lower():
                     return True
         except:
@@ -245,21 +244,21 @@ class XEditWrapper:
             True if successful, False if errors found
         """
         # Look for xEdit logs
-        possible_log_paths = [
+        possible_log_paths: list[Path] = [
             self.xedit_path.parent / "Edit Scripts" / "Edit Logs" / f"{self.plugin_name}.log",
             data_path / "Edit Scripts" / "Edit Logs" / f"{self.plugin_name}.log",
             Path.home() / "Documents" / "My Games" / "Fallout4" / "Edit Logs" / f"{self.plugin_name}.log",
         ]
 
-        success_patterns = ["Done processing", "Finished", "completed successfully", "Process completed"]
+        success_patterns: list[str] = ["Done processing", "Finished", "completed successfully", "Process completed"]
 
-        error_patterns = ["Error:", "Exception:", "Failed:", "Could not"]
+        error_patterns: list[str] = ["Error:", "Exception:", "Failed:", "Could not"]
 
         for log_path in possible_log_paths:
             if log_path.exists():
                 try:
                     with log_path.open(encoding="utf-8", errors="ignore") as f:
-                        content = f.read()
+                        content: str = f.read()
 
                         # Check for errors first
                         for pattern in error_patterns:

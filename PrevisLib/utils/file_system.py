@@ -10,7 +10,9 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-logger = get_logger(__name__)
+    from loguru import Logger
+
+logger: Logger = get_logger(__name__)
 
 
 def clean_directory(directory: Path, create: bool = True) -> None:
@@ -36,7 +38,7 @@ def is_directory_empty(directory: Path) -> bool:
 
 
 def wait_for_file(file_path: Path, timeout: float = 30.0, check_interval: float = 0.5) -> bool:
-    start_time = time.time()
+    start_time: float = time.time()
 
     while time.time() - start_time < timeout:
         if file_path.exists():
@@ -51,7 +53,7 @@ def wait_for_output_file(file_path: Path, timeout: float = 30.0, check_interval:
     from PrevisLib.utils.process import check_process_running
 
     # Check if ModOrganizer is running
-    mo2_running = check_process_running("ModOrganizer")
+    mo2_running: bool = check_process_running("ModOrganizer")
 
     if mo2_running:
         logger.info(f"ModOrganizer detected - using extended delay for {file_path.name}")
@@ -62,7 +64,7 @@ def wait_for_output_file(file_path: Path, timeout: float = 30.0, check_interval:
         # Add initial delay to let MO2 VFS catch up
         time.sleep(3.0)
 
-    start_time = time.time()
+    start_time: float = time.time()
 
     while time.time() - start_time < timeout:
         # Check for case-insensitive file existence
@@ -81,11 +83,11 @@ def _file_exists_case_insensitive(file_path: Path) -> bool:
         return True
 
     # Check parent directory for case-insensitive match
-    parent = file_path.parent
+    parent: Path = file_path.parent
     if not parent.exists():
         return False
 
-    target_name = file_path.name.lower()
+    target_name: str = file_path.name.lower()
     return any(item.name.lower() == target_name for item in parent.iterdir())
 
 
@@ -151,8 +153,8 @@ def copy_with_callback(
 
         for i, file in enumerate(files):
             if file.is_file():
-                rel_path = file.relative_to(source)
-                dest_file = destination / rel_path
+                rel_path: Path = file.relative_to(source)
+                dest_file: Path = destination / rel_path
                 dest_file.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(file, dest_file)
 
