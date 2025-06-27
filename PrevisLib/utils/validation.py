@@ -144,6 +144,8 @@ def validate_ckpe_config(config_path: Path) -> tuple[bool, str]:
             parser.read(config_path)
     except (OSError, ImportError, ValueError, KeyError) as e:
         return False, f"Failed to parse CKPE config: {e}"
+    except configparser.Error as e:
+        return False, f"Failed to parse CKPE config: {e}"
 
     return True, ""
 

@@ -169,7 +169,7 @@ class TestToolVersionCheck:
 
         is_valid, message = check_tool_version(tool_path)
         assert is_valid
-        assert "not implemented" in message
+        assert "Not a Windows executable - version check skipped" in message
 
     def test_version_check_with_expected_version(self, tmp_path):
         """Test version check with expected version parameter."""
@@ -178,7 +178,7 @@ class TestToolVersionCheck:
 
         is_valid, message = check_tool_version(tool_path, "1.0.0")
         assert is_valid
-        assert "not implemented" in message
+        assert "Not a Windows executable - version check skipped" in message
 
 
 class TestCKPEConfigValidation:

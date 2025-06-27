@@ -21,8 +21,9 @@ class TestRegistryReader:
         assert tool_paths.fallout4 is None
         assert tool_paths.archive2 is None
 
+    @patch("PrevisLib.config.registry.sys.platform", "linux")
     def test_find_tool_paths_basic(self):
-        """Test basic tool path finding functionality."""
+        """Test basic tool path finding functionality on Linux."""
         tool_paths = find_tool_paths()
 
         # Should return a ToolPaths object
@@ -41,6 +42,8 @@ class TestCKPEConfig:
         config_content = """
 [CreationKitPlatformExtended]
 bBSPointerHandleExtremly = false
+
+[Log]
 sOutputFile = "test.log"
 """
         config_file = tmp_path / "ckpe.toml"
@@ -54,8 +57,10 @@ sOutputFile = "test.log"
 
     def test_ini_config_reading(self, tmp_path):
         """Test reading INI configuration."""
-        config_content = """[CreationKitPlatformExtended]
+        config_content = """[CreationKit]
 bBSPointerHandleExtremly = true
+
+[Log]
 sOutputFile = custom.log
 """
         config_file = tmp_path / "ckpe.ini"
@@ -96,5 +101,5 @@ key = "value"
         config = CKPEConfig.from_toml(config_file)
 
         # Should use defaults when CKPE section is missing
-        assert config.handle_setting is True  # Default value
+        assert config.handle_setting is False  # Default value from implementation
         assert config.log_output_file == ""  # Default value

@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import types
+
     from loguru import Logger
 
     from PrevisLib.models.data_classes import ToolPaths
@@ -44,7 +46,7 @@ def find_tool_paths() -> ToolPaths:
     return paths
 
 
-def _find_xedit_path(winreg: type) -> Path | None:
+def _find_xedit_path(winreg: types.ModuleType) -> Path | None:
     try:
         with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"FO4Script\DefaultIcon") as key:
             value, _ = winreg.QueryValueEx(key, "")
@@ -62,7 +64,7 @@ def _find_xedit_path(winreg: type) -> Path | None:
     return None
 
 
-def _find_fallout4_paths(winreg: type) -> tuple[Path | None, Path | None]:
+def _find_fallout4_paths(winreg: types.ModuleType) -> tuple[Path | None, Path | None]:
     fallout4_path: Path | None = None
     ck_path: Path | None = None
 

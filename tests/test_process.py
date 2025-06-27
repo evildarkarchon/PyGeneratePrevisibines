@@ -301,6 +301,7 @@ class TestProcessManagement:
 
             mock_import.side_effect = import_side_effect
 
+            # The function should handle the exception and return False
             result = check_process_running("notepad")
             assert result is False
 

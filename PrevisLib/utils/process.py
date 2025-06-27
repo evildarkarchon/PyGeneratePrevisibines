@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import subprocess
@@ -149,6 +148,8 @@ def check_process_running(process_name: str) -> bool:
         logger.warning("psutil not available, cannot check running processes")
     except (OSError, AttributeError) as e:
         logger.error(f"Error checking process: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error checking process: {e}")
 
     return False
 
@@ -193,25 +194,25 @@ def run_with_window_automation(
         from pywinauto.application import Application  # type: ignore[reportMissingImports, import-not-found]
     except ImportError:
         logger.error("pywinauto not available for window automation")
-        
+
         # Create stubs for pywinauto classes
         class WindowStub:
             def wait(self, condition: str, timeout: float = 30) -> None:
                 pass
-            
+
             def wait_not(self, condition: str, timeout: float = 300) -> None:
                 pass
-        
+
         class Application:
             def __init__(self, backend: str = "win32") -> None:
                 pass
-            
+
             def start(self, cmd_line: str, work_dir: str | None = None) -> "Application":  # noqa: ARG002, UP037
                 return self
-            
+
             def window(self, title_re: str) -> WindowStub:  # noqa: ARG002
                 return WindowStub()
-        
+
         return ProcessResult(
             returncode=-1,
             stdout="",

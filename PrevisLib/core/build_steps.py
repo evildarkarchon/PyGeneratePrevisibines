@@ -108,7 +108,7 @@ class BuildStepExecutor:
 
                     logger.info(f"Reorganized {len(nif_files)} files for archiving")
 
-        except (OSError, shutil.Error) as e:
+        except (OSError, Exception) as e:
             logger.error(f"Failed to prepare files for archiving: {e}")
             return False
 
@@ -180,7 +180,6 @@ class BuildStepExecutor:
 
         return warnings
 
-
     def create_backup(self, file_path: Path) -> Path | None:
         """Create a backup of a file before modification.
 
@@ -198,7 +197,7 @@ class BuildStepExecutor:
         try:
             shutil.copy2(file_path, backup_path)
             logger.info(f"Created backup: {backup_path.name}")
-        except (OSError, shutil.Error) as e:
+        except (OSError, Exception) as e:
             logger.error(f"Failed to create backup: {e}")
             return None
         else:
@@ -222,7 +221,7 @@ class BuildStepExecutor:
         try:
             shutil.copy2(backup_path, original_path)
             logger.info(f"Restored from backup: {original_path.name}")
-        except (OSError, shutil.Error) as e:
+        except (OSError, Exception) as e:
             logger.error(f"Failed to restore backup: {e}")
             return False
         else:
