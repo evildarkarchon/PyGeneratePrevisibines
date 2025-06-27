@@ -15,7 +15,7 @@ from .file_system import (
 from .logging import get_logger
 from .logging import setup_logger as setup_logging
 from .process import ProcessResult, ProcessRunner, check_process_running, kill_process, run_process
-from .validation import validate_plugin_name, validate_tool_path
+from .validation import validate_plugin_name, validate_tool_path, create_plugin_from_template
 
 __all__ = [
     # File system functions
@@ -41,4 +41,5 @@ __all__ = [
     # Validation
     "validate_plugin_name",
     "validate_tool_path",
+    "create_plugin_from_template",
 ]

@@ -1,5 +1,6 @@
 """xEdit/FO4Edit wrapper for previs operations."""
 
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -243,16 +244,31 @@ class XEditWrapper:
         Returns:
             True if successful, False if errors found
         """
-        # Look for xEdit logs
+        # Enhanced to match the batch file patterns exactly
+        # Look for the unattended log file that xEdit creates
+        temp_dir = Path(os.environ.get("TEMP", os.environ.get("TMP", str(Path.home() / "temp"))))
+        unattended_log = temp_dir / "UnattendedScript.log"
+
+        # Also check other possible log locations
         possible_log_paths: list[Path] = [
+            unattended_log,  # Primary location matching batch file
             self.xedit_path.parent / "Edit Scripts" / "Edit Logs" / f"{self.plugin_name}.log",
             data_path / "Edit Scripts" / "Edit Logs" / f"{self.plugin_name}.log",
             Path.home() / "Documents" / "My Games" / "Fallout4" / "Edit Logs" / f"{self.plugin_name}.log",
         ]
 
-        success_patterns: list[str] = ["Done processing", "Finished", "completed successfully", "Process completed"]
+        # Enhanced patterns to match the batch file exactly
+        error_patterns: list[str] = [
+            "Error: ",  # Exact match from batch file
+            "Exception:",
+            "Failed:",
+            "Could not",
+        ]
 
-        error_patterns: list[str] = ["Error:", "Exception:", "Failed:", "Could not"]
+        completion_patterns: list[str] = [
+            "Completed: No Errors.",  # Exact match from batch file - indicates success
+            "Completed: ",  # Exact match from batch file - general completion
+        ]
 
         for log_path in possible_log_paths:
             if log_path.exists():
@@ -260,20 +276,33 @@ class XEditWrapper:
                     with log_path.open(encoding="utf-8", errors="ignore") as f:
                         content: str = f.read()
 
-                        # Check for errors first
+                        # Check for errors first (matching batch file logic)
                         for pattern in error_patterns:
                             if pattern in content:
-                                logger.error(f"Found error pattern '{pattern}' in xEdit log")
+                                logger.error(f"Found error pattern '{pattern}' in xEdit log: {log_path}")
                                 return False
 
-                        # Check for success indicators
-                        for pattern in success_patterns:
+                        # Check for completion indicators
+                        found_completion = False
+                        for pattern in completion_patterns:
                             if pattern in content:
-                                logger.info(f"Found success pattern '{pattern}' in xEdit log")
-                                return True
+                                found_completion = True
+                                if pattern == "Completed: No Errors.":
+                                    logger.info(f"xEdit completed successfully: {pattern}")
+                                    return True
+                                elif pattern == "Completed: ":
+                                    # General completion - may have warnings but not errors
+                                    logger.info(f"xEdit completed with possible warnings: {pattern}")
+                                    return True
+
+                        # If we found the log but no completion indicator, it may have failed
+                        if log_path == unattended_log and not found_completion:
+                            logger.error(f"xEdit script {operation} failed - no completion indicator found")
+                            return False
 
                 except (OSError, UnicodeDecodeError) as e:
                     logger.warning(f"Could not read log file {log_path}: {e}")
 
-        logger.warning(f"Could not find xEdit log for {operation}")
-        return True  # Assume success if no log found
+        # If no unattended log found, warn but assume success for backwards compatibility
+        logger.warning(f"Could not find xEdit unattended log for {operation} - assuming success")
+        return True

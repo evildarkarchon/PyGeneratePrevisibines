@@ -41,11 +41,18 @@ class ToolPaths:
     fallout4: Path | None = None
 
     def validate(self) -> list[str]:
+        from PrevisLib.utils.validation import validate_xedit_scripts
+
         errors: list[Any] = []
         if not self.creation_kit or not self.creation_kit.exists():
             errors.append("Creation Kit not found")
         if not self.xedit or not self.xedit.exists():
             errors.append("xEdit/FO4Edit not found")
+        else:
+            # Validate xEdit scripts if xEdit is found
+            script_valid, script_message = validate_xedit_scripts(self.xedit)
+            if not script_valid:
+                errors.append(f"xEdit scripts validation failed: {script_message}")
         if not self.fallout4 or not self.fallout4.exists():
             errors.append("Fallout 4 not found")
         if not self.archive2 and not self.bsarch:

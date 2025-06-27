@@ -11,6 +11,7 @@ from PrevisLib.models.data_classes import BuildStep, CKPEConfig
 from PrevisLib.tools import ArchiveWrapper, CKPEConfigHandler, CreationKitWrapper, XEditWrapper
 from PrevisLib.tools.archive import ArchiveTool
 from PrevisLib.utils import file_system as fs
+from PrevisLib.utils.validation import validate_xedit_scripts
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -36,6 +37,11 @@ class PrevisBuilder:
             raise ValueError("Creation Kit path is required but not configured")
         if settings.tool_paths.xedit is None:
             raise ValueError("xEdit path is required but not configured")
+
+        # Validate xEdit scripts early (like the batch file does)
+        script_valid, script_message = validate_xedit_scripts(settings.tool_paths.xedit)
+        if not script_valid:
+            raise ValueError(f"xEdit script validation failed: {script_message}")
 
         self.ck_wrapper = CreationKitWrapper(settings.tool_paths.creation_kit, self.plugin_name, self.build_mode, settings.ckpe_config)
         self.xedit_wrapper = XEditWrapper(settings.tool_paths.xedit, self.plugin_name)

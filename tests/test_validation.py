@@ -1,16 +1,22 @@
 """Tests for validation utilities."""
 
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 from PrevisLib.utils.validation import (
+    REQUIRED_XEDIT_SCRIPTS,
     RESERVED_PLUGIN_NAMES,
     VALID_PLUGIN_EXTENSIONS,
     check_tool_version,
+    create_plugin_from_template,
     validate_archive_format,
     validate_ckpe_config,
     validate_directory,
     validate_plugin_name,
     validate_tool_path,
+    validate_xedit_scripts,
 )
 
 
@@ -287,3 +293,256 @@ class TestArchiveValidation:
         is_valid, message = validate_archive_format(archive_file)
         assert is_valid
         assert message == ""
+
+
+class TestPluginTemplateCreation:
+    """Test plugin template creation functionality."""
+
+    def test_create_plugin_from_template_success(self, tmp_path):
+        """Test successful plugin creation from template."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template file
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        target_plugin = "MyNewMod.esp"
+
+        with (
+            patch("PrevisLib.utils.file_system.mo2_aware_copy") as mock_copy,
+            patch("PrevisLib.utils.file_system.wait_for_output_file", return_value=True) as mock_wait,
+        ):
+            success, message = create_plugin_from_template(data_path, target_plugin)
+
+            assert success is True
+            assert "Created MyNewMod.esp from xPrevisPatch.esp template" in message
+            mock_copy.assert_called_once()
+            mock_wait.assert_called_once()
+
+    def test_create_plugin_from_template_no_template(self, tmp_path):
+        """Test plugin creation when template doesn't exist."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        target_plugin = "MyNewMod.esp"
+
+        success, message = create_plugin_from_template(data_path, target_plugin)
+
+        assert success is False
+        assert "xPrevisPatch.esp template not found" in message
+
+    def test_create_plugin_from_template_target_exists(self, tmp_path):
+        """Test plugin creation when target already exists."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template and target files
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        target_plugin = "MyNewMod.esp"
+        target_path = data_path / target_plugin
+        target_path.write_text("Existing plugin")
+
+        success, message = create_plugin_from_template(data_path, target_plugin)
+
+        assert success is False
+        assert "Plugin MyNewMod.esp already exists" in message
+
+    def test_create_plugin_from_template_archive_exists(self, tmp_path):
+        """Test plugin creation when plugin archive already exists."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template file
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        # Create existing archive
+        target_plugin = "MyNewMod.esp"
+        archive_path = data_path / "MyNewMod - Main.ba2"
+        archive_path.write_text("Archive content")
+
+        success, message = create_plugin_from_template(data_path, target_plugin)
+
+        assert success is False
+        assert "Plugin already has an archive" in message
+
+    def test_create_plugin_from_template_copy_fail(self, tmp_path):
+        """Test plugin creation when file copy fails."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template file
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        target_plugin = "MyNewMod.esp"
+
+        with patch("PrevisLib.utils.file_system.mo2_aware_copy", side_effect=PermissionError("Access denied")):
+            success, message = create_plugin_from_template(data_path, target_plugin)
+
+            assert success is False
+            assert "Failed to copy template" in message
+            assert "Access denied" in message
+
+    def test_create_plugin_from_template_wait_timeout(self, tmp_path):
+        """Test plugin creation when waiting for file times out."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template file
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        target_plugin = "MyNewMod.esp"
+
+        with (
+            patch("PrevisLib.utils.file_system.mo2_aware_copy") as mock_copy,
+            patch("PrevisLib.utils.file_system.wait_for_output_file", return_value=False) as mock_wait,
+        ):
+            success, message = create_plugin_from_template(data_path, target_plugin)
+
+            assert success is False
+            assert "file not accessible after copy" in message
+            mock_copy.assert_called_once()
+            mock_wait.assert_called_once()
+
+    def test_create_plugin_from_template_different_extensions(self, tmp_path):
+        """Test plugin creation with different plugin extensions."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template file
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        test_cases = ["MyMod.esp", "MyMod.esm", "MyMod.esl"]
+
+        for target_plugin in test_cases:
+            with (
+                patch("PrevisLib.utils.file_system.mo2_aware_copy") as mock_copy,
+                patch("PrevisLib.utils.file_system.wait_for_output_file", return_value=True),
+            ):
+                success, message = create_plugin_from_template(data_path, target_plugin)
+
+                assert success is True
+                assert f"Created {target_plugin} from xPrevisPatch.esp template" in message
+                mock_copy.assert_called_once()
+
+
+class TestXEditScriptValidation:
+    """Test xEdit script validation."""
+
+    def test_nonexistent_xedit_path(self):
+        """Test validation with non-existent xEdit path."""
+        nonexistent_path = Path("/nonexistent/xedit.exe")
+
+        is_valid, message = validate_xedit_scripts(nonexistent_path)
+        assert not is_valid
+        assert "xEdit path not found" in message
+
+    def test_none_xedit_path(self):
+        """Test validation with None xEdit path."""
+        is_valid, message = validate_xedit_scripts(None)
+        assert not is_valid
+        assert "xEdit path not found" in message
+
+    def test_missing_edit_scripts_directory(self, tmp_path):
+        """Test validation when Edit Scripts directory doesn't exist."""
+        xedit_exe = tmp_path / "xEdit.exe"
+        xedit_exe.write_text("fake executable")
+
+        is_valid, message = validate_xedit_scripts(xedit_exe)
+        assert not is_valid
+        assert "Edit Scripts directory not found" in message
+
+    def test_missing_required_scripts(self, tmp_path):
+        """Test validation when required scripts are missing."""
+        # Create xEdit structure
+        xedit_exe = tmp_path / "xEdit.exe"
+        xedit_exe.write_text("fake executable")
+
+        scripts_dir = tmp_path / "Edit Scripts"
+        scripts_dir.mkdir()
+
+        is_valid, message = validate_xedit_scripts(xedit_exe)
+        assert not is_valid
+        assert "Missing scripts" in message
+        for script_name in REQUIRED_XEDIT_SCRIPTS.keys():
+            assert script_name in message
+
+    def test_scripts_with_wrong_versions(self, tmp_path):
+        """Test validation when scripts exist but have wrong versions."""
+        # Create xEdit structure
+        xedit_exe = tmp_path / "xEdit.exe"
+        xedit_exe.write_text("fake executable")
+
+        scripts_dir = tmp_path / "Edit Scripts"
+        scripts_dir.mkdir()
+
+        # Create scripts with wrong versions
+        for script_name in REQUIRED_XEDIT_SCRIPTS.keys():
+            script_path = scripts_dir / script_name
+            script_path.write_text("// Old script version V1.0\nsome script content")
+
+        is_valid, message = validate_xedit_scripts(xedit_exe)
+        assert not is_valid
+        assert "Version mismatches" in message
+
+    def test_scripts_with_correct_versions(self, tmp_path):
+        """Test validation when all scripts exist with correct versions."""
+        # Create xEdit structure
+        xedit_exe = tmp_path / "xEdit.exe"
+        xedit_exe.write_text("fake executable")
+
+        scripts_dir = tmp_path / "Edit Scripts"
+        scripts_dir.mkdir()
+
+        # Create scripts with correct versions
+        for script_name, required_version in REQUIRED_XEDIT_SCRIPTS.items():
+            script_path = scripts_dir / script_name
+            script_path.write_text(f"// Script {script_name} {required_version}\nsome script content")
+
+        is_valid, message = validate_xedit_scripts(xedit_exe)
+        assert is_valid
+        assert "All required xEdit scripts found with correct versions" in message
+
+    def test_scripts_case_insensitive_version_check(self, tmp_path):
+        """Test that version checking is case-insensitive."""
+        # Create xEdit structure
+        xedit_exe = tmp_path / "xEdit.exe"
+        xedit_exe.write_text("fake executable")
+
+        scripts_dir = tmp_path / "Edit Scripts"
+        scripts_dir.mkdir()
+
+        # Create scripts with lowercase versions (should still match uppercase required versions)
+        for script_name, required_version in REQUIRED_XEDIT_SCRIPTS.items():
+            script_path = scripts_dir / script_name
+            script_path.write_text(f"// Script {script_name} {required_version.lower()}\nsome script content")
+
+        is_valid, message = validate_xedit_scripts(xedit_exe)
+        assert is_valid
+        assert "All required xEdit scripts found with correct versions" in message
+
+    def test_mixed_script_issues(self, tmp_path):
+        """Test validation with mixed script issues (missing and wrong version)."""
+        # Create xEdit structure
+        xedit_exe = tmp_path / "xEdit.exe"
+        xedit_exe.write_text("fake executable")
+
+        scripts_dir = tmp_path / "Edit Scripts"
+        scripts_dir.mkdir()
+
+        # Create only one script with wrong version, leave the other missing
+        script_names = list(REQUIRED_XEDIT_SCRIPTS.keys())
+        first_script = scripts_dir / script_names[0]
+        first_script.write_text("// Old version V1.0")
+
+        # Don't create the second script (leave it missing)
+
+        is_valid, message = validate_xedit_scripts(xedit_exe)
+        assert not is_valid
+        assert "Missing scripts" in message and "Version mismatches" in message

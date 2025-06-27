@@ -1,6 +1,8 @@
 """Tests for data classes and models."""
 
 from pathlib import Path
+import tempfile
+from unittest.mock import patch
 
 from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep, CKPEConfig, ToolPaths
 
@@ -64,8 +66,8 @@ class TestToolPaths:
         errors = paths.validate()
         assert len(errors) >= 3  # At least CK, xEdit, and FO4 not found
 
-    def test_validation_with_valid_tools(self, tmp_path):
-        """Test validation with valid tool paths."""
+    def test_validation_with_valid_tools_but_missing_scripts(self, tmp_path):
+        """Test validation with valid tools but missing xEdit scripts."""
         # Create fake tool files
         ck_path = tmp_path / "CreationKit.exe"
         xedit_path = tmp_path / "FO4Edit.exe"
@@ -74,6 +76,36 @@ class TestToolPaths:
 
         for path in [ck_path, xedit_path, fo4_path, archive_path]:
             path.write_text("fake executable")
+
+        paths = ToolPaths(creation_kit=ck_path, xedit=xedit_path, fallout4=fo4_path, archive2=archive_path)
+
+        errors = paths.validate()
+
+        # Should have script validation error since Edit Scripts directory doesn't exist
+        assert any("xEdit scripts validation failed" in error for error in errors)
+        assert any("Edit Scripts directory not found" in error for error in errors)
+
+    def test_validation_with_valid_tools_and_scripts(self, tmp_path):
+        """Test validation with valid tools and xEdit scripts."""
+        # Create fake tool files
+        ck_path = tmp_path / "CreationKit.exe"
+        xedit_path = tmp_path / "FO4Edit.exe"
+        fo4_path = tmp_path / "Fallout4.exe"
+        archive_path = tmp_path / "Archive2.exe"
+
+        for path in [ck_path, xedit_path, fo4_path, archive_path]:
+            path.write_text("fake executable")
+
+        # Create Edit Scripts directory with required scripts
+        scripts_dir = tmp_path / "Edit Scripts"
+        scripts_dir.mkdir()
+
+        # Create required scripts with correct versions
+        script1 = scripts_dir / "Batch_FO4MergePrevisandCleanRefr.pas"
+        script1.write_text("// Script with V2.2 version")
+
+        script2 = scripts_dir / "Batch_FO4MergeCombinedObjectsAndCheck.pas"
+        script2.write_text("// Script with V1.5 version")
 
         paths = ToolPaths(creation_kit=ck_path, xedit=xedit_path, fallout4=fo4_path, archive2=archive_path)
 

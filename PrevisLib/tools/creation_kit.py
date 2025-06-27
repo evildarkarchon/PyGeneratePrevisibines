@@ -17,7 +17,9 @@ class CreationKitWrapper:
         self.build_mode = build_mode
         self.ckpe_config = ckpe_config
         self.process_runner = ProcessRunner()
-        # File system operations will use module functions directly
+        self.ck_directory = ck_path.parent
+        # Graphics DLLs that need to be disabled during CK operations
+        self.graphics_dlls = ["d3d11.dll", "d3d10.dll", "d3d9.dll", "dxgi.dll", "enbimgui.dll", "d3dcompiler_46e.dll"]
 
     def generate_precombined(self, data_path: Path) -> bool:
         """Generate precombined meshes using Creation Kit.
@@ -30,29 +32,36 @@ class CreationKitWrapper:
         """
         logger.info("Starting precombined mesh generation")
 
-        args: list[str] = [str(self.ck_path), f"-GeneratePrecombined:{self.plugin_name}"]
+        # Disable graphics DLLs before running CK
+        self._disable_graphics_dlls()
 
-        if self.build_mode == BuildMode.CLEAN:
-            args.extend(["clean", "all"])
-        else:
-            args.extend(["filtered", "all"])
+        try:
+            args: list[str] = [str(self.ck_path), f"-GeneratePrecombined:{self.plugin_name}"]
 
-        success: bool = self.process_runner.run_process(
-            args,
-            timeout=172800,  # 2 Days for CK operations
-            show_output=True,
-        )
+            if self.build_mode == BuildMode.CLEAN:
+                args.extend(["clean", "all"])
+            else:
+                args.extend(["filtered", "all"])
 
-        if success:
-            # Check for common CK errors in log
-            if self._check_ck_errors(data_path):
-                logger.error("Creation Kit reported errors during precombined generation")
-                return False
-            logger.success("Precombined mesh generation completed successfully")
-        else:
-            logger.error("Creation Kit precombined generation failed")
+            success: bool = self.process_runner.run_process(
+                args,
+                timeout=172800,  # 2 Days for CK operations
+                show_output=True,
+            )
 
-        return success
+            if success:
+                # Check for common CK errors in log
+                if self._check_ck_errors(data_path):
+                    logger.error("Creation Kit reported errors during precombined generation")
+                    return False
+                logger.success("Precombined mesh generation completed successfully")
+            else:
+                logger.error("Creation Kit precombined generation failed")
+
+            return success
+        finally:
+            # Always restore graphics DLLs, even if operation failed
+            self._restore_graphics_dlls()
 
     def compress_psg(self, data_path: Path) -> bool:
         """Compress PSG files using Creation Kit.
@@ -65,23 +74,30 @@ class CreationKitWrapper:
         """
         logger.info("Starting PSG file compression")
 
-        args: list[str] = [str(self.ck_path), f"-CompressPSG:{self.plugin_name}"]
+        # Disable graphics DLLs before running CK
+        self._disable_graphics_dlls()
 
-        success: bool = self.process_runner.run_process(
-            args,
-            timeout=600,  # 10 minutes for PSG compression
-            show_output=True,
-        )
+        try:
+            args: list[str] = [str(self.ck_path), f"-CompressPSG:{self.plugin_name}"]
 
-        if success:
-            if self._check_ck_errors(data_path):
-                logger.error("Creation Kit reported errors during PSG compression")
-                return False
-            logger.success("PSG compression completed successfully")
-        else:
-            logger.error("Creation Kit PSG compression failed")
+            success: bool = self.process_runner.run_process(
+                args,
+                timeout=600,  # 10 minutes for PSG compression
+                show_output=True,
+            )
 
-        return success
+            if success:
+                if self._check_ck_errors(data_path):
+                    logger.error("Creation Kit reported errors during PSG compression")
+                    return False
+                logger.success("PSG compression completed successfully")
+            else:
+                logger.error("Creation Kit PSG compression failed")
+
+            return success
+        finally:
+            # Always restore graphics DLLs, even if operation failed
+            self._restore_graphics_dlls()
 
     def build_cdx(self, data_path: Path) -> bool:
         """Build CDX files using Creation Kit.
@@ -94,23 +110,30 @@ class CreationKitWrapper:
         """
         logger.info("Starting CDX file generation")
 
-        args: list[str] = [str(self.ck_path), f"-BuildCDX:{self.plugin_name}"]
+        # Disable graphics DLLs before running CK
+        self._disable_graphics_dlls()
 
-        success: bool = self.process_runner.run_process(
-            args,
-            timeout=900,  # 15 minutes for CDX building
-            show_output=True,
-        )
+        try:
+            args: list[str] = [str(self.ck_path), f"-BuildCDX:{self.plugin_name}"]
 
-        if success:
-            if self._check_ck_errors(data_path):
-                logger.error("Creation Kit reported errors during CDX building")
-                return False
-            logger.success("CDX building completed successfully")
-        else:
-            logger.error("Creation Kit CDX building failed")
+            success: bool = self.process_runner.run_process(
+                args,
+                timeout=900,  # 15 minutes for CDX building
+                show_output=True,
+            )
 
-        return success
+            if success:
+                if self._check_ck_errors(data_path):
+                    logger.error("Creation Kit reported errors during CDX building")
+                    return False
+                logger.success("CDX building completed successfully")
+            else:
+                logger.error("Creation Kit CDX building failed")
+
+            return success
+        finally:
+            # Always restore graphics DLLs, even if operation failed
+            self._restore_graphics_dlls()
 
     def generate_previs_data(self, data_path: Path) -> bool:
         """Generate visibility data using Creation Kit.
@@ -123,27 +146,71 @@ class CreationKitWrapper:
         """
         logger.info("Starting previs data generation")
 
-        args: list[str] = [str(self.ck_path), f"-GeneratePreVisData:{self.plugin_name}", "clean", "all"]
+        # Disable graphics DLLs before running CK
+        self._disable_graphics_dlls()
 
-        success: bool = self.process_runner.run_process(
-            args,
-            timeout=172800,  # 2 Days for previs generation
-            show_output=True,
-        )
+        try:
+            args: list[str] = [str(self.ck_path), f"-GeneratePreVisData:{self.plugin_name}", "clean", "all"]
 
-        if success:
-            if self._check_ck_errors(data_path):
-                logger.error("Creation Kit reported errors during previs generation")
-                return False
-            if self._check_previs_completion(data_path):
-                logger.success("Previs data generation completed successfully")
+            success: bool = self.process_runner.run_process(
+                args,
+                timeout=172800,  # 2 Days for previs generation
+                show_output=True,
+            )
+
+            if success:
+                if self._check_ck_errors(data_path):
+                    logger.error("Creation Kit reported errors during previs generation")
+                    return False
+                if self._check_previs_completion(data_path):
+                    logger.success("Previs data generation completed successfully")
+                else:
+                    logger.error("Previs generation did not complete properly")
+                    return False
             else:
-                logger.error("Previs generation did not complete properly")
-                return False
-        else:
-            logger.error("Creation Kit previs generation failed")
+                logger.error("Creation Kit previs generation failed")
 
-        return success
+            return success
+        finally:
+            # Always restore graphics DLLs, even if operation failed
+            self._restore_graphics_dlls()
+
+    def _disable_graphics_dlls(self) -> None:
+        """Disable graphics DLLs by renaming them to prevent CK graphics issues.
+
+        This matches the batch file behavior of renaming DLLs to .dll-PJMdisabled
+        to prevent Creation Kit graphics problems.
+        """
+        logger.debug("Disabling graphics DLLs to prevent CK graphics issues")
+
+        for dll_name in self.graphics_dlls:
+            dll_path = self.ck_directory / dll_name
+            disabled_path = self.ck_directory / f"{dll_name}-PJMdisabled"
+
+            if dll_path.exists() and not disabled_path.exists():
+                try:
+                    dll_path.rename(disabled_path)
+                    logger.debug(f"Disabled {dll_name}")
+                except (OSError, PermissionError) as e:
+                    logger.warning(f"Could not disable {dll_name}: {e}")
+
+    def _restore_graphics_dlls(self) -> None:
+        """Restore graphics DLLs by renaming them back from .dll-PJMdisabled.
+
+        This matches the batch file behavior of restoring DLLs after CK operations.
+        """
+        logger.debug("Restoring graphics DLLs")
+
+        for dll_name in self.graphics_dlls:
+            dll_path = self.ck_directory / dll_name
+            disabled_path = self.ck_directory / f"{dll_name}-PJMdisabled"
+
+            if disabled_path.exists() and not dll_path.exists():
+                try:
+                    disabled_path.rename(dll_path)
+                    logger.debug(f"Restored {dll_name}")
+                except (OSError, PermissionError) as e:
+                    logger.warning(f"Could not restore {dll_name}: {e}")
 
     def _check_ck_errors(self, data_path: Path) -> bool:
         """Check Creation Kit log files for errors.
@@ -159,7 +226,14 @@ class CreationKitWrapper:
             logger.debug("Skipping CK error checking - no log file configured in CKPE")
             return False
 
-        log_patterns: list[str] = ["OUT OF HANDLE ARRAY ENTRIES", "Failed to load", "ERROR:", "FATAL:", "Exception"]
+        # Enhanced error patterns to match the batch file exactly
+        error_patterns: list[str] = [
+            "DEFAULT: OUT OF HANDLE ARRAY ENTRIES",  # Exact match from batch file
+            "Failed to load",
+            "ERROR:",
+            "FATAL:",
+            "Exception",
+        ]
 
         # Use the configured log file path
         log_path = Path(self.ckpe_config.log_output_file)
@@ -172,7 +246,7 @@ class CreationKitWrapper:
             try:
                 with log_path.open(encoding="utf-8", errors="ignore") as f:
                     content: str = f.read()
-                    for pattern in log_patterns:
+                    for pattern in error_patterns:
                         if pattern in content:
                             logger.error(f"Found error pattern '{pattern}' in {log_path}")
                             return True
@@ -197,8 +271,12 @@ class CreationKitWrapper:
             logger.debug("Skipping previs completion checking - no log file configured in CKPE")
             return True
 
-        # Look for completion indicators in logs
-        completion_patterns: list[str] = ["visibility task did not complete", "Previs generation failed", "Could not complete previs"]
+        # Enhanced completion failure patterns to match the batch file exactly
+        completion_patterns: list[str] = [
+            "ERROR: visibility task did not complete.",  # Exact match from batch file
+            "Previs generation failed",
+            "Could not complete previs",
+        ]
 
         # Use the configured log file path
         log_path = Path(self.ckpe_config.log_output_file)
@@ -213,7 +291,7 @@ class CreationKitWrapper:
                     content: str = f.read()
                     for pattern in completion_patterns:
                         if pattern in content:
-                            logger.error(f"Found completion failure pattern '{pattern}' in {log_path}")
+                            logger.warning(f"Found completion failure pattern '{pattern}' in {log_path}")
                             return False
             except (OSError, UnicodeDecodeError) as e:
                 logger.warning(f"Could not read log file {log_path}: {e}")

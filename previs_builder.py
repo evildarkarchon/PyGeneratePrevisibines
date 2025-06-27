@@ -16,9 +16,9 @@ from rich.table import Table
 
 from PrevisLib.config.settings import Settings
 from PrevisLib.core import PrevisBuilder
-from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep
+from PrevisLib.models.data_classes import BuildMode, BuildStep
 from PrevisLib.utils.logging import get_logger, setup_logger
-from PrevisLib.utils.validation import check_tool_version, validate_plugin_name
+from PrevisLib.utils.validation import check_tool_version, create_plugin_from_template, validate_plugin_name
 
 if TYPE_CHECKING:
     from loguru import Logger
@@ -68,14 +68,18 @@ def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode, bool]:
     return plugin_name, build_mode, use_bsarch
 
 
-def prompt_for_plugin() -> str | None:
-    """Prompt user for plugin name with validation.
+def prompt_for_plugin(settings: Settings | None = None) -> str | None:
+    """Prompt user for plugin name with validation and template creation.
+
+    Args:
+        settings: Optional settings object with tool paths for template creation
 
     Returns:
         Valid plugin name or None if cancelled
     """
     console.print("\n[cyan]Enter the plugin name for previs generation.[/cyan]")
     console.print("[dim]Example: MyMod.esp[/dim]")
+    console.print("[dim]If the plugin doesn't exist, xPrevisPatch.esp will be used as a template.[/dim]")
 
     while True:
         plugin_name: str = Prompt.ask("\nPlugin name", default="")
@@ -86,20 +90,37 @@ def prompt_for_plugin() -> str | None:
             continue
 
         # Validate plugin name
-        validation_result: tuple[bool, str] | str = validate_plugin_name(plugin_name)
-        if isinstance(validation_result, tuple):
-            is_valid, result_value = validation_result
-            if not is_valid:
-                console.print(f"\n[red]Error:[/red] {result_value}")
-                continue
-            plugin_name = result_value
-        else:
-            plugin_name = validation_result
+        validation_result: tuple[bool, str] = validate_plugin_name(plugin_name)
+        is_valid, message = validation_result
+        if not is_valid:
+            console.print(f"\n[red]Error:[/red] {message}")
+            continue
 
-        # Check for xPrevisPatch.esp
-        if plugin_name.lower() == "xprevispatch.esp":
-            console.print("\n[yellow]xPrevisPatch.esp is a special plugin used for testing.[/yellow]")
-            if Confirm.ask("Do you want to rename it to something else?", default=True):
+        # Check for reserved names that should be blocked
+        reserved_build_names = {"previs", "combinedobjects", "xprevispatch"}
+        plugin_base = Path(plugin_name).stem.lower()
+        if plugin_base in reserved_build_names:
+            console.print(f"\n[red]Error:[/red] Plugin name '{plugin_base}' is reserved for internal use. Please choose another.")
+
+        # Check if plugin exists (if we have tool paths available)
+        if settings and settings.tool_paths.fallout4:
+            data_path = settings.tool_paths.fallout4 / "Data"
+            plugin_path = data_path / plugin_name
+
+            if not plugin_path.exists():
+                # Plugin doesn't exist - offer to create from template
+                console.print(f"\n[yellow]Plugin {plugin_name} does not exist.[/yellow]")
+
+                if Confirm.ask("Create it from xPrevisPatch.esp?", default=True):
+                    success, template_message = create_plugin_from_template(data_path, plugin_name)
+
+                    if success:
+                        console.print(f"\n[green]✓[/green] {template_message}")
+                        return plugin_name
+                    console.print(f"\n[red]Error:[/red] {template_message}")
+                    continue
+                # User declined to create template, ask for different name
+                console.print("[dim]Please enter a different plugin name or create the plugin manually.[/dim]")
                 continue
 
         return plugin_name
@@ -178,10 +199,7 @@ def show_tool_versions(settings: Settings) -> None:
             success, version_info = check_tool_version(tool_path)
             if success:
                 # Clean up version string - extract just the version number
-                if version_info.startswith("Version: "):
-                    version = version_info[9:]  # Remove "Version: " prefix
-                else:
-                    version = version_info
+                version: str = version_info.removeprefix("Version: ")
                 console.print(f"Using {tool_name} V{version}")
             else:
                 console.print(f"Using {tool_name} V[red]Unknown[/red] ({version_info})")
@@ -390,14 +408,14 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
         if not settings.plugin_name:
             # Check for cleanup mode
             if Confirm.ask("\nDo you want to clean up existing previs files?", default=False):
-                plugin = prompt_for_plugin()
+                plugin = prompt_for_plugin(settings)
                 if plugin:
                     settings.plugin_name = plugin
                     prompt_for_cleanup(settings)
                     return
 
             # Normal build mode
-            plugin = prompt_for_plugin()
+            plugin = prompt_for_plugin(settings)
             if not plugin:
                 console.print("\n[yellow]No plugin selected. Exiting.[/yellow]")
                 return

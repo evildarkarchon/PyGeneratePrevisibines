@@ -26,6 +26,12 @@ RESERVED_PLUGIN_NAMES: set[str] = {
 
 VALID_PLUGIN_EXTENSIONS: set[str] = {".esp", ".esm", ".esl"}
 
+# Required xEdit scripts with their minimum versions
+REQUIRED_XEDIT_SCRIPTS: dict[str, str] = {
+    "Batch_FO4MergePrevisandCleanRefr.pas": "V2.2",
+    "Batch_FO4MergeCombinedObjectsAndCheck.pas": "V1.5",
+}
+
 
 def validate_plugin_name(plugin_name: str) -> tuple[bool, str]:
     if not plugin_name:
@@ -43,6 +49,118 @@ def validate_plugin_name(plugin_name: str) -> tuple[bool, str]:
         return False, f"Cannot use reserved plugin name: {plugin_name}"
 
     return True, ""
+
+
+def validate_xedit_scripts(xedit_path: Path) -> tuple[bool, str]:
+    """Validate that required xEdit scripts exist with correct versions.
+
+    This function replicates the behavior of the CheckScripts function from the
+    original GeneratePrevisibines.bat file.
+
+    Args:
+        xedit_path: Path to xEdit/FO4Edit executable
+
+    Returns:
+        Tuple of (success, message)
+    """
+    if not xedit_path or not xedit_path.exists():
+        return False, "xEdit path not found"
+
+    # Get the directory containing xEdit executable
+    xedit_dir = xedit_path.parent
+    scripts_dir = xedit_dir / "Edit Scripts"
+
+    # Check if Edit Scripts directory exists
+    if not scripts_dir.exists():
+        return False, f"Edit Scripts directory not found at: {scripts_dir}"
+
+    missing_scripts: list[str] = []
+    version_mismatches: list[str] = []
+
+    for script_name, required_version in REQUIRED_XEDIT_SCRIPTS.items():
+        script_path = scripts_dir / script_name
+
+        # Check if script exists
+        if not script_path.exists():
+            missing_scripts.append(script_name)
+            logger.error(f"Required xEdit script missing: {script_name}")
+            continue
+
+        # Check script version
+        try:
+            with script_path.open(encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+
+            # Search for version string (case-insensitive, like the batch file)
+            if required_version.upper() not in content.upper():
+                version_mismatches.append(f"{script_name} (found old version, {required_version} required)")
+                logger.error(f"Old script {script_name} found, {required_version} required")
+            else:
+                logger.debug(f"Script {script_name} version {required_version} validated")
+
+        except (OSError, UnicodeDecodeError) as e:
+            logger.error(f"Failed to read script {script_name}: {e}")
+            missing_scripts.append(f"{script_name} (read error)")
+
+    # Build error message if any issues found
+    if missing_scripts or version_mismatches:
+        error_parts = []
+        if missing_scripts:
+            error_parts.append(f"Missing scripts: {', '.join(missing_scripts)}")
+        if version_mismatches:
+            error_parts.append(f"Version mismatches: {', '.join(version_mismatches)}")
+
+        return False, "; ".join(error_parts)
+
+    logger.info("All required xEdit scripts validated successfully")
+    return True, "All required xEdit scripts found with correct versions"
+
+
+def create_plugin_from_template(data_path: Path, target_plugin_name: str) -> tuple[bool, str]:
+    """Create a new plugin by copying xPrevisPatch.esp template.
+
+    Args:
+        data_path: Path to Fallout 4 Data directory
+        target_plugin_name: Name of the plugin to create
+
+    Returns:
+        Tuple of (success, message)
+    """
+    from PrevisLib.utils.file_system import mo2_aware_copy, wait_for_output_file
+
+    template_path = data_path / "xPrevisPatch.esp"
+    target_path = data_path / target_plugin_name
+
+    # Check if template exists
+    if not template_path.exists():
+        return False, "xPrevisPatch.esp template not found in Data directory"
+
+    # Check if target already exists
+    if target_path.exists():
+        return False, f"Plugin {target_plugin_name} already exists"
+
+    # Check if target plugin would have an existing archive (matches batch file logic)
+    plugin_base = Path(target_plugin_name).stem
+    archive_path = data_path / f"{plugin_base} - Main.ba2"
+    if archive_path.exists():
+        return False, f"Plugin already has an archive: {archive_path.name}"
+
+    try:
+        logger.info(f"Creating plugin {target_plugin_name} from xPrevisPatch.esp template")
+
+        # Copy template to target location with MO2-aware handling
+        mo2_aware_copy(template_path, target_path, delay=2.0)
+
+        # Wait for the file to be available (important for MO2)
+        if not wait_for_output_file(target_path, timeout=10.0, check_interval=1.0):
+            return False, f"Failed to create {target_plugin_name} - file not accessible after copy"
+
+        logger.success(f"Successfully created {target_plugin_name} from template")
+        return True, f"Created {target_plugin_name} from xPrevisPatch.esp template"
+
+    except Exception as e:
+        logger.error(f"Failed to copy template: {e}")
+        return False, f"Failed to copy template: {e}"
 
 
 def validate_tool_path(tool_path: Path | None, tool_name: str) -> tuple[bool, str]:

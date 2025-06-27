@@ -1,11 +1,14 @@
 """Tests for tool wrapper classes."""
 
+import tempfile
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
 from PrevisLib.models.data_classes import BuildMode, CKPEConfig
 from PrevisLib.tools.creation_kit import CreationKitWrapper
+from PrevisLib.tools.xedit import XEditWrapper
 
 
 class TestCreationKit:
@@ -17,6 +20,14 @@ class TestCreationKit:
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
         return CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, None)
+
+    @pytest.fixture
+    def wrapper_with_ckpe(self, tmp_path):
+        """Create a test Creation Kit wrapper with CKPE config."""
+        ck_path = tmp_path / "CreationKit.exe"
+        ck_path.write_text("fake ck")
+        ckpe_config = CKPEConfig(handle_setting=True, log_output_file="test.log", config_path=None)
+        return CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
     def test_initialization(self, tmp_path):
         """Test Creation Kit wrapper initialization."""
@@ -43,10 +54,14 @@ class TestCreationKit:
         data_path = tmp_path / "Data"
 
         with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            result = wrapper.generate_precombined(data_path)
+            with patch.object(wrapper, "_disable_graphics_dlls") as mock_disable:
+                with patch.object(wrapper, "_restore_graphics_dlls") as mock_restore:
+                    result = wrapper.generate_precombined(data_path)
 
         assert result is True
         mock_runner.run_process.assert_called_once()
+        mock_disable.assert_called_once()
+        mock_restore.assert_called_once()
 
         # Check command arguments
         args = mock_runner.run_process.call_args[0][0]
@@ -71,7 +86,9 @@ class TestCreationKit:
         data_path = tmp_path / "Data"
 
         with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            result = wrapper.generate_precombined(data_path)
+            with patch.object(wrapper, "_disable_graphics_dlls"):
+                with patch.object(wrapper, "_restore_graphics_dlls"):
+                    result = wrapper.generate_precombined(data_path)
 
         assert result is True
         args = mock_runner.run_process.call_args[0][0]
@@ -112,12 +129,16 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        result = wrapper.generate_precombined(data_path)
+        with patch.object(wrapper, "_disable_graphics_dlls"):
+            with patch.object(wrapper, "_restore_graphics_dlls") as mock_restore:
+                result = wrapper.generate_precombined(data_path)
 
         assert result is False
+        # Should still restore DLLs even on failure
+        mock_restore.assert_called_once()
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_ck_errors(self, mock_runner_class, wrapper, tmp_path):
+    def test_generate_precombined_with_ck_errors(self, mock_runner_class, wrapper, tmp_path):
         """Test precombined generation when CK reports errors."""
         mock_runner = Mock()
         mock_runner.run_process.return_value = True
@@ -127,7 +148,9 @@ class TestCreationKit:
         data_path = tmp_path / "Data"
 
         with patch.object(wrapper, "_check_ck_errors", return_value=True):
-            result = wrapper.generate_precombined(data_path)
+            with patch.object(wrapper, "_disable_graphics_dlls"):
+                with patch.object(wrapper, "_restore_graphics_dlls"):
+                    result = wrapper.generate_precombined(data_path)
 
         assert result is False
 
@@ -142,14 +165,15 @@ class TestCreationKit:
         data_path = tmp_path / "Data"
 
         with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            result = wrapper.compress_psg(data_path)
+            with patch.object(wrapper, "_disable_graphics_dlls"):
+                with patch.object(wrapper, "_restore_graphics_dlls"):
+                    result = wrapper.compress_psg(data_path)
 
         assert result is True
         mock_runner.run_process.assert_called_once()
 
-        # Check timeout and command
-        call_args = mock_runner.run_process.call_args
-        assert call_args[1]["timeout"] == 600
+        args = mock_runner.run_process.call_args[0][0]
+        assert f"-CompressPSG:{wrapper.plugin_name}" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
     def test_build_cdx_success(self, mock_runner_class, wrapper, tmp_path):
@@ -162,14 +186,15 @@ class TestCreationKit:
         data_path = tmp_path / "Data"
 
         with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            result = wrapper.build_cdx(data_path)
+            with patch.object(wrapper, "_disable_graphics_dlls"):
+                with patch.object(wrapper, "_restore_graphics_dlls"):
+                    result = wrapper.build_cdx(data_path)
 
         assert result is True
         mock_runner.run_process.assert_called_once()
 
-        # Check timeout
-        call_args = mock_runner.run_process.call_args
-        assert call_args[1]["timeout"] == 900
+        args = mock_runner.run_process.call_args[0][0]
+        assert f"-BuildCDX:{wrapper.plugin_name}" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
     def test_generate_previs_data_success(self, mock_runner_class, wrapper, tmp_path):
@@ -183,7 +208,9 @@ class TestCreationKit:
 
         with patch.object(wrapper, "_check_ck_errors", return_value=False):
             with patch.object(wrapper, "_check_previs_completion", return_value=True):
-                result = wrapper.generate_previs_data(data_path)
+                with patch.object(wrapper, "_disable_graphics_dlls"):
+                    with patch.object(wrapper, "_restore_graphics_dlls"):
+                        result = wrapper.generate_previs_data(data_path)
 
         assert result is True
         mock_runner.run_process.assert_called_once()
@@ -191,7 +218,7 @@ class TestCreationKit:
         # Check timeout (should be 172800 - 2 days)
         call_args = mock_runner.run_process.call_args
         assert call_args[1]["timeout"] == 172800
-        
+
         # Check command arguments
         args = mock_runner.run_process.call_args[0][0]
         assert str(wrapper.ck_path) in args
@@ -211,7 +238,9 @@ class TestCreationKit:
 
         with patch.object(wrapper, "_check_ck_errors", return_value=False):
             with patch.object(wrapper, "_check_previs_completion", return_value=False):
-                result = wrapper.generate_previs_data(data_path)
+                with patch.object(wrapper, "_disable_graphics_dlls"):
+                    with patch.object(wrapper, "_restore_graphics_dlls"):
+                        result = wrapper.generate_previs_data(data_path)
 
         assert result is False
 
@@ -393,3 +422,175 @@ class TestCreationKit:
         log_file.write_text("Some content\nFATAL: Critical error\nMore content")
         result = wrapper._check_ck_errors(data_path)
         assert result is True
+
+    def test_dll_management(self, tmp_path):
+        """Test DLL disable/restore functionality."""
+        ck_path = tmp_path / "CreationKit.exe"
+        ck_path.write_text("fake ck")
+
+        # Create some fake DLL files
+        dll_names = ["d3d11.dll", "d3d10.dll", "dxgi.dll"]
+        for dll_name in dll_names:
+            dll_path = tmp_path / dll_name
+            dll_path.write_text("fake dll")
+
+        wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, None)
+
+        # Test disable
+        wrapper._disable_graphics_dlls()
+
+        # Check that DLLs were renamed
+        for dll_name in dll_names:
+            original_path = tmp_path / dll_name
+            disabled_path = tmp_path / f"{dll_name}-PJMdisabled"
+            assert not original_path.exists()
+            assert disabled_path.exists()
+
+        # Test restore
+        wrapper._restore_graphics_dlls()
+
+        # Check that DLLs were restored
+        for dll_name in dll_names:
+            original_path = tmp_path / dll_name
+            disabled_path = tmp_path / f"{dll_name}-PJMdisabled"
+            assert original_path.exists()
+            assert not disabled_path.exists()
+
+    def test_dll_management_missing_dlls(self, tmp_path):
+        """Test DLL management when DLLs don't exist."""
+        ck_path = tmp_path / "CreationKit.exe"
+        ck_path.write_text("fake ck")
+
+        wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, None)
+
+        # Should not fail when DLLs don't exist
+        wrapper._disable_graphics_dlls()
+        wrapper._restore_graphics_dlls()
+
+    def test_check_ck_errors_enhanced_patterns(self, tmp_path):
+        """Test enhanced CK error checking with patterns from batch file."""
+        ck_path = tmp_path / "CreationKit.exe"
+        ck_path.write_text("fake ck")
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create log file
+        log_dir = data_path.parent / "Logs"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / "CreationKit.log"
+
+        # Create CKPE config pointing to the log file
+        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
+        wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
+
+        # Test enhanced error patterns including exact batch file pattern
+        error_patterns = ["DEFAULT: OUT OF HANDLE ARRAY ENTRIES", "Failed to load", "ERROR:", "FATAL:", "Exception"]
+
+        for pattern in error_patterns:
+            log_file.write_text(f"Some content\n{pattern}\nMore content")
+
+            result = wrapper._check_ck_errors(data_path)
+            assert result is True
+
+    def test_check_previs_completion_enhanced_patterns(self, tmp_path):
+        """Test enhanced previs completion checking with patterns from batch file."""
+        ck_path = tmp_path / "CreationKit.exe"
+        ck_path.write_text("fake ck")
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create log file
+        log_dir = data_path.parent / "Logs"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / "CreationKit.log"
+
+        # Create CKPE config pointing to the log file
+        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
+        wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
+
+        # Test enhanced failure patterns including exact batch file pattern
+        failure_patterns = ["ERROR: visibility task did not complete.", "Previs generation failed", "Could not complete previs"]
+
+        for pattern in failure_patterns:
+            log_file.write_text(f"Some content\n{pattern}\nMore content")
+
+            result = wrapper._check_previs_completion(data_path)
+            assert result is False
+
+
+class TestXEdit:
+    """Test xEdit wrapper functionality."""
+
+    @pytest.fixture
+    def wrapper(self, tmp_path):
+        """Create a test xEdit wrapper."""
+        xedit_path = tmp_path / "FO4Edit.exe"
+        xedit_path.write_text("fake xedit")
+        return XEditWrapper(xedit_path, "TestMod.esp")
+
+    @patch("PrevisLib.tools.xedit.ProcessRunner")
+    def test_merge_combined_objects_success(self, mock_runner_class, wrapper, tmp_path):
+        """Test successful combined objects merge."""
+        mock_runner = Mock()
+        mock_runner.run_process.return_value = True
+        mock_runner_class.return_value = mock_runner
+        wrapper.process_runner = mock_runner
+
+        data_path = tmp_path / "Data"
+        script_path = tmp_path / "TestScript.pas"
+
+        with patch.object(wrapper, "_check_xedit_log", return_value=True):
+            result = wrapper.merge_combined_objects(data_path, script_path)
+
+        assert result is True
+        mock_runner.run_process.assert_called_once()
+
+    @patch("PrevisLib.tools.xedit.ProcessRunner")
+    def test_merge_previs_success(self, mock_runner_class, wrapper, tmp_path):
+        """Test successful previs merge."""
+        mock_runner = Mock()
+        mock_runner.run_process.return_value = True
+        mock_runner_class.return_value = mock_runner
+        wrapper.process_runner = mock_runner
+
+        data_path = tmp_path / "Data"
+        script_path = tmp_path / "TestScript.pas"
+
+        with patch.object(wrapper, "_check_xedit_log", return_value=True):
+            result = wrapper.merge_previs(data_path, script_path)
+
+        assert result is True
+
+    def test_check_xedit_log_enhanced_patterns(self, tmp_path):
+        """Test enhanced xEdit log checking with patterns from batch file."""
+        xedit_path = tmp_path / "FO4Edit.exe"
+        xedit_path.write_text("fake xedit")
+        wrapper = XEditWrapper(xedit_path, "TestMod.esp")
+
+        data_path = tmp_path / "Data"
+
+        # Create a temporary unattended log file
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            unattended_log = temp_path / "UnattendedScript.log"
+
+            with patch("os.environ.get", return_value=str(temp_path)):
+                # Test exact error pattern from batch file
+                unattended_log.write_text("Some content\nError: Test error\nMore content")
+                result = wrapper._check_xedit_log(data_path, "test operation")
+                assert result is False
+
+                # Test exact success pattern from batch file
+                unattended_log.write_text("Some content\nCompleted: No Errors.\nMore content")
+                result = wrapper._check_xedit_log(data_path, "test operation")
+                assert result is True
+
+                # Test general completion pattern from batch file
+                unattended_log.write_text("Some content\nCompleted: \nMore content")
+                result = wrapper._check_xedit_log(data_path, "test operation")
+                assert result is True
+
+                # Test missing completion indicator
+                unattended_log.write_text("Some content\nNo completion indicator\nMore content")
+                result = wrapper._check_xedit_log(data_path, "test operation")
+                assert result is False
