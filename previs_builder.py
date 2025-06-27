@@ -18,7 +18,7 @@ from PrevisLib.config.settings import Settings
 from PrevisLib.core import PrevisBuilder
 from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep
 from PrevisLib.utils.logging import get_logger, setup_logger
-from PrevisLib.utils.validation import validate_plugin_name
+from PrevisLib.utils.validation import check_tool_version, validate_plugin_name
 
 if TYPE_CHECKING:
     from loguru import Logger
@@ -160,6 +160,50 @@ def prompt_for_resume(builder: PrevisBuilder) -> BuildStep | None:
     if choice == "0":
         return None
     return resume_options[int(choice) - 1]
+
+
+def show_tool_versions(settings: Settings) -> None:
+    """Display tool versions like the original batch file.
+
+    Args:
+        settings: Build settings containing tool paths
+    """
+    console.print("\n[bold cyan]Tool Versions:[/bold cyan]")
+
+    tool_paths = settings.tool_paths
+
+    # Helper function to display tool version
+    def show_version(tool_name: str, tool_path: Path | None) -> None:
+        if tool_path and tool_path.exists():
+            success, version_info = check_tool_version(tool_path)
+            if success:
+                # Clean up version string - extract just the version number
+                if version_info.startswith("Version: "):
+                    version = version_info[9:]  # Remove "Version: " prefix
+                else:
+                    version = version_info
+                console.print(f"Using {tool_name} V{version}")
+            else:
+                console.print(f"Using {tool_name} V[red]Unknown[/red] ({version_info})")
+        else:
+            console.print(f"Using {tool_name} V[red]Not Found[/red]")
+
+    # Show tool versions in the same order as the batch file
+    if tool_paths.xedit:
+        show_version(f"{tool_paths.xedit.name}", tool_paths.xedit)
+
+    if tool_paths.fallout4:
+        show_version("Fallout4.exe", tool_paths.fallout4)
+
+    if tool_paths.creation_kit:
+        show_version("CreationKit.exe", tool_paths.creation_kit)
+
+    # Check for CKPE (winhttp.dll in FO4 directory)
+    if tool_paths.fallout4:
+        ckpe_dll = tool_paths.fallout4.parent / "winhttp.dll"
+        show_version("CKPE", ckpe_dll)
+
+    console.print()  # Add blank line after versions
 
 
 def show_build_summary(settings: Settings) -> None:
@@ -326,20 +370,10 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
         # Parse command line arguments
         plugin_name, build_mode, use_bsarch = parse_command_line(list(args))
 
-        # Initialize settings
-        settings: Settings = Settings()
-        settings.verbose = verbose
-
-        # Apply command line options
-        if plugin_name:
-            is_valid, validated_name = validate_plugin_name(plugin_name)
-            if is_valid:
-                settings.plugin_name = validated_name
-            else:
-                console.print(f"[red]Invalid plugin name: {plugin_name}[/red]")
-                return
-        settings.build_mode = build_mode
-        settings.archive_tool = ArchiveTool.BSARCH if use_bsarch else ArchiveTool.ARCHIVE2
+        # Initialize settings with tool discovery
+        settings: Settings = Settings.from_cli_args(
+            plugin_name=plugin_name, build_mode=build_mode.value if build_mode else None, use_bsarch=use_bsarch, verbose=verbose
+        )
 
         # Validate tools
         errors: list[str] = settings.tool_paths.validate()
@@ -348,6 +382,9 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
             for error in errors:
                 console.print(f"  • {error}")
             console.print("\n[dim]Some tools are not found. The build may fail.[/dim]")
+
+        # Show tool versions (like the original batch file)
+        show_tool_versions(settings)
 
         # Interactive mode if no plugin specified
         if not settings.plugin_name:
