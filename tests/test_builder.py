@@ -39,8 +39,11 @@ class TestPrevisBuilder:
 
         return settings
 
-    def test_initialization_success(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_initialization_success(self, mock_validate_scripts, mock_settings):
         """Test successful PrevisBuilder initialization."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
+
         builder = PrevisBuilder(mock_settings)
 
         assert builder.plugin_name == "TestMod.esp"
@@ -49,35 +52,45 @@ class TestPrevisBuilder:
         assert builder.completed_steps == []
         assert builder.failed_step is None
 
-    def test_initialization_missing_creation_kit(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_initialization_missing_creation_kit(self, mock_validate_scripts, mock_settings):
         """Test initialization fails with missing Creation Kit."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         mock_settings.tool_paths.creation_kit = None
 
         with pytest.raises(ValueError, match="Creation Kit path is required"):
             PrevisBuilder(mock_settings)
 
-    def test_initialization_missing_xedit(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_initialization_missing_xedit(self, mock_validate_scripts, mock_settings):
         """Test initialization fails with missing xEdit."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         mock_settings.tool_paths.xedit = None
 
         with pytest.raises(ValueError, match="xEdit path is required"):
             PrevisBuilder(mock_settings)
 
-    def test_initialization_missing_fallout4(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_initialization_missing_fallout4(self, mock_validate_scripts, mock_settings):
         """Test initialization fails with missing Fallout 4."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         mock_settings.tool_paths.fallout4 = None
 
         with pytest.raises(ValueError, match="Fallout 4 path is required"):
             PrevisBuilder(mock_settings)
 
-    def test_get_plugin_base_name(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_get_plugin_base_name(self, mock_validate_scripts, mock_settings):
         """Test plugin base name extraction."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
 
         assert builder._get_plugin_base_name() == "TestMod"
 
-    def test_get_steps_to_run_all_steps(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_get_steps_to_run_all_steps(self, mock_validate_scripts, mock_settings):
         """Test getting all steps when no start point specified."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
 
         steps = builder._get_steps_to_run(None)
@@ -85,8 +98,10 @@ class TestPrevisBuilder:
         assert steps == list(BuildStep)
         assert len(steps) == 8
 
-    def test_get_steps_to_run_from_middle(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_get_steps_to_run_from_middle(self, mock_validate_scripts, mock_settings):
         """Test getting steps from middle of process."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
 
         steps = builder._get_steps_to_run(BuildStep.COMPRESS_PSG)
@@ -100,8 +115,10 @@ class TestPrevisBuilder:
         ]
         assert steps == expected_steps
 
-    def test_get_steps_to_run_invalid_step(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_get_steps_to_run_invalid_step(self, mock_validate_scripts, mock_settings):
         """Test getting steps with invalid start step."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
 
         # Mock an invalid step that's not in the enum
@@ -111,9 +128,11 @@ class TestPrevisBuilder:
             assert steps == list(BuildStep)
             mock_logger.warning.assert_called_once()
 
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.datetime")
-    def test_build_success_all_steps(self, mock_datetime, mock_settings):
+    def test_build_success_all_steps(self, mock_datetime, mock_validate_scripts, mock_settings):
         """Test successful build execution of all steps."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         mock_datetime.now.return_value.strftime.return_value = "2023-01-01 12:00:00"
 
         builder = PrevisBuilder(mock_settings)
@@ -140,9 +159,11 @@ class TestPrevisBuilder:
         assert len(builder.completed_steps) == 8
         assert builder.failed_step is None
 
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.datetime")
-    def test_build_failure_at_step(self, mock_datetime, mock_settings):
+    def test_build_failure_at_step(self, mock_datetime, mock_validate_scripts, mock_settings):
         """Test build failure at specific step."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         mock_datetime.now.return_value.strftime.return_value = "2023-01-01 12:00:00"
 
         builder = PrevisBuilder(mock_settings)
@@ -158,9 +179,11 @@ class TestPrevisBuilder:
         assert len(builder.completed_steps) == 1
         assert builder.failed_step == BuildStep.MERGE_COMBINED_OBJECTS
 
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.datetime")
-    def test_build_exception_during_step(self, mock_datetime, mock_settings):
+    def test_build_exception_during_step(self, mock_datetime, mock_validate_scripts, mock_settings):
         """Test build handles exception during step execution."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         mock_datetime.now.return_value.strftime.return_value = "2023-01-01 12:00:00"
 
         builder = PrevisBuilder(mock_settings)
@@ -175,8 +198,10 @@ class TestPrevisBuilder:
         assert len(builder.completed_steps) == 0
         assert builder.failed_step == BuildStep.GENERATE_PRECOMBINED
 
-    def test_build_keyboard_interrupt(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_build_keyboard_interrupt(self, mock_validate_scripts, mock_settings):
         """Test build handles keyboard interrupt properly."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
 
         # Mock first step to raise KeyboardInterrupt
@@ -186,8 +211,10 @@ class TestPrevisBuilder:
             with pytest.raises(KeyboardInterrupt):
                 builder.build()
 
-    def test_execute_step_success(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_execute_step_success(self, mock_validate_scripts, mock_settings):
         """Test successful step execution."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
         builder._step_generate_precombined = Mock(return_value=True)
 
@@ -196,8 +223,10 @@ class TestPrevisBuilder:
         assert result is True
         builder._step_generate_precombined.assert_called_once()
 
-    def test_execute_step_unknown(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_execute_step_unknown(self, mock_validate_scripts, mock_settings):
         """Test execution of unknown step."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
 
         # Create a mock step that doesn't exist in the step map
@@ -210,16 +239,20 @@ class TestPrevisBuilder:
         assert result is False
         mock_logger.error.assert_called_once()
 
-    def test_get_resume_options_no_failure(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_get_resume_options_no_failure(self, mock_validate_scripts, mock_settings):
         """Test resume options when no failure occurred."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
 
         options = builder.get_resume_options()
 
         assert options == list(BuildStep)
 
-    def test_get_resume_options_with_failure(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_get_resume_options_with_failure(self, mock_validate_scripts, mock_settings):
         """Test resume options when failure occurred."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
         builder.failed_step = BuildStep.COMPRESS_PSG
 
@@ -234,9 +267,11 @@ class TestPrevisBuilder:
         ]
         assert options == expected_options
 
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.fs")
-    def test_step_generate_precombined_success(self, mock_fs, mock_settings):
+    def test_step_generate_precombined_success(self, mock_fs, mock_validate_scripts, mock_settings):
         """Test successful precombined generation step."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
         builder.ck_wrapper = Mock()
         builder.ck_wrapper.generate_precombined.return_value = True
@@ -253,9 +288,11 @@ class TestPrevisBuilder:
         mock_fs.clean_directory.assert_called_once_with(builder.output_path)
         builder.ck_wrapper.generate_precombined.assert_called_once_with(builder.data_path)
 
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.fs")
-    def test_step_generate_precombined_no_meshes(self, mock_fs, mock_settings):
+    def test_step_generate_precombined_no_meshes(self, mock_fs, mock_validate_scripts, mock_settings):
         """Test precombined generation step when no meshes generated."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
         builder.ck_wrapper = Mock()
         builder.ck_wrapper.generate_precombined.return_value = True
@@ -268,8 +305,10 @@ class TestPrevisBuilder:
 
         assert result is False
 
-    def test_find_xedit_script_found(self, mock_settings, tmp_path):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_find_xedit_script_found(self, mock_validate_scripts, mock_settings, tmp_path):
         """Test finding xEdit script successfully."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
         builder.settings.tool_paths.xedit = tmp_path / "xEdit.exe"
 
@@ -283,8 +322,10 @@ class TestPrevisBuilder:
 
         assert result == script_file
 
-    def test_find_xedit_script_not_found(self, mock_settings):
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_find_xedit_script_not_found(self, mock_validate_scripts, mock_settings):
         """Test finding xEdit script when not found."""
+        mock_validate_scripts.return_value = (True, "Scripts validated")
         builder = PrevisBuilder(mock_settings)
 
         result = builder._find_xedit_script("Nonexistent Script")
@@ -317,7 +358,9 @@ class TestPrevisBuilderStepMethods:
             tool_path.parent.mkdir(parents=True, exist_ok=True)
             tool_path.write_text("fake tool")
 
-        builder = PrevisBuilder(settings)
+        with patch("PrevisLib.core.builder.validate_xedit_scripts") as mock_validate_scripts:
+            mock_validate_scripts.return_value = (True, "Scripts validated")
+            builder = PrevisBuilder(settings)
 
         # Mock tool wrappers
         builder.ck_wrapper = Mock()

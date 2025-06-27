@@ -260,8 +260,8 @@ class TestCreationKit:
         ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
-        # Test each error pattern
-        error_patterns = ["OUT OF HANDLE ARRAY ENTRIES", "Failed to load", "ERROR:", "FATAL:", "Exception"]
+        # Test each error pattern - use exact patterns from implementation
+        error_patterns = ["DEFAULT: OUT OF HANDLE ARRAY ENTRIES", "Failed to load", "ERROR:", "FATAL:", "Exception"]
 
         for pattern in error_patterns:
             log_file.write_text(f"Some content\n{pattern}\nMore content")
@@ -331,13 +331,19 @@ class TestCreationKit:
         ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
-        failure_patterns = ["visibility task did not complete", "Previs generation failed", "Could not complete previs"]
+        # Use the exact failure patterns from the implementation
+        failure_patterns = ["ERROR: visibility task did not complete.", "Previs generation failed", "Could not complete previs"]
 
         for pattern in failure_patterns:
             log_file.write_text(f"Some content\n{pattern}\nMore content")
 
             result = wrapper._check_previs_completion(data_path)
             assert result is False
+
+        # Test with successful completion (no failure patterns)
+        log_file.write_text("Some content\nPrevis generation completed successfully\nMore content")
+        result = wrapper._check_previs_completion(data_path)
+        assert result is True
 
     def test_check_previs_completion_success(self, tmp_path):
         """Test previs completion checking with successful log."""
@@ -371,8 +377,8 @@ class TestCreationKit:
 
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
-        # Test with error in custom log
-        log_path.write_text("Some content\nOUT OF HANDLE ARRAY ENTRIES\nMore content")
+        # Test with error in custom log - use exact pattern from implementation
+        log_path.write_text("Some content\nDEFAULT: OUT OF HANDLE ARRAY ENTRIES\nMore content")
         result = wrapper._check_ck_errors(data_path)
         assert result is True
 
@@ -539,8 +545,10 @@ class TestXEdit:
         data_path = tmp_path / "Data"
         script_path = tmp_path / "TestScript.pas"
 
-        with patch.object(wrapper, "_check_xedit_log", return_value=True):
-            result = wrapper.merge_combined_objects(data_path, script_path)
+        # Force use of ProcessRunner instead of automation to avoid platform issues
+        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False):
+            with patch.object(wrapper, "_check_xedit_log", return_value=True):
+                result = wrapper.merge_combined_objects(data_path, script_path)
 
         assert result is True
         mock_runner.run_process.assert_called_once()
@@ -556,8 +564,10 @@ class TestXEdit:
         data_path = tmp_path / "Data"
         script_path = tmp_path / "TestScript.pas"
 
-        with patch.object(wrapper, "_check_xedit_log", return_value=True):
-            result = wrapper.merge_previs(data_path, script_path)
+        # Force use of ProcessRunner instead of automation to avoid platform issues
+        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False):
+            with patch.object(wrapper, "_check_xedit_log", return_value=True):
+                result = wrapper.merge_previs(data_path, script_path)
 
         assert result is True
 
