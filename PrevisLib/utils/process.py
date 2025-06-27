@@ -40,18 +40,19 @@ def run_process(
             command = command.split()
     else:
         command_str = " ".join(command)
-    
+
     logger.debug(f"Running command: {command_str}")
     if cwd:
         logger.debug(f"Working directory: {cwd}")
-    
+
     start_time = time.time()
-    
+
     try:
         if capture_output:
             result = subprocess.run(
                 command,
-                check=False, cwd=cwd,
+                check=False,
+                cwd=cwd,
                 timeout=timeout,
                 capture_output=True,
                 text=True,
@@ -61,32 +62,33 @@ def run_process(
         else:
             result = subprocess.run(
                 command,
-                check=False, cwd=cwd,
+                check=False,
+                cwd=cwd,
                 timeout=timeout,
                 shell=shell,
                 env=env,
             )
             result.stdout = ""
             result.stderr = ""
-        
+
         elapsed_time = time.time() - start_time
-        
+
         process_result = ProcessResult(
             returncode=result.returncode,
             stdout=result.stdout if capture_output else "",
             stderr=result.stderr if capture_output else "",
             elapsed_time=elapsed_time,
         )
-        
+
         if process_result.success:
             logger.debug(f"Command completed successfully in {elapsed_time:.2f}s")
         else:
             logger.error(f"Command failed with return code {result.returncode}")
             if capture_output and result.stderr:
                 logger.error(f"Error output: {result.stderr}")
-        
+
         return process_result
-        
+
     except subprocess.TimeoutExpired:
         elapsed_time = time.time() - start_time
         logger.error(f"Command timed out after {elapsed_time:.2f}s")
@@ -109,37 +111,29 @@ def run_process(
 
 class ProcessRunner:
     """Wrapper class for process execution utilities."""
-    
-    def run_process(self, 
-                   command: list[str] | str,
-                   timeout: float | None = None,
-                   show_output: bool = False,
-                   cwd: Path | None = None) -> bool:
+
+    def run_process(
+        self, command: list[str] | str, timeout: float | None = None, show_output: bool = False, cwd: Path | None = None
+    ) -> bool:
         """Run a process and return success status.
-        
+
         Args:
             command: Command to run
             timeout: Timeout in seconds
             show_output: Whether to show output to console
             cwd: Working directory
-            
+
         Returns:
             True if successful, False otherwise
         """
-        result = run_process(
-            command=command,
-            cwd=cwd,
-            timeout=timeout,
-            capture_output=not show_output,
-            shell=False
-        )
+        result = run_process(command=command, cwd=cwd, timeout=timeout, capture_output=not show_output, shell=False)
         return result.success
 
 
 def check_process_running(process_name: str) -> bool:
     try:
         import psutil
-        
+
         for proc in psutil.process_iter(["name"]):
             if proc.info["name"] and process_name.lower() in proc.info["name"].lower():
                 return True
@@ -147,27 +141,27 @@ def check_process_running(process_name: str) -> bool:
         logger.warning("psutil not available, cannot check running processes")
     except Exception as e:
         logger.error(f"Error checking process: {e}")
-    
+
     return False
 
 
 def kill_process(process_name: str) -> bool:
     try:
         import psutil
-        
+
         killed = False
         for proc in psutil.process_iter(["name"]):
             if proc.info["name"] and process_name.lower() in proc.info["name"].lower():
                 logger.info(f"Killing process: {proc.info['name']} (PID: {proc.pid})")
                 proc.kill()
                 killed = True
-        
+
         return killed
     except ImportError:
         logger.warning("psutil not available, cannot kill processes")
     except Exception as e:
         logger.error(f"Error killing process: {e}")
-    
+
     return False
 
 
@@ -186,7 +180,7 @@ def run_with_window_automation(
             stderr="Window automation not supported on this platform",
             elapsed_time=0.0,
         )
-    
+
     try:
         import pywinauto
         from pywinauto.application import Application
@@ -198,34 +192,34 @@ def run_with_window_automation(
             stderr="pywinauto not installed",
             elapsed_time=0.0,
         )
-    
+
     logger.info(f"Starting process with window automation: {window_title}")
-    
+
     if isinstance(command, list):
         command_str = " ".join(command)
     else:
         command_str = command
-    
+
     try:
         app = Application(backend="win32").start(command_str, work_dir=str(cwd) if cwd else None)
-        
+
         time.sleep(2)
-        
+
         window = app.window(title_re=f".*{window_title}.*")
         window.wait("ready", timeout=30)
-        
+
         if automation_func:
             automation_func(window)
-        
+
         window.wait_not("exists", timeout=timeout)
-        
+
         return ProcessResult(
             returncode=0,
             stdout="",
             stderr="",
             elapsed_time=timeout,
         )
-        
+
     except Exception as e:
         logger.error(f"Window automation failed: {e}")
         return ProcessResult(

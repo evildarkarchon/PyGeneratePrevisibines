@@ -4,7 +4,7 @@
 This is a convenience wrapper that imports and runs the main function
 from previs_builder.py. This allows the tool to be run as:
     python PyGeneratePrevisibines.py [args]
-    
+
 Or when installed:
     PyGeneratePrevisibines [args]
 
