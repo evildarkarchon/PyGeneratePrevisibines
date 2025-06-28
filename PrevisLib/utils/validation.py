@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import configparser
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -161,9 +162,9 @@ def create_plugin_from_template(data_path: Path, target_plugin_name: str) -> tup
             return False, f"Failed to create {target_plugin_name} - file not accessible after copy"
 
         logger.success(f"Successfully created {target_plugin_name} from template")
-        return True, f"Created {target_plugin_name} from xPrevisPatch.esp template"
+        return True, f"Created {target_plugin_name} from xPrevisPatch.esp template"  # noqa: TRY300
 
-    except Exception as e:
+    except (OSError, shutil.Error) as e:
         logger.error(f"Failed to copy template: {e}")
         return False, f"Failed to copy template: {e}"
 
