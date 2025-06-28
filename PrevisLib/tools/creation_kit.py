@@ -43,7 +43,7 @@ class CreationKitWrapper:
             else:
                 args.extend(["filtered", "all"])
 
-            success: bool = self.process_runner.run_process(
+            success: bool = self.process_runner.execute(
                 args,
                 timeout=172800,  # 2 Days for CK operations
                 show_output=True,
@@ -80,7 +80,7 @@ class CreationKitWrapper:
         try:
             args: list[str] = [str(self.ck_path), f"-CompressPSG:{self.plugin_name}"]
 
-            success: bool = self.process_runner.run_process(
+            success: bool = self.process_runner.execute(
                 args,
                 timeout=600,  # 10 minutes for PSG compression
                 show_output=True,
@@ -116,7 +116,7 @@ class CreationKitWrapper:
         try:
             args: list[str] = [str(self.ck_path), f"-BuildCDX:{self.plugin_name}"]
 
-            success: bool = self.process_runner.run_process(
+            success: bool = self.process_runner.execute(
                 args,
                 timeout=900,  # 15 minutes for CDX building
                 show_output=True,
@@ -152,7 +152,7 @@ class CreationKitWrapper:
         try:
             args: list[str] = [str(self.ck_path), f"-GeneratePreVisData:{self.plugin_name}", "clean", "all"]
 
-            success: bool = self.process_runner.run_process(
+            success: bool = self.process_runner.execute(
                 args,
                 timeout=172800,  # 2 Days for previs generation
                 show_output=True,

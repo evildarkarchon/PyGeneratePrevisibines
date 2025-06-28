@@ -139,7 +139,7 @@ class ArchiveWrapper:
         else:
             args.append("-compression=None")
 
-        success: bool = self.process_runner.run_process(args, timeout=600)
+        success: bool = self.process_runner.execute(args, timeout=600)
 
         # Cleanup file list if created
         if list_file is not None:
@@ -178,14 +178,14 @@ class ArchiveWrapper:
 
                 # Pack from temp directory
                 args[2] = str(temp_dir)
-                success: bool = self.process_runner.run_process(args, timeout=600)
+                success: bool = self.process_runner.execute(args, timeout=600)
 
             finally:
                 # Cleanup temp directory
                 if temp_dir.exists():
                     shutil.rmtree(temp_dir, ignore_errors=True)
         else:
-            success = self.process_runner.run_process(args, timeout=600)
+            success = self.process_runner.execute(args, timeout=600)
 
         if success and archive_path.exists():
             logger.success(f"Archive created successfully: {archive_path.name}")
@@ -197,7 +197,7 @@ class ArchiveWrapper:
         """Extract archive using Archive2.exe."""
         args: list[str] = [str(self.tool_path), str(archive_path), f"-extract={output_dir}"]
 
-        success: bool = self.process_runner.run_process(args, timeout=300)
+        success: bool = self.process_runner.execute(args, timeout=300)
 
         if success:
             logger.success(f"Archive extracted successfully to {output_dir}")
@@ -209,7 +209,7 @@ class ArchiveWrapper:
         """Extract archive using BSArch.exe."""
         args: list[str] = [str(self.tool_path), "unpack", str(archive_path), str(output_dir)]
 
-        success: bool = self.process_runner.run_process(args, timeout=300)
+        success: bool = self.process_runner.execute(args, timeout=300)
 
         if success:
             logger.success(f"Archive extracted successfully to {output_dir}")

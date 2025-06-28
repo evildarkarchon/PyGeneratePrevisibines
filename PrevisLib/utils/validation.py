@@ -9,6 +9,7 @@ from PrevisLib.utils.logging import get_logger
 
 if TYPE_CHECKING:
     from loguru import Logger
+    from pefile import PE
 
 logger: Logger = get_logger(__name__)
 
@@ -67,8 +68,8 @@ def validate_xedit_scripts(xedit_path: Path) -> tuple[bool, str]:
         return False, "xEdit path not found"
 
     # Get the directory containing xEdit executable
-    xedit_dir = xedit_path.parent
-    scripts_dir = xedit_dir / "Edit Scripts"
+    xedit_dir: Path = xedit_path.parent
+    scripts_dir: Path = xedit_dir / "Edit Scripts"
 
     # Check if Edit Scripts directory exists
     if not scripts_dir.exists():
@@ -78,7 +79,7 @@ def validate_xedit_scripts(xedit_path: Path) -> tuple[bool, str]:
     version_mismatches: list[str] = []
 
     for script_name, required_version in REQUIRED_XEDIT_SCRIPTS.items():
-        script_path = scripts_dir / script_name
+        script_path: Path = scripts_dir / script_name
 
         # Check if script exists
         if not script_path.exists():
@@ -89,7 +90,7 @@ def validate_xedit_scripts(xedit_path: Path) -> tuple[bool, str]:
         # Check script version
         try:
             with script_path.open(encoding="utf-8", errors="ignore") as f:
-                content = f.read()
+                content: str = f.read()
 
             # Search for version string (case-insensitive, like the batch file)
             if required_version.upper() not in content.upper():
@@ -104,7 +105,7 @@ def validate_xedit_scripts(xedit_path: Path) -> tuple[bool, str]:
 
     # Build error message if any issues found
     if missing_scripts or version_mismatches:
-        error_parts = []
+        error_parts: list[str] = []
         if missing_scripts:
             error_parts.append(f"Missing scripts: {', '.join(missing_scripts)}")
         if version_mismatches:
@@ -129,13 +130,13 @@ def create_plugin_from_template(data_path: Path, target_plugin_name: str) -> tup
     from PrevisLib.utils.file_system import mo2_aware_copy, wait_for_output_file
 
     # Auto-append .esp if no extension provided
-    plugin_path = Path(target_plugin_name)
+    plugin_path: Path = Path(target_plugin_name)
     if not plugin_path.suffix:
         target_plugin_name = f"{target_plugin_name}.esp"
         logger.debug(f"No extension provided, appended .esp: {target_plugin_name}")
 
-    template_path = data_path / "xPrevisPatch.esp"
-    target_path = data_path / target_plugin_name
+    template_path: Path = data_path / "xPrevisPatch.esp"
+    target_path: Path = data_path / target_plugin_name
 
     # Check if template exists
     if not template_path.exists():
@@ -146,8 +147,8 @@ def create_plugin_from_template(data_path: Path, target_plugin_name: str) -> tup
         return False, f"Plugin {target_plugin_name} already exists"
 
     # Check if target plugin would have an existing archive (matches batch file logic)
-    plugin_base = Path(target_plugin_name).stem
-    archive_path = data_path / f"{plugin_base} - Main.ba2"
+    plugin_base: str = Path(target_plugin_name).stem
+    archive_path: Path = data_path / f"{plugin_base} - Main.ba2"
     if archive_path.exists():
         return False, f"Plugin already has an archive: {archive_path.name}"
 
@@ -173,11 +174,8 @@ def validate_tool_path(tool_path: Path | None, tool_name: str) -> tuple[bool, st
     if not tool_path:
         return False, f"{tool_name} path not specified"
 
-    if not tool_path.exists():
-        return False, f"{tool_name} not found at: {tool_path}"
-
     if not tool_path.is_file():
-        return False, f"{tool_name} path is not a file: {tool_path}"
+        return False, f"{tool_name} not found at: {tool_path}"
 
     if tool_path.suffix.lower() != ".exe":
         return False, f"{tool_name} must be an executable (.exe): {tool_path}"
@@ -213,7 +211,7 @@ def check_tool_version(tool_path: Path, expected_version: str | None = None) -> 
     except ImportError:
         return True, "pefile not available - version check skipped"
 
-    pe: pefile.PE | None = None
+    pe: PE | None = None
     try:
         pe = pefile.PE(str(tool_path))
 

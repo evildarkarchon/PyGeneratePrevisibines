@@ -193,38 +193,38 @@ class TestProcessRunner:
 
     @patch("PrevisLib.utils.process.run_process")
     def test_run_process_success(self, mock_run_process):
-        """Test ProcessRunner.run_process with successful execution."""
+        """Test ProcessRunner.execute with successful execution."""
         mock_result = Mock()
         mock_result.success = True
         mock_run_process.return_value = mock_result
 
         runner = ProcessRunner()
-        result = runner.run_process(["echo", "test"])
+        result = runner.execute(["echo", "test"])
 
         assert result is True
         mock_run_process.assert_called_once()
 
     @patch("PrevisLib.utils.process.run_process")
     def test_run_process_failure(self, mock_run_process):
-        """Test ProcessRunner.run_process with failed execution."""
+        """Test ProcessRunner.execute with failed execution."""
         mock_result = Mock()
         mock_result.success = False
         mock_run_process.return_value = mock_result
 
         runner = ProcessRunner()
-        result = runner.run_process(["false"])
+        result = runner.execute(["false"])
 
         assert result is False
 
     @patch("PrevisLib.utils.process.run_process")
     def test_run_process_with_options(self, mock_run_process):
-        """Test ProcessRunner.run_process with various options."""
+        """Test ProcessRunner.execute with various options."""
         mock_result = Mock()
         mock_result.success = True
         mock_run_process.return_value = mock_result
 
         runner = ProcessRunner()
-        result = runner.run_process(["echo", "test"], timeout=60, show_output=True, cwd=Path("/tmp"))
+        result = runner.execute(["echo", "test"], timeout=60, show_output=True, cwd=Path("/tmp"))
 
         assert result is True
 

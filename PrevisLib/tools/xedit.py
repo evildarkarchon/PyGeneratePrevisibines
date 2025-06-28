@@ -84,7 +84,7 @@ class XEditWrapper:
         if PYWINAUTO_AVAILABLE:
             success: bool = self._run_with_automation(args, "Merge Combined Objects")
         else:
-            success = self.process_runner.run_process(
+            success = self.process_runner.execute(
                 args,
                 timeout=1200,  # 20 minutes
                 show_output=True,
@@ -123,7 +123,7 @@ class XEditWrapper:
         if PYWINAUTO_AVAILABLE:
             success: bool = self._run_with_automation(args, "Merge Previs")
         else:
-            success = self.process_runner.run_process(
+            success = self.process_runner.execute(
                 args,
                 timeout=1200,  # 20 minutes
                 show_output=True,
@@ -152,7 +152,7 @@ class XEditWrapper:
         """
         if not PYWINAUTO_AVAILABLE:
             logger.warning("pywinauto not available, falling back to standard execution")
-            return self.process_runner.run_process(args, timeout=1200, show_output=True)
+            return self.process_runner.execute(args, timeout=1200, show_output=True)
 
         try:
             logger.info(f"Starting xEdit with automation for {operation_name}")

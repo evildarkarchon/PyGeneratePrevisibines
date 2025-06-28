@@ -119,10 +119,8 @@ def run_process(  # noqa: PLR0913
 class ProcessRunner:
     """Wrapper class for process execution utilities."""
 
-    def run_process(
-        self, command: list[str] | str, timeout: float | None = None, show_output: bool = False, cwd: Path | None = None
-    ) -> bool:
-        """Run a process and return success status.
+    def execute(self, command: list[str] | str, timeout: float | None = None, show_output: bool = False, cwd: Path | None = None) -> bool:
+        """Execute a process and return success status.
 
         Args:
             command: Command to run
@@ -148,7 +146,7 @@ def check_process_running(process_name: str) -> bool:
         logger.warning("psutil not available, cannot check running processes")
     except (OSError, AttributeError) as e:
         logger.error(f"Error checking process: {e}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Unexpected error checking process: {e}")
 
     return False

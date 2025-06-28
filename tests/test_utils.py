@@ -82,7 +82,7 @@ class TestProcessRunner:
         mock_run.return_value = mock_result
 
         runner = ProcessRunner()
-        result = runner.run_process(["echo", "test"])
+        result = runner.execute(["echo", "test"])
 
         assert result is True
 
@@ -96,7 +96,7 @@ class TestProcessRunner:
         mock_run.return_value = mock_result
 
         runner = ProcessRunner()
-        result = runner.run_process(["false"])
+        result = runner.execute(["false"])
 
         assert result is False
 
