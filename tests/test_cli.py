@@ -106,11 +106,11 @@ class TestCLIPathOverrides:
         fake_ck_exe = fake_fo4_path / "CreationKit.exe"
         fake_archive_exe = fake_fo4_path / "Tools" / "Archive2" / "Archive2.exe"
 
-        # Mock file existence using a simple approach
-        def mock_exists_side_effect(self):
+        # Mock file existence by patching the exists method to return True for our test paths
+        def mock_exists(self):
             return self in [fake_fo4_exe, fake_ck_exe, fake_archive_exe]
 
-        with patch.object(Path, "exists", side_effect=mock_exists_side_effect):
+        with patch.object(Path, "exists", mock_exists):
             # Test the override
             settings = Settings.from_cli_args(fallout4_path=fake_fo4_path)
 
@@ -129,11 +129,11 @@ class TestCLIPathOverrides:
         fake_xedit_path = Path("/fake/tools/FO4Edit.exe")
         fake_bsarch_path = fake_xedit_path.parent / "BSArch.exe"
 
-        # Mock file existence using a simple approach
-        def mock_exists_side_effect(self):
+        # Mock file existence by patching the exists method to return True for our test paths
+        def mock_exists(self):
             return self in [fake_xedit_path, fake_bsarch_path]
 
-        with patch.object(Path, "exists", side_effect=mock_exists_side_effect):
+        with patch.object(Path, "exists", mock_exists):
             # Test the override
             settings = Settings.from_cli_args(xedit_path=fake_xedit_path)
 
@@ -164,11 +164,11 @@ class TestCLIPathOverrides:
 
         fake_xedit_path = Path("/different/tools/FO4Edit.exe")
 
-        # Mock file existence using a simple approach
-        def mock_exists_side_effect(self):
+        # Mock file existence by patching the exists method to return True for our test paths
+        def mock_exists(self):
             return self in [fake_fo4_exe, fake_ck_exe, fake_xedit_path]
 
-        with patch.object(Path, "exists", side_effect=mock_exists_side_effect):
+        with patch.object(Path, "exists", mock_exists):
             settings = Settings.from_cli_args(fallout4_path=fake_fo4_path, xedit_path=fake_xedit_path)
 
             assert settings.tool_paths.fallout4 == fake_fo4_exe
@@ -182,24 +182,24 @@ class TestPluginPrompting:
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.Confirm.ask")
     def test_prompt_for_plugin_exit(self, mock_confirm, mock_prompt):
-        """Test exiting plugin prompt."""
-        mock_prompt.return_value = ""
+        """Test exiting plugin prompt with KeyboardInterrupt."""
+        mock_prompt.side_effect = KeyboardInterrupt()
         mock_confirm.return_value = True
 
-        result = prompt_for_plugin()
-        assert result is None
+        with pytest.raises(KeyboardInterrupt):
+            prompt_for_plugin()
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console.print")
     def test_prompt_for_plugin_validation_error(self, mock_print, mock_prompt):
         """Test plugin validation error handling."""
-        # First call returns invalid name, second call returns empty (to exit)
-        mock_prompt.side_effect = ["invalid name with spaces", ""]
+        # First call returns invalid name, second call raises KeyboardInterrupt to exit
+        mock_prompt.side_effect = ["invalid name with spaces", KeyboardInterrupt()]
 
         with patch("previs_builder.Confirm.ask", return_value=True):
-            result = prompt_for_plugin()
+            with pytest.raises(KeyboardInterrupt):
+                prompt_for_plugin()
 
-        assert result is None
         # Should have printed an error about spaces
         mock_print.assert_any_call("\n[red]Error:[/red] Plugin name cannot contain spaces")
 

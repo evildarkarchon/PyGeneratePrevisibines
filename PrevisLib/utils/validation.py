@@ -174,6 +174,12 @@ def validate_tool_path(tool_path: Path | None, tool_name: str) -> tuple[bool, st
     if not tool_path:
         return False, f"{tool_name} path not specified"
 
+    if not tool_path.exists():
+        return False, f"{tool_name} not found at: {tool_path}"
+
+    if tool_path.is_dir():
+        return False, f"{tool_name} path is not a file (it's a directory): {tool_path}"
+
     if not tool_path.is_file():
         return False, f"{tool_name} not found at: {tool_path}"
 

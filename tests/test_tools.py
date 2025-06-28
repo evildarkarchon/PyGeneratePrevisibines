@@ -47,7 +47,7 @@ class TestCreationKit:
     def test_generate_precombined_success(self, mock_runner_class, wrapper, tmp_path):
         """Test successful precombined mesh generation."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -59,12 +59,12 @@ class TestCreationKit:
                     result = wrapper.generate_precombined(data_path)
 
         assert result is True
-        mock_runner.run_process.assert_called_once()
+        mock_runner.execute.assert_called_once()
         mock_disable.assert_called_once()
         mock_restore.assert_called_once()
 
         # Check command arguments
-        args = mock_runner.run_process.call_args[0][0]
+        args = mock_runner.execute.call_args[0][0]
         assert str(wrapper.ck_path) in args
         assert f"-GeneratePrecombined:{wrapper.plugin_name}" in args
         # Default build mode is CLEAN, so should have "clean" and "all"
@@ -79,7 +79,7 @@ class TestCreationKit:
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.FILTERED, None)
 
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -91,7 +91,7 @@ class TestCreationKit:
                     result = wrapper.generate_precombined(data_path)
 
         assert result is True
-        args = mock_runner.run_process.call_args[0][0]
+        args = mock_runner.execute.call_args[0][0]
         # In filtered mode, should have "filtered" and "all"
         assert "filtered" in args
         assert "all" in args
@@ -104,7 +104,7 @@ class TestCreationKit:
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.XBOX, None)
 
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -114,7 +114,7 @@ class TestCreationKit:
             result = wrapper.generate_precombined(data_path)
 
         assert result is True
-        args = mock_runner.run_process.call_args[0][0]
+        args = mock_runner.execute.call_args[0][0]
         # Xbox mode still uses "filtered" and "all" (non-clean mode)
         assert "filtered" in args
         assert "all" in args
@@ -123,7 +123,7 @@ class TestCreationKit:
     def test_generate_precombined_process_failure(self, mock_runner_class, wrapper, tmp_path):
         """Test precombined generation when process fails."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = False
+        mock_runner.execute.return_value = False
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -141,7 +141,7 @@ class TestCreationKit:
     def test_generate_precombined_with_ck_errors(self, mock_runner_class, wrapper, tmp_path):
         """Test precombined generation when CK reports errors."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -158,7 +158,7 @@ class TestCreationKit:
     def test_compress_psg_success(self, mock_runner_class, wrapper, tmp_path):
         """Test successful PSG compression."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -170,16 +170,16 @@ class TestCreationKit:
                     result = wrapper.compress_psg(data_path)
 
         assert result is True
-        mock_runner.run_process.assert_called_once()
+        mock_runner.execute.assert_called_once()
 
-        args = mock_runner.run_process.call_args[0][0]
+        args = mock_runner.execute.call_args[0][0]
         assert f"-CompressPSG:{wrapper.plugin_name}" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
     def test_build_cdx_success(self, mock_runner_class, wrapper, tmp_path):
         """Test successful CDX building."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -191,16 +191,16 @@ class TestCreationKit:
                     result = wrapper.build_cdx(data_path)
 
         assert result is True
-        mock_runner.run_process.assert_called_once()
+        mock_runner.execute.assert_called_once()
 
-        args = mock_runner.run_process.call_args[0][0]
+        args = mock_runner.execute.call_args[0][0]
         assert f"-BuildCDX:{wrapper.plugin_name}" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
     def test_generate_previs_data_success(self, mock_runner_class, wrapper, tmp_path):
         """Test successful previs data generation."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -213,14 +213,14 @@ class TestCreationKit:
                         result = wrapper.generate_previs_data(data_path)
 
         assert result is True
-        mock_runner.run_process.assert_called_once()
+        mock_runner.execute.assert_called_once()
 
         # Check timeout (should be 172800 - 2 days)
-        call_args = mock_runner.run_process.call_args
+        call_args = mock_runner.execute.call_args
         assert call_args[1]["timeout"] == 172800
 
         # Check command arguments
-        args = mock_runner.run_process.call_args[0][0]
+        args = mock_runner.execute.call_args[0][0]
         assert str(wrapper.ck_path) in args
         assert f"-GeneratePreVisData:{wrapper.plugin_name}" in args
         assert "clean" in args
@@ -230,7 +230,7 @@ class TestCreationKit:
     def test_generate_previs_data_completion_failure(self, mock_runner_class, wrapper, tmp_path):
         """Test previs data generation when completion check fails."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -538,7 +538,7 @@ class TestXEdit:
     def test_merge_combined_objects_success(self, mock_runner_class, wrapper, tmp_path):
         """Test successful combined objects merge."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
@@ -551,13 +551,13 @@ class TestXEdit:
                 result = wrapper.merge_combined_objects(data_path, script_path)
 
         assert result is True
-        mock_runner.run_process.assert_called_once()
+        mock_runner.execute.assert_called_once()
 
     @patch("PrevisLib.tools.xedit.ProcessRunner")
     def test_merge_previs_success(self, mock_runner_class, wrapper, tmp_path):
         """Test successful previs merge."""
         mock_runner = Mock()
-        mock_runner.run_process.return_value = True
+        mock_runner.execute.return_value = True
         mock_runner_class.return_value = mock_runner
         wrapper.process_runner = mock_runner
 
