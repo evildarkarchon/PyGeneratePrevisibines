@@ -431,6 +431,69 @@ class TestPluginTemplateCreation:
                 assert f"Created {target_plugin} from xPrevisPatch.esp template" in message
                 mock_copy.assert_called_once()
 
+    def test_create_plugin_from_template_auto_append_esp(self, tmp_path):
+        """Test that .esp extension is automatically appended when no extension provided."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template file
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        target_plugin = "MyNewMod"  # No extension
+
+        with (
+            patch("PrevisLib.utils.file_system.mo2_aware_copy") as mock_copy,
+            patch("PrevisLib.utils.file_system.wait_for_output_file", return_value=True),
+        ):
+            success, message = create_plugin_from_template(data_path, target_plugin)
+
+            assert success is True
+            assert "Created MyNewMod.esp from xPrevisPatch.esp template" in message
+            # Verify that mo2_aware_copy was called with the .esp appended version
+            expected_target_path = data_path / "MyNewMod.esp"
+            mock_copy.assert_called_once_with(template_path, expected_target_path, delay=2.0)
+
+    def test_create_plugin_from_template_no_extension_conflict_check(self, tmp_path):
+        """Test that auto-appended .esp extension is checked for conflicts properly."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template file
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        # Create existing plugin with .esp extension
+        existing_plugin = data_path / "MyNewMod.esp"
+        existing_plugin.write_text("Existing plugin")
+
+        target_plugin = "MyNewMod"  # No extension, but MyNewMod.esp already exists
+
+        success, message = create_plugin_from_template(data_path, target_plugin)
+
+        assert success is False
+        assert "Plugin MyNewMod.esp already exists" in message
+
+    def test_create_plugin_from_template_no_extension_archive_check(self, tmp_path):
+        """Test that auto-appended .esp extension is checked for archive conflicts."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+
+        # Create template file
+        template_path = data_path / "xPrevisPatch.esp"
+        template_path.write_text("Template plugin content")
+
+        # Create existing archive for what would become MyNewMod.esp
+        archive_path = data_path / "MyNewMod - Main.ba2"
+        archive_path.write_text("Archive content")
+
+        target_plugin = "MyNewMod"  # No extension
+
+        success, message = create_plugin_from_template(data_path, target_plugin)
+
+        assert success is False
+        assert "Plugin already has an archive" in message
+
 
 class TestXEditScriptValidation:
     """Test xEdit script validation."""

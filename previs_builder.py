@@ -68,62 +68,71 @@ def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode, bool]:
     return plugin_name, build_mode, use_bsarch
 
 
-def prompt_for_plugin(settings: Settings | None = None) -> str | None:
+def prompt_for_plugin(settings: Settings | None = None) -> str:
     """Prompt user for plugin name with validation and template creation.
 
     Args:
         settings: Optional settings object with tool paths for template creation
 
     Returns:
-        Valid plugin name or None if cancelled
+        Valid plugin name
+
+    Raises:
+        KeyboardInterrupt: If user cancels with Ctrl+C
     """
     console.print("\n[cyan]Enter the plugin name for previs generation.[/cyan]")
     console.print("[dim]Example: MyMod.esp[/dim]")
-    console.print("[dim]If the plugin doesn't exist, xPrevisPatch.esp will be used as a template.[/dim]")
+    console.print("[dim]If the plugin doesn't exist, it will be created from xPrevisPatch.esp.[/dim]")
+    console.print("[dim]Press Ctrl+C to exit.[/dim]")
 
     while True:
-        plugin_name: str = Prompt.ask("\nPlugin name", default="")
+        try:
+            plugin_name: str = Prompt.ask("\nPlugin name", default="")
 
-        if not plugin_name:
-            if Confirm.ask("Exit without processing?", default=True):
-                return None
-            continue
-
-        # Validate plugin name
-        validation_result: tuple[bool, str] = validate_plugin_name(plugin_name)
-        is_valid, message = validation_result
-        if not is_valid:
-            console.print(f"\n[red]Error:[/red] {message}")
-            continue
-
-        # Check for reserved names that should be blocked
-        reserved_build_names = {"previs", "combinedobjects", "xprevispatch"}
-        plugin_base = Path(plugin_name).stem.lower()
-        if plugin_base in reserved_build_names:
-            console.print(f"\n[red]Error:[/red] Plugin name '{plugin_base}' is reserved for internal use. Please choose another.")
-
-        # Check if plugin exists (if we have tool paths available)
-        if settings and settings.tool_paths.fallout4:
-            data_path = settings.tool_paths.fallout4 / "Data"
-            plugin_path = data_path / plugin_name
-
-            if not plugin_path.exists():
-                # Plugin doesn't exist - offer to create from template
-                console.print(f"\n[yellow]Plugin {plugin_name} does not exist.[/yellow]")
-
-                if Confirm.ask("Create it from xPrevisPatch.esp?", default=True):
-                    success, template_message = create_plugin_from_template(data_path, plugin_name)
-
-                    if success:
-                        console.print(f"\n[green]✓[/green] {template_message}")
-                        return plugin_name
-                    console.print(f"\n[red]Error:[/red] {template_message}")
-                    continue
-                # User declined to create template, ask for different name
-                console.print("[dim]Please enter a different plugin name or create the plugin manually.[/dim]")
+            if not plugin_name:
+                console.print("[red]Plugin name cannot be empty. Please enter a valid plugin name.[/red]")
                 continue
 
-        return plugin_name
+            # Validate plugin name
+            validation_result: tuple[bool, str] = validate_plugin_name(plugin_name)
+            is_valid, message = validation_result
+            if not is_valid:
+                console.print(f"\n[red]Error:[/red] {message}")
+                continue
+
+            # Check for reserved names that should be blocked
+            reserved_build_names = {"previs", "combinedobjects", "xprevispatch"}
+            plugin_base = Path(plugin_name).stem.lower()
+            if plugin_base in reserved_build_names:
+                console.print(f"\n[red]Error:[/red] Plugin name '{plugin_base}' is reserved for internal use. Please choose another.")
+                continue
+
+            # Check if plugin exists (if we have tool paths available)
+            if settings and settings.tool_paths.fallout4:
+                data_path = settings.tool_paths.fallout4 / "Data"
+                plugin_path = data_path / plugin_name
+
+                if not plugin_path.exists():
+                    # Plugin doesn't exist - offer to create from template
+                    console.print(f"\n[yellow]Plugin {plugin_name} does not exist.[/yellow]")
+
+                    if Confirm.ask("Create it from xPrevisPatch.esp?", default=True):
+                        success, template_message = create_plugin_from_template(data_path, plugin_name)
+
+                        if success:
+                            console.print(f"\n[green]✓[/green] {template_message}")
+                            return plugin_name
+                        console.print(f"\n[red]Error:[/red] {template_message}")
+                        continue
+                    # User declined to create template, ask for different name
+                    console.print("[dim]Please enter a different plugin name or create the plugin manually.[/dim]")
+                    continue
+
+            return plugin_name
+
+        except KeyboardInterrupt:
+            # Re-raise KeyboardInterrupt to be handled by the caller
+            raise
 
 
 def prompt_for_build_mode() -> BuildMode:
@@ -442,7 +451,8 @@ def main(
             console.print("\n[bold red]⚠ Tool Configuration Issues:[/bold red]")
             for error in errors:
                 console.print(f"  • {error}")
-            console.print("\n[dim]Some tools are not found. The build may fail.[/dim]")
+            console.print("\n[red]Cannot proceed without required tools. Please fix the configuration and try again.[/red]")
+            sys.exit(1)
 
         # Show tool versions (like the original batch file)
         show_tool_versions(settings)
@@ -452,17 +462,12 @@ def main(
             # Check for cleanup mode
             if Confirm.ask("\nDo you want to clean up existing previs files?", default=False):
                 plugin = prompt_for_plugin(settings)
-                if plugin:
-                    settings.plugin_name = plugin
-                    prompt_for_cleanup(settings)
-                    return
+                settings.plugin_name = plugin
+                prompt_for_cleanup(settings)
+                return
 
             # Normal build mode
             plugin = prompt_for_plugin(settings)
-            if not plugin:
-                console.print("\n[yellow]No plugin selected. Exiting.[/yellow]")
-                return
-
             settings.plugin_name = plugin
 
             # Prompt for build mode if not specified

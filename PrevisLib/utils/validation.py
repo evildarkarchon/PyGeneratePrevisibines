@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import configparser
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from PrevisLib.utils.logging import get_logger
 
 if TYPE_CHECKING:
-    from configparser import ConfigParser
-
     from loguru import Logger
 
 logger: Logger = get_logger(__name__)
@@ -121,12 +120,18 @@ def create_plugin_from_template(data_path: Path, target_plugin_name: str) -> tup
 
     Args:
         data_path: Path to Fallout 4 Data directory
-        target_plugin_name: Name of the plugin to create
+        target_plugin_name: Name of the plugin to create (will auto-append .esp if no extension)
 
     Returns:
         Tuple of (success, message)
     """
     from PrevisLib.utils.file_system import mo2_aware_copy, wait_for_output_file
+
+    # Auto-append .esp if no extension provided
+    plugin_path = Path(target_plugin_name)
+    if not plugin_path.suffix:
+        target_plugin_name = f"{target_plugin_name}.esp"
+        logger.debug(f"No extension provided, appended .esp: {target_plugin_name}")
 
     template_path = data_path / "xPrevisPatch.esp"
     target_path = data_path / target_plugin_name
@@ -256,9 +261,7 @@ def validate_ckpe_config(config_path: Path) -> tuple[bool, str]:
             with config_path.open("rb") as f:
                 tomli.load(f)
         else:
-            import configparser
-
-            parser: ConfigParser = configparser.ConfigParser()
+            parser: configparser.ConfigParser = configparser.ConfigParser()
             parser.read(config_path)
     except (OSError, ImportError, ValueError, KeyError) as e:
         return False, f"Failed to parse CKPE config: {e}"
