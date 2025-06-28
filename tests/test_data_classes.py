@@ -1,8 +1,6 @@
 """Tests for data classes and models."""
 
 from pathlib import Path
-import tempfile
-from unittest.mock import patch
 
 from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep, CKPEConfig, ToolPaths
 

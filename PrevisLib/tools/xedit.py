@@ -290,7 +290,7 @@ class XEditWrapper:
                                 if pattern == "Completed: No Errors.":
                                     logger.info(f"xEdit completed successfully: {pattern}")
                                     return True
-                                elif pattern == "Completed: ":
+                                if pattern == "Completed: ":
                                     # General completion - may have warnings but not errors
                                     logger.info(f"xEdit completed with possible warnings: {pattern}")
                                     return True
