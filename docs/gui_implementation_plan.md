@@ -69,8 +69,6 @@ This document outlines the implementation plan for creating a PySide6-based grap
 - [ ] Create `ProgressWidget` class
   - [ ] Overall progress bar
   - [ ] Current step indicator
-  - [ ] Elapsed time display
-  - [ ] Estimated time remaining (if feasible)
 - [ ] Implement `StatusLogWidget` class
   - [ ] `QTextEdit` or `QPlainTextEdit` for log display
   - [ ] Color-coded log levels (INFO, WARNING, ERROR)

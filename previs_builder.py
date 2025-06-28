@@ -359,17 +359,50 @@ def prompt_for_cleanup(settings: Settings) -> bool:
 @click.command(context_settings={"ignore_unknown_options": True})
 @click.argument("args", nargs=-1)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
-def main(args: tuple[str, ...], verbose: bool) -> None:
+@click.option(
+    "--fallout4-path",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help="Override Fallout 4 installation directory (contains Fallout4.exe)",
+)
+@click.option("--xedit-path", type=click.Path(exists=True, dir_okay=False, path_type=Path), help="Override xEdit/FO4Edit executable path")
+@click.option(
+    "--build-mode",
+    type=click.Choice(["clean", "filtered", "xbox"], case_sensitive=False),
+    help="Build mode: clean (full rebuild), filtered (resume from filtered step), xbox (Xbox optimized)",
+)
+@click.option(
+    "--archive-tool",
+    type=click.Choice(["archive2", "bsarch"], case_sensitive=False),
+    help="Archive tool to use: archive2 (default) or bsarch",
+)
+@click.option("--plugin", help="Plugin name to process (alternative to positional argument)")
+def main(
+    args: tuple[str, ...],
+    verbose: bool,
+    fallout4_path: Path | None,
+    xedit_path: Path | None,
+    build_mode: str | None,
+    archive_tool: str | None,
+    plugin: str | None,
+) -> None:
     """PyGeneratePrevisibines - Automated previs generation for Fallout 4.
 
     Usage:
+        previs_builder.py [OPTIONS] [plugin.esp]
+
+    Legacy batch file style (still supported):
         previs_builder.py [-clean|-filtered|-xbox] [-bsarch] [plugin.esp]
 
+    Modern style:
+        previs_builder.py --build-mode clean --plugin MyMod.esp
+        previs_builder.py --build-mode filtered --archive-tool bsarch --plugin MyMod.esp
+
     Examples:
-        previs_builder.py                    # Interactive mode
-        previs_builder.py MyMod.esp          # Process specific plugin
-        previs_builder.py -filtered MyMod.esp # Filtered mode
-        previs_builder.py -bsarch MyMod.esp   # Use BSArch tool
+        previs_builder.py                           # Interactive mode
+        previs_builder.py MyMod.esp                 # Process specific plugin
+        previs_builder.py --build-mode filtered --plugin MyMod.esp
+        previs_builder.py --archive-tool bsarch MyMod.esp
+        previs_builder.py --fallout4-path "C:/Games/Fallout4" --xedit-path "C:/Tools/FO4Edit.exe" MyMod.esp
     """
     # Setup logging
     log_path = Path("PyGeneratePrevisibines.log")
@@ -385,12 +418,22 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
         console.print("Some features may not work correctly.\n")
 
     try:
-        # Parse command line arguments
-        plugin_name, build_mode, use_bsarch = parse_command_line(list(args))
+        # Parse legacy batch file style arguments first for backward compatibility
+        legacy_plugin, legacy_mode, legacy_bsarch = parse_command_line(list(args))
 
-        # Initialize settings with tool discovery
+        # Merge legacy and modern arguments (modern takes precedence)
+        final_plugin = plugin or legacy_plugin
+        final_build_mode = build_mode or (legacy_mode.value if legacy_mode else None)
+        final_use_bsarch = (archive_tool == "bsarch") if archive_tool else legacy_bsarch
+
+        # Initialize settings with tool discovery and CLI overrides
         settings: Settings = Settings.from_cli_args(
-            plugin_name=plugin_name, build_mode=build_mode.value if build_mode else None, use_bsarch=use_bsarch, verbose=verbose
+            plugin_name=final_plugin,
+            build_mode=final_build_mode,
+            use_bsarch=final_use_bsarch,
+            verbose=verbose,
+            fallout4_path=fallout4_path,
+            xedit_path=xedit_path,
         )
 
         # Validate tools
@@ -423,7 +466,7 @@ def main(args: tuple[str, ...], verbose: bool) -> None:
             settings.plugin_name = plugin
 
             # Prompt for build mode if not specified
-            if not args or not any(arg.startswith("-") for arg in args):
+            if not final_build_mode:
                 settings.build_mode = prompt_for_build_mode()
 
         # Run the build

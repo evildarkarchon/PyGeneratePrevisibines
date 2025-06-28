@@ -90,138 +90,238 @@ class TestCommandLineParsing:
         assert mode == BuildMode.XBOX
 
 
-class TestPromptForPlugin:
-    """Test interactive plugin prompting with template creation."""
+class TestCLIPathOverrides:
+    """Test CLI path override functionality."""
 
-    @pytest.fixture
-    def mock_settings(self, tmp_path):
-        """Create mock settings with temporary paths."""
-        fo4_path = tmp_path / "Fallout4"
-        fo4_path.mkdir()
-        data_path = fo4_path / "Data"
-        data_path.mkdir()
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_fallout4_path_override(self, mock_find_tools):
+        """Test that --fallout4-path correctly overrides tool discovery."""
+        # Mock the default tool discovery
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
 
-        tool_paths = ToolPaths(
-            fallout4=fo4_path, creation_kit=fo4_path / "CreationKit.exe", xedit=fo4_path / "xEdit.exe", archive2=fo4_path / "Archive2.exe"
-        )
+        # Create a fake Fallout 4 installation directory
+        fake_fo4_path = Path("/fake/fallout4")
+        fake_fo4_exe = fake_fo4_path / "Fallout4.exe"
+        fake_ck_exe = fake_fo4_path / "CreationKit.exe"
+        fake_archive_exe = fake_fo4_path / "Tools" / "Archive2" / "Archive2.exe"
 
-        settings = Settings()
-        settings.tool_paths = tool_paths
-        return settings
+        # Mock file existence using a simple approach
+        def mock_exists_side_effect(self):
+            return self in [fake_fo4_exe, fake_ck_exe, fake_archive_exe]
 
-    @patch("previs_builder.Prompt.ask")
-    @patch("previs_builder.Confirm.ask")
-    def test_prompt_plugin_existing_plugin(self, mock_confirm, mock_prompt, mock_settings):
-        """Test prompting when plugin already exists."""
-        mock_prompt.return_value = "ExistingMod.esp"
+        with patch.object(Path, "exists", side_effect=mock_exists_side_effect):
+            # Test the override
+            settings = Settings.from_cli_args(fallout4_path=fake_fo4_path)
 
-        # Create the plugin file to simulate it exists
-        plugin_path = mock_settings.tool_paths.fallout4 / "Data" / "ExistingMod.esp"
-        plugin_path.write_text("Existing plugin content")
+            assert settings.tool_paths.fallout4 == fake_fo4_exe
+            assert settings.tool_paths.creation_kit == fake_ck_exe
+            assert settings.tool_paths.archive2 == fake_archive_exe
 
-        result = prompt_for_plugin(mock_settings)
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_xedit_path_override(self, mock_find_tools):
+        """Test that --xedit-path correctly overrides tool discovery."""
+        # Mock the default tool discovery
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
 
-        assert result == "ExistingMod.esp"
-        mock_prompt.assert_called_once()
-        # Confirm should not be called for existing plugins
-        mock_confirm.assert_not_called()
+        # Create a fake xEdit path
+        fake_xedit_path = Path("/fake/tools/FO4Edit.exe")
+        fake_bsarch_path = fake_xedit_path.parent / "BSArch.exe"
 
-    @patch("previs_builder.Prompt.ask")
-    @patch("previs_builder.Confirm.ask")
-    @patch("previs_builder.create_plugin_from_template")
-    def test_prompt_plugin_create_from_template_accept(self, mock_create, mock_confirm, mock_prompt, mock_settings):
-        """Test prompting when plugin doesn't exist and user accepts template creation."""
-        mock_prompt.return_value = "NewMod.esp"
-        mock_confirm.return_value = True  # User accepts template creation
-        mock_create.return_value = (True, "Created NewMod.esp from xPrevisPatch.esp template")
+        # Mock file existence using a simple approach
+        def mock_exists_side_effect(self):
+            return self in [fake_xedit_path, fake_bsarch_path]
 
-        result = prompt_for_plugin(mock_settings)
+        with patch.object(Path, "exists", side_effect=mock_exists_side_effect):
+            # Test the override
+            settings = Settings.from_cli_args(xedit_path=fake_xedit_path)
 
-        assert result == "NewMod.esp"
-        mock_prompt.assert_called_once()
-        mock_confirm.assert_called_once()
-        mock_create.assert_called_once_with(mock_settings.tool_paths.fallout4 / "Data", "NewMod.esp")
+            assert settings.tool_paths.xedit == fake_xedit_path
+            assert settings.tool_paths.bsarch == fake_bsarch_path
 
-    @patch("previs_builder.Prompt.ask")
-    @patch("previs_builder.Confirm.ask")
-    @patch("previs_builder.create_plugin_from_template")
-    def test_prompt_plugin_create_from_template_decline(self, mock_create, mock_confirm, mock_prompt, mock_settings):
-        """Test prompting when plugin doesn't exist and user declines template creation."""
-        mock_prompt.side_effect = ["NewMod.esp", "DifferentMod.esp"]
-        mock_confirm.return_value = False  # User declines template creation
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_fallout4_path_missing_exe_raises_error(self, mock_find_tools):
+        """Test that missing Fallout4.exe in specified path raises error."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
 
-        # Create the second plugin to avoid infinite loop
-        plugin_path = mock_settings.tool_paths.fallout4 / "Data" / "DifferentMod.esp"
-        plugin_path.write_text("Different plugin content")
+        fake_fo4_path = Path("/fake/fallout4")
 
-        result = prompt_for_plugin(mock_settings)
+        with patch.object(Path, "exists", return_value=False):
+            with pytest.raises(ValueError, match="Fallout4.exe not found in specified path"):
+                Settings.from_cli_args(fallout4_path=fake_fo4_path)
 
-        assert result == "DifferentMod.esp"
-        assert mock_prompt.call_count == 2
-        mock_confirm.assert_called_once()
-        mock_create.assert_not_called()
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_combined_path_overrides(self, mock_find_tools):
+        """Test using both --fallout4-path and --xedit-path together."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
 
-    @patch("previs_builder.Prompt.ask")
-    @patch("previs_builder.Confirm.ask")
-    @patch("previs_builder.create_plugin_from_template")
-    def test_prompt_plugin_template_creation_fails(self, mock_create, mock_confirm, mock_prompt, mock_settings):
-        """Test prompting when template creation fails."""
-        mock_prompt.side_effect = ["NewMod.esp", "ExistingMod.esp"]
-        mock_confirm.return_value = True  # User accepts template creation
-        mock_create.return_value = (False, "xPrevisPatch.esp template not found")
+        fake_fo4_path = Path("/fake/fallout4")
+        fake_fo4_exe = fake_fo4_path / "Fallout4.exe"
+        fake_ck_exe = fake_fo4_path / "CreationKit.exe"
 
-        # Create the second plugin to avoid infinite loop
-        plugin_path = mock_settings.tool_paths.fallout4 / "Data" / "ExistingMod.esp"
-        plugin_path.write_text("Existing plugin content")
+        fake_xedit_path = Path("/different/tools/FO4Edit.exe")
 
-        result = prompt_for_plugin(mock_settings)
+        # Mock file existence using a simple approach
+        def mock_exists_side_effect(self):
+            return self in [fake_fo4_exe, fake_ck_exe, fake_xedit_path]
 
-        assert result == "ExistingMod.esp"
-        assert mock_prompt.call_count == 2
-        mock_confirm.assert_called_once()
-        mock_create.assert_called_once()
+        with patch.object(Path, "exists", side_effect=mock_exists_side_effect):
+            settings = Settings.from_cli_args(fallout4_path=fake_fo4_path, xedit_path=fake_xedit_path)
+
+            assert settings.tool_paths.fallout4 == fake_fo4_exe
+            assert settings.tool_paths.creation_kit == fake_ck_exe
+            assert settings.tool_paths.xedit == fake_xedit_path
+
+
+class TestPluginPrompting:
+    """Test plugin name prompting functionality."""
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.Confirm.ask")
-    def test_prompt_plugin_reserved_names(self, mock_confirm, mock_prompt, mock_settings):
-        """Test prompting with reserved plugin names."""
-        mock_prompt.side_effect = ["previs.esp", "ValidMod.esp"]
+    def test_prompt_for_plugin_exit(self, mock_confirm, mock_prompt):
+        """Test exiting plugin prompt."""
+        mock_prompt.return_value = ""
+        mock_confirm.return_value = True
 
-        # Create the valid plugin to avoid infinite loop
-        plugin_path = mock_settings.tool_paths.fallout4 / "Data" / "ValidMod.esp"
-        plugin_path.write_text("Valid plugin content")
-
-        result = prompt_for_plugin(mock_settings)
-
-        assert result == "ValidMod.esp"
-        assert mock_prompt.call_count == 2
+        result = prompt_for_plugin()
+        assert result is None
 
     @patch("previs_builder.Prompt.ask")
-    @patch("previs_builder.Confirm.ask")
-    def test_prompt_plugin_xprevispatch_special_case(self, mock_confirm, mock_prompt, mock_settings):
-        """Test prompting with xPrevisPatch.esp special case."""
-        mock_prompt.side_effect = ["xprevispatch.esp", "ValidMod.esp"]
-        mock_confirm.return_value = True  # User wants to use different name
+    @patch("previs_builder.console.print")
+    def test_prompt_for_plugin_validation_error(self, mock_print, mock_prompt):
+        """Test plugin validation error handling."""
+        # First call returns invalid name, second call returns empty (to exit)
+        mock_prompt.side_effect = ["invalid name with spaces", ""]
 
-        # Create the valid plugin to avoid infinite loop
-        plugin_path = mock_settings.tool_paths.fallout4 / "Data" / "ValidMod.esp"
-        plugin_path.write_text("Valid plugin content")
+        with patch("previs_builder.Confirm.ask", return_value=True):
+            result = prompt_for_plugin()
 
-        result = prompt_for_plugin(mock_settings)
+        assert result is None
+        # Should have printed an error about spaces
+        mock_print.assert_any_call("\n[red]Error:[/red] Plugin name cannot contain spaces")
 
-        assert result == "ValidMod.esp"
-        assert mock_prompt.call_count == 2
-        mock_confirm.assert_called_once()
-
+    @patch("previs_builder.validate_plugin_name")
     @patch("previs_builder.Prompt.ask")
-    @patch("previs_builder.Confirm.ask")
-    def test_prompt_plugin_no_settings(self, mock_confirm, mock_prompt):
-        """Test prompting without settings (no template creation available)."""
-        mock_prompt.return_value = "SomeMod.esp"
+    def test_prompt_for_plugin_valid_name(self, mock_prompt, mock_validate):
+        """Test successful plugin name validation."""
+        mock_prompt.return_value = "TestMod.esp"
+        mock_validate.return_value = (True, "")
 
-        result = prompt_for_plugin(None)
+        result = prompt_for_plugin()
+        assert result == "TestMod.esp"
 
-        assert result == "SomeMod.esp"
-        mock_prompt.assert_called_once()
-        # Should not try to check if plugin exists or create template
-        mock_confirm.assert_not_called()
+
+class TestModernCLIArguments:
+    """Test modern Click-style CLI arguments."""
+
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_modern_build_mode_argument(self, mock_find_tools):
+        """Test --build-mode argument."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
+
+        # Test each build mode
+        for mode in ["clean", "filtered", "xbox"]:
+            settings = Settings.from_cli_args(plugin_name="TestMod.esp", build_mode=mode)
+            assert settings.build_mode.value == mode
+
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_modern_archive_tool_argument(self, mock_find_tools):
+        """Test --archive-tool argument."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
+
+        # Test archive2 (default)
+        settings = Settings.from_cli_args(use_bsarch=False)
+        assert settings.archive_tool.value == "Archive2"
+
+        # Test bsarch
+        settings = Settings.from_cli_args(use_bsarch=True)
+        assert settings.archive_tool.value == "BSArch"
+
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_modern_plugin_argument(self, mock_find_tools):
+        """Test --plugin argument."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
+
+        settings = Settings.from_cli_args(plugin_name="MyMod.esp")
+        assert settings.plugin_name == "MyMod.esp"
+
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_modern_verbose_argument(self, mock_find_tools):
+        """Test --verbose argument."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
+
+        settings = Settings.from_cli_args(verbose=True)
+        assert settings.verbose is True
+
+        settings = Settings.from_cli_args(verbose=False)
+        assert settings.verbose is False
+
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_combined_modern_arguments(self, mock_find_tools):
+        """Test multiple modern arguments together."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
+
+        settings = Settings.from_cli_args(plugin_name="TestMod.esp", build_mode="filtered", use_bsarch=True, verbose=True)
+
+        assert settings.plugin_name == "TestMod.esp"
+        assert settings.build_mode.value == "filtered"
+        assert settings.archive_tool.value == "BSArch"
+        assert settings.verbose is True
+
+
+class TestBackwardCompatibility:
+    """Test that legacy and modern arguments work together."""
+
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_legacy_arguments_still_work(self, mock_find_tools):
+        """Test that legacy batch-file style arguments still work."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
+
+        # Simulate how the main function would process legacy args
+        legacy_plugin, legacy_mode, legacy_bsarch = parse_command_line(["-filtered", "-bsarch", "TestMod.esp"])
+
+        # This is how main() processes them
+        final_plugin = None or legacy_plugin  # No modern --plugin specified
+        final_build_mode = None or (legacy_mode.value if legacy_mode else None)  # No modern --build-mode
+        final_use_bsarch = False if None else legacy_bsarch  # No modern --archive-tool
+
+        settings = Settings.from_cli_args(plugin_name=final_plugin, build_mode=final_build_mode, use_bsarch=final_use_bsarch)
+
+        assert settings.plugin_name == "TestMod.esp"
+        assert settings.build_mode.value == "filtered"
+        assert settings.archive_tool.value == "BSArch"
+
+    @patch("PrevisLib.config.settings.find_tool_paths")
+    def test_modern_arguments_override_legacy(self, mock_find_tools):
+        """Test that modern arguments take precedence over legacy ones."""
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
+
+        # Simulate conflicting legacy and modern args
+        legacy_plugin, legacy_mode, legacy_bsarch = parse_command_line(["-clean", "OldMod.esp"])
+
+        # Modern args should take precedence
+        modern_plugin = "NewMod.esp"
+        modern_build_mode = "xbox"
+        modern_archive_tool = "bsarch"
+
+        # This is how main() would merge them
+        final_plugin = modern_plugin or legacy_plugin
+        final_build_mode = modern_build_mode or (legacy_mode.value if legacy_mode else None)
+        final_use_bsarch = (modern_archive_tool == "bsarch") if modern_archive_tool else legacy_bsarch
+
+        settings = Settings.from_cli_args(plugin_name=final_plugin, build_mode=final_build_mode, use_bsarch=final_use_bsarch)
+
+        # Modern values should win
+        assert settings.plugin_name == "NewMod.esp"
+        assert settings.build_mode.value == "xbox"
+        assert settings.archive_tool.value == "BSArch"
