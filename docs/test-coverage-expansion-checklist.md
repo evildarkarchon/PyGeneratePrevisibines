@@ -11,22 +11,22 @@
 ### Phase 1: Core Builder Logic (+15% coverage to 55%)
 
 #### **New Test File: `test_builder.py`**
-- [ ] Test `PrevisBuilder` class initialization
-- [ ] Test build process orchestration for all 8 steps
-- [ ] Test resume functionality from failed steps
-- [ ] Test error handling and recovery mechanisms
-- [ ] Test file validation before/after each step
-- [ ] Test cleanup operations on failure
-- [ ] Test build mode selection (clean/filtered/xbox)
-- [ ] Mock tool execution for cross-platform testing
+- [x] Test `PrevisBuilder` class initialization
+- [x] Test build process orchestration for all 8 steps
+- [x] Test resume functionality from failed steps
+- [x] Test error handling and recovery mechanisms
+- [x] Test file validation before/after each step
+- [x] Test cleanup operations on failure
+- [x] Test build mode selection (clean/filtered/xbox)
+- [x] Mock tool execution for cross-platform testing
 
 #### **New Test File: `test_build_steps.py`**
-- [ ] Test `BuildStepExecutor` class methods
-- [ ] Test step validation logic
-- [ ] Test file preparation operations
-- [ ] Test compatibility checks
-- [ ] Test step dependencies and ordering
-- [ ] Test step success/failure detection
+- [x] Test `BuildStepExecutor` class methods
+- [x] Test step validation logic
+- [x] Test file preparation operations
+- [x] Test compatibility checks
+- [x] Test step dependencies and ordering
+- [x] Test step success/failure detection
 
 ### Phase 2: Tool Integration (+20% coverage to 75%)
 
