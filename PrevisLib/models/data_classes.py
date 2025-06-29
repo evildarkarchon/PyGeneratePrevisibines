@@ -66,6 +66,11 @@ class CKPEConfig:
     log_output_file: str = ""
     config_path: Path | None = None
     raw_config: dict[str, Any] = field(default_factory=dict)
+    _from_factory: bool = field(default=False, init=True, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self._from_factory:
+            raise TypeError("CKPEConfig cannot be instantiated directly. Use CKPEConfig.from_toml() or CKPEConfig.from_ini() instead.")
 
     @classmethod
     def from_toml(cls, config_path: Path) -> CKPEConfig:
@@ -81,6 +86,7 @@ class CKPEConfig:
             log_output_file=data.get("Log", {}).get("sOutputFile", ""),
             config_path=config_path,
             raw_config=data,
+            _from_factory=True,
         )
 
     @classmethod
@@ -101,6 +107,7 @@ class CKPEConfig:
             log_output_file=log_section.get("sOutputFile", "") if log_section else "",
             config_path=config_path,
             raw_config={s: dict(parser.items(s)) for s in parser.sections()},
+            _from_factory=True,
         )
 
 

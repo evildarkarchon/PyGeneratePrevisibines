@@ -125,7 +125,7 @@ bBSPointerHandleExtremly = true
 [Log]
 sOutputFile = ""
 """)
-        
+
         config = CKPEConfig.from_toml(config_file)
 
         assert config.handle_setting is True
@@ -144,10 +144,20 @@ bBSPointerHandleExtremly = false
 [Log]
 sOutputFile = "test.log"
 """)
-        
+
         config = CKPEConfig.from_toml(config_file)
 
         assert config.handle_setting is False
         assert config.log_output_file == "test.log"
         assert config.config_path == config_file
         assert isinstance(config.raw_config, dict)
+
+    def test_direct_instantiation_prevented(self):
+        """Test that direct instantiation of CKPEConfig is prevented."""
+        import pytest
+
+        with pytest.raises(TypeError, match="CKPEConfig cannot be instantiated directly"):
+            CKPEConfig()
+
+        with pytest.raises(TypeError, match="CKPEConfig cannot be instantiated directly"):
+            CKPEConfig(handle_setting=True, log_output_file="test.log")
