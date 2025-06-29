@@ -91,7 +91,7 @@ class XEditWrapper:
             )
 
         if success:
-            if self._check_xedit_log(data_path, "combined objects merge"):
+            if self._check_xedit_log("combined objects merge"):
                 logger.success("Combined objects merge completed successfully")
             else:
                 logger.error("Combined objects merge reported errors")
@@ -130,7 +130,7 @@ class XEditWrapper:
             )
 
         if success:
-            if self._check_xedit_log(data_path, "previs merge"):
+            if self._check_xedit_log("previs merge"):
                 logger.success("Previs data merge completed successfully")
             else:
                 logger.error("Previs data merge reported errors")
@@ -234,11 +234,10 @@ class XEditWrapper:
 
         return False
 
-    def _check_xedit_log(self, data_path: Path, operation: str) -> bool:
+    def _check_xedit_log(self, operation: str) -> bool:
         """Check xEdit log for successful completion.
 
         Args:
-            data_path: Path to Fallout 4 Data directory
             operation: Name of the operation
 
         Returns:

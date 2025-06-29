@@ -16,21 +16,21 @@ class TestCreationKit:
     """Test Creation Kit wrapper."""
 
     @pytest.fixture
-    def wrapper(self, tmp_path):
+    def wrapper(self, tmp_path) -> CreationKitWrapper:
         """Create a CreationKit wrapper for testing."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
         return CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, None)
 
     @pytest.fixture
-    def wrapper_with_ckpe(self, tmp_path):
+    def wrapper_with_ckpe(self, tmp_path) -> CreationKitWrapper:
         """Create a test Creation Kit wrapper with CKPE config."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
         ckpe_config = CKPEConfig(handle_setting=True, log_output_file="test.log", config_path=None)
         return CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
-    def test_initialization(self, tmp_path):
+    def test_initialization(self, tmp_path) -> None:
         """Test Creation Kit wrapper initialization."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -45,7 +45,7 @@ class TestCreationKit:
             assert wrapper.process_runner is not None
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_success(self, mock_runner_class, wrapper, tmp_path):
+    def test_generate_precombined_success(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test successful precombined mesh generation."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -73,7 +73,7 @@ class TestCreationKit:
         assert "all" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_filtered_mode(self, mock_runner_class, tmp_path):
+    def test_generate_precombined_filtered_mode(self, mock_runner_class, tmp_path) -> None:
         """Test precombined generation in filtered mode."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -98,7 +98,7 @@ class TestCreationKit:
         assert "all" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_xbox_mode(self, mock_runner_class, tmp_path):
+    def test_generate_precombined_xbox_mode(self, mock_runner_class, tmp_path) -> None:
         """Test precombined generation in Xbox mode."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -121,7 +121,7 @@ class TestCreationKit:
         assert "all" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_process_failure(self, mock_runner_class, wrapper, tmp_path):
+    def test_generate_precombined_process_failure(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test precombined generation when process fails."""
         mock_runner = Mock()
         mock_runner.execute.return_value = False
@@ -139,7 +139,7 @@ class TestCreationKit:
         mock_restore.assert_called_once()
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_with_ck_errors(self, mock_runner_class, wrapper, tmp_path):
+    def test_generate_precombined_with_ck_errors(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test precombined generation when CK reports errors."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -156,7 +156,7 @@ class TestCreationKit:
         assert result is False
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_compress_psg_success(self, mock_runner_class, wrapper, tmp_path):
+    def test_compress_psg_success(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test successful PSG compression."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -177,7 +177,7 @@ class TestCreationKit:
         assert f"-CompressPSG:{wrapper.plugin_name}" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_build_cdx_success(self, mock_runner_class, wrapper, tmp_path):
+    def test_build_cdx_success(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test successful CDX building."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -198,7 +198,7 @@ class TestCreationKit:
         assert f"-BuildCDX:{wrapper.plugin_name}" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_previs_data_success(self, mock_runner_class, wrapper, tmp_path):
+    def test_generate_previs_data_success(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test successful previs data generation."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -228,7 +228,7 @@ class TestCreationKit:
         assert "all" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_previs_data_completion_failure(self, mock_runner_class, wrapper, tmp_path):
+    def test_generate_previs_data_completion_failure(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test previs data generation when completion check fails."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -245,7 +245,7 @@ class TestCreationKit:
 
         assert result is False
 
-    def test_check_ck_errors_multiple_patterns(self, tmp_path):
+    def test_check_ck_errors_multiple_patterns(self, tmp_path) -> None:
         """Test CK error checking with multiple error patterns."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -270,7 +270,7 @@ class TestCreationKit:
             result = wrapper._check_ck_errors(data_path)
             assert result is True
 
-    def test_check_ck_errors_multiple_locations(self, tmp_path):
+    def test_check_ck_errors_multiple_locations(self, tmp_path) -> None:
         """Test CK error checking in multiple log locations."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -294,7 +294,7 @@ class TestCreationKit:
             # Clean up
             log_path.unlink()
 
-    def test_check_ck_errors_file_read_exception(self, tmp_path):
+    def test_check_ck_errors_file_read_exception(self, tmp_path) -> None:
         """Test CK error checking when file read fails."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -316,7 +316,7 @@ class TestCreationKit:
             # Should return False when exception occurs
             assert result is False
 
-    def test_check_previs_completion_patterns(self, tmp_path):
+    def test_check_previs_completion_patterns(self, tmp_path) -> None:
         """Test previs completion checking with different failure patterns."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -346,7 +346,7 @@ class TestCreationKit:
         result = wrapper._check_previs_completion(data_path)
         assert result is True
 
-    def test_check_previs_completion_success(self, tmp_path):
+    def test_check_previs_completion_success(self, tmp_path) -> None:
         """Test previs completion checking with successful log."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -365,7 +365,7 @@ class TestCreationKit:
         result = wrapper._check_previs_completion(data_path)
         assert result is True
 
-    def test_ckpe_config_log_file(self, tmp_path):
+    def test_ckpe_config_log_file(self, tmp_path) -> None:
         """Test error checking with CKPE config log file."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -388,7 +388,7 @@ class TestCreationKit:
         result = wrapper._check_ck_errors(data_path)
         assert result is False
 
-    def test_ckpe_config_no_log_file(self, tmp_path):
+    def test_ckpe_config_no_log_file(self, tmp_path) -> None:
         """Test error checking with CKPE config but no log file specified."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -408,7 +408,7 @@ class TestCreationKit:
         result = wrapper._check_previs_completion(data_path)
         assert result is True
 
-    def test_ckpe_config_relative_log_path(self, tmp_path):
+    def test_ckpe_config_relative_log_path(self, tmp_path) -> None:
         """Test error checking with relative log path in CKPE config."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -430,7 +430,7 @@ class TestCreationKit:
         result = wrapper._check_ck_errors(data_path)
         assert result is True
 
-    def test_dll_management(self, tmp_path):
+    def test_dll_management(self, tmp_path) -> None:
         """Test DLL disable/restore functionality."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -463,7 +463,7 @@ class TestCreationKit:
             assert original_path.exists()
             assert not disabled_path.exists()
 
-    def test_dll_management_missing_dlls(self, tmp_path):
+    def test_dll_management_missing_dlls(self, tmp_path) -> None:
         """Test DLL management when DLLs don't exist."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -474,7 +474,7 @@ class TestCreationKit:
         wrapper._disable_graphics_dlls()
         wrapper._restore_graphics_dlls()
 
-    def test_check_ck_errors_enhanced_patterns(self, tmp_path):
+    def test_check_ck_errors_enhanced_patterns(self, tmp_path) -> None:
         """Test enhanced CK error checking with patterns from batch file."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -499,7 +499,7 @@ class TestCreationKit:
             result = wrapper._check_ck_errors(data_path)
             assert result is True
 
-    def test_check_previs_completion_enhanced_patterns(self, tmp_path):
+    def test_check_previs_completion_enhanced_patterns(self, tmp_path) -> None:
         """Test enhanced previs completion checking with patterns from batch file."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -529,14 +529,14 @@ class TestXEdit:
     """Test xEdit wrapper functionality."""
 
     @pytest.fixture
-    def wrapper(self, tmp_path):
+    def wrapper(self, tmp_path) -> XEditWrapper:
         """Create a test xEdit wrapper."""
         xedit_path = tmp_path / "FO4Edit.exe"
         xedit_path.write_text("fake xedit")
         return XEditWrapper(xedit_path, "TestMod.esp")
 
     @patch("PrevisLib.tools.xedit.ProcessRunner")
-    def test_merge_combined_objects_success(self, mock_runner_class, wrapper, tmp_path):
+    def test_merge_combined_objects_success(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test successful combined objects merge."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -555,7 +555,7 @@ class TestXEdit:
         mock_runner.execute.assert_called_once()
 
     @patch("PrevisLib.tools.xedit.ProcessRunner")
-    def test_merge_previs_success(self, mock_runner_class, wrapper, tmp_path):
+    def test_merge_previs_success(self, mock_runner_class, wrapper, tmp_path) -> None:
         """Test successful previs merge."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -572,7 +572,7 @@ class TestXEdit:
 
         assert result is True
 
-    def test_check_xedit_log_enhanced_patterns(self, tmp_path):
+    def test_check_xedit_log_enhanced_patterns(self, tmp_path) -> None:
         """Test enhanced xEdit log checking with patterns from batch file."""
         xedit_path = tmp_path / "FO4Edit.exe"
         xedit_path.write_text("fake xedit")
@@ -588,22 +588,22 @@ class TestXEdit:
             with patch("os.environ.get", return_value=str(temp_path)):
                 # Test exact error pattern from batch file
                 unattended_log.write_text("Some content\nError: Test error\nMore content")
-                result = wrapper._check_xedit_log(data_path, "test operation")
+                result = wrapper._check_xedit_log("test operation")
                 assert result is False
 
                 # Test exact success pattern from batch file
                 unattended_log.write_text("Some content\nCompleted: No Errors.\nMore content")
-                result = wrapper._check_xedit_log(data_path, "test operation")
+                result = wrapper._check_xedit_log("test operation")
                 assert result is True
 
                 # Test general completion pattern from batch file
                 unattended_log.write_text("Some content\nCompleted: \nMore content")
-                result = wrapper._check_xedit_log(data_path, "test operation")
+                result = wrapper._check_xedit_log("test operation")
                 assert result is True
 
                 # Test missing completion indicator
                 unattended_log.write_text("Some content\nNo completion indicator\nMore content")
-                result = wrapper._check_xedit_log(data_path, "test operation")
+                result = wrapper._check_xedit_log("test operation")
                 assert result is False
 
 
@@ -611,27 +611,27 @@ class TestArchiveWrapper:
     """Test Archive wrapper functionality."""
 
     @pytest.fixture
-    def archive2_wrapper(self, tmp_path):
+    def archive2_wrapper(self, tmp_path) -> ArchiveWrapper:
         """Create an Archive2 wrapper for testing."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
         return ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, BuildMode.CLEAN)
 
     @pytest.fixture
-    def archive2_wrapper_xbox(self, tmp_path):
+    def archive2_wrapper_xbox(self, tmp_path) -> ArchiveWrapper:
         """Create an Archive2 wrapper with Xbox build mode for testing."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
         return ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, BuildMode.XBOX)
 
     @pytest.fixture
-    def bsarch_wrapper(self, tmp_path):
+    def bsarch_wrapper(self, tmp_path) -> ArchiveWrapper:
         """Create a BSArch wrapper for testing."""
         bsarch_path = tmp_path / "BSArch.exe"
         bsarch_path.write_text("fake bsarch")
         return ArchiveWrapper(ArchiveTool.BSARCH, bsarch_path, BuildMode.CLEAN)
 
-    def test_initialization(self, tmp_path):
+    def test_initialization(self, tmp_path) -> None:
         """Test ArchiveWrapper initialization with different build modes."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
@@ -645,7 +645,7 @@ class TestArchiveWrapper:
             assert wrapper.process_runner is not None
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_default_compression(self, mock_runner_class, archive2_wrapper, tmp_path):
+    def test_create_archive2_default_compression(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
         """Test Archive2 archive creation with default compression."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -671,7 +671,7 @@ class TestArchiveWrapper:
         assert "-compression=Default" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_xbox_compression(self, mock_runner_class, archive2_wrapper_xbox, tmp_path):
+    def test_create_archive2_xbox_compression(self, mock_runner_class, archive2_wrapper_xbox, tmp_path) -> None:
         """Test Archive2 archive creation with Xbox compression mode."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -697,7 +697,7 @@ class TestArchiveWrapper:
         assert "-compression=XBox" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_no_compression(self, mock_runner_class, archive2_wrapper, tmp_path):
+    def test_create_archive2_no_compression(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
         """Test Archive2 archive creation with no compression."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -720,7 +720,7 @@ class TestArchiveWrapper:
         assert "-compression=None" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_with_file_list(self, mock_runner_class, archive2_wrapper, tmp_path):
+    def test_create_archive2_with_file_list(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
         """Test Archive2 archive creation with specific file list."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -745,7 +745,7 @@ class TestArchiveWrapper:
         assert len(source_file_arg) == 1
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_bsarch_archive(self, mock_runner_class, bsarch_wrapper, tmp_path):
+    def test_create_bsarch_archive(self, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
         """Test BSArch archive creation."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -774,7 +774,7 @@ class TestArchiveWrapper:
         assert "-fo4" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_extract_archive2(self, mock_runner_class, archive2_wrapper, tmp_path):
+    def test_extract_archive2(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
         """Test Archive2 archive extraction."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -797,7 +797,7 @@ class TestArchiveWrapper:
         assert f"-extract={output_dir}" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_extract_bsarch(self, mock_runner_class, bsarch_wrapper, tmp_path):
+    def test_extract_bsarch(self, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
         """Test BSArch archive extraction."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -820,7 +820,7 @@ class TestArchiveWrapper:
         assert str(archive_path) in args
         assert str(output_dir) in args
 
-    def test_extract_nonexistent_archive(self, archive2_wrapper, tmp_path):
+    def test_extract_nonexistent_archive(self, archive2_wrapper, tmp_path) -> None:
         """Test extraction of non-existent archive."""
         archive_path = tmp_path / "nonexistent.ba2"
         output_dir = tmp_path / "output"
@@ -831,7 +831,7 @@ class TestArchiveWrapper:
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
     @patch("PrevisLib.tools.archive.shutil")
-    def test_add_to_archive_success(self, mock_shutil, mock_runner_class, archive2_wrapper, tmp_path):
+    def test_add_to_archive_success(self, mock_shutil, mock_runner_class, archive2_wrapper, tmp_path) -> None:
         """Test adding files to existing archive."""
         # Setup mocks
         mock_runner = Mock()
@@ -858,7 +858,7 @@ class TestArchiveWrapper:
         assert result is True
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive_process_failure(self, mock_runner_class, archive2_wrapper, tmp_path):
+    def test_create_archive_process_failure(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
         """Test archive creation when process fails."""
         mock_runner = Mock()
         mock_runner.execute.return_value = False
@@ -873,7 +873,7 @@ class TestArchiveWrapper:
 
         assert result is False
 
-    def test_build_mode_inheritance(self, tmp_path):
+    def test_build_mode_inheritance(self, tmp_path) -> None:
         """Test that build mode is properly inherited and accessible."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
@@ -884,7 +884,7 @@ class TestArchiveWrapper:
             assert wrapper.build_mode == mode
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_compression_mode_combinations(self, mock_runner_class, tmp_path):
+    def test_compression_mode_combinations(self, mock_runner_class, tmp_path) -> None:
         """Test all combinations of build modes and compression settings."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
