@@ -1,13 +1,12 @@
 """Tests for error handling and edge cases in previs_builder."""
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
 
 from previs_builder import main, run_build
-from PrevisLib.models.data_classes import BuildMode, ArchiveTool
+from PrevisLib.models.data_classes import ArchiveTool, BuildMode
 
 
 class TestRunBuildErrorHandling:
@@ -15,7 +14,7 @@ class TestRunBuildErrorHandling:
 
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.console")
-    def test_run_build_general_exception(self, mock_console, mock_previs_builder):
+    def test_run_build_general_exception(self, mock_console: MagicMock, mock_previs_builder: MagicMock) -> None:  # noqa: ARG002
         """Test run_build handling of general exceptions."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = "test.esp"
@@ -31,7 +30,7 @@ class TestRunBuildErrorHandling:
 
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.console")
-    def test_run_build_builder_init_exception(self, mock_console, mock_previs_builder):
+    def test_run_build_builder_init_exception(self, mock_console: MagicMock, mock_previs_builder: MagicMock) -> None:  # noqa: ARG002
         """Test run_build when PrevisBuilder initialization fails."""
         mock_settings = MagicMock()
         mock_previs_builder.side_effect = ValueError("Invalid configuration")
@@ -41,7 +40,7 @@ class TestRunBuildErrorHandling:
 
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.Confirm.ask")
-    def test_run_build_cleanup_working_files_error(self, mock_confirm, mock_previs_builder):
+    def test_run_build_cleanup_working_files_error(self, mock_confirm: MagicMock, mock_previs_builder: MagicMock) -> None:
         """Test handling of cleanup_working_files errors."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = "test.esp"
@@ -65,7 +64,7 @@ class TestMainCLIEdgeCases:
 
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.Settings.from_cli_args")
-    def test_main_unexpected_exception(self, mock_settings_from_cli, mock_setup_logger):
+    def test_main_unexpected_exception(self, mock_settings_from_cli: MagicMock, mock_setup_logger: MagicMock) -> None:  # noqa: ARG002
         """Test handling of unexpected exceptions in main."""
         mock_settings_from_cli.side_effect = RuntimeError("Unexpected error")
 
@@ -79,7 +78,7 @@ class TestMainCLIEdgeCases:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.run_build")
-    def test_main_build_failure(self, mock_run_build, mock_settings_from_cli, mock_setup_logger):
+    def test_main_build_failure(self, mock_run_build: MagicMock, mock_settings_from_cli: MagicMock, mock_setup_logger: MagicMock) -> None:  # noqa: ARG002
         """Test main when build fails."""
         mock_settings = MagicMock()
         mock_settings.tool_paths.validate.return_value = []
@@ -96,7 +95,9 @@ class TestMainCLIEdgeCases:
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.Confirm.ask")
-    def test_main_cleanup_error(self, mock_confirm, mock_previs_builder, mock_settings_from_cli, mock_setup_logger):
+    def test_main_cleanup_error(
+        self, mock_confirm: MagicMock, mock_previs_builder: MagicMock, mock_settings_from_cli: MagicMock, mock_setup_logger: MagicMock  # noqa: ARG002
+    ) -> None:
         """Test handling of cleanup errors."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = ""
@@ -123,7 +124,7 @@ class TestLegacyArgumentHandling:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.run_build")
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_legacy_xbox_mode(self, mock_tool_discover, mock_run_build, mock_setup_logger):
+    def test_legacy_xbox_mode(self, mock_tool_discover: MagicMock, mock_run_build: MagicMock, mock_setup_logger: MagicMock) -> None:  # noqa: ARG002
         """Test parsing of legacy -xbox argument."""
         mock_tool_paths = MagicMock()
         mock_tool_paths.validate.return_value = []
@@ -140,7 +141,7 @@ class TestLegacyArgumentHandling:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.run_build")
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_multiple_legacy_modes(self, mock_tool_discover, mock_run_build, mock_setup_logger):
+    def test_multiple_legacy_modes(self, mock_tool_discover: MagicMock, mock_run_build: MagicMock, mock_setup_logger: MagicMock) -> None:  # noqa: ARG002
         """Test handling of conflicting legacy mode arguments."""
         mock_tool_paths = MagicMock()
         mock_tool_paths.validate.return_value = []
@@ -162,7 +163,9 @@ class TestToolPathValidation:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.console")
-    def test_multiple_tool_validation_errors(self, mock_console, mock_settings_from_cli, mock_setup_logger):
+    def test_multiple_tool_validation_errors(
+        self, mock_console: MagicMock, mock_settings_from_cli: MagicMock, mock_setup_logger: MagicMock  # noqa: ARG002
+    ) -> None:
         """Test handling of multiple tool validation errors."""
         mock_settings = MagicMock()
         mock_settings.tool_paths.validate.return_value = ["Creation Kit not found", "xEdit not found", "Archive2 not found"]

@@ -1,14 +1,13 @@
 """Tests to improve coverage for remaining uncovered lines in previs_builder."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
 
-import pytest
 from click.testing import CliRunner
 
 from previs_builder import main, show_build_summary, show_tool_versions
 from PrevisLib.config.settings import Settings
-from PrevisLib.models.data_classes import ArchiveTool, BuildMode, ToolPaths, CKPEConfig
+from PrevisLib.models.data_classes import ArchiveTool, BuildMode, CKPEConfig, ToolPaths
 
 
 class TestShowFunctions:
@@ -16,7 +15,7 @@ class TestShowFunctions:
 
     @patch("previs_builder.check_tool_version")
     @patch("pathlib.Path.exists", return_value=True)
-    def test_show_tool_versions_all_found(self, mock_exists, mock_check_version):
+    def test_show_tool_versions_all_found(self, mock_exists: MagicMock, mock_check_version: MagicMock) -> None:  # noqa: ARG002
         """Test showing tool versions when all tools are found."""
         mock_check_version.return_value = (True, "Version: 1.0.0")
         settings = Settings(
@@ -37,7 +36,7 @@ class TestShowFunctions:
 
     @patch("previs_builder.console")
     @patch("previs_builder.check_tool_version")
-    def test_show_tool_versions_not_found(self, mock_check_version, mock_console):
+    def test_show_tool_versions_not_found(self, mock_check_version: MagicMock, mock_console: MagicMock) -> None:
         """Test showing tool versions when tools are not found."""
         mock_check_version.return_value = (False, "")
         settings = Settings(
@@ -54,7 +53,7 @@ class TestShowFunctions:
 
     @patch("previs_builder.console")
     @patch("previs_builder.Table")
-    def test_show_build_summary_with_ckpe(self, mock_table_class, mock_console):
+    def test_show_build_summary_with_ckpe(self, mock_table_class: MagicMock, mock_console: MagicMock) -> None:  # noqa: ARG002
         """Test showing build summary with CKPE config."""
         # Create settings first
         settings = Settings(
@@ -98,8 +97,13 @@ class TestEdgeCasesInMain:
     @patch("previs_builder.prompt_for_plugin")
     @patch("previs_builder.Confirm.ask")
     def test_interactive_mode_cleanup_only(
-        self, mock_confirm, mock_prompt_plugin, mock_previs_builder, mock_settings_from_cli, mock_setup_logger
-    ):
+        self,
+        mock_confirm: MagicMock,
+        mock_prompt_plugin: MagicMock,
+        mock_previs_builder: MagicMock,
+        mock_settings_from_cli: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+    ) -> None:
         """Test interactive mode when user chooses cleanup only."""
         # Setup
         mock_settings = MagicMock()
@@ -123,7 +127,9 @@ class TestEdgeCasesInMain:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.run_build")
-    def test_run_argument_direct_to_build(self, mock_run_build, mock_settings_from_cli, mock_setup_logger):
+    def test_run_argument_direct_to_build(
+        self, mock_run_build: MagicMock, mock_settings_from_cli: MagicMock, mock_setup_logger: MagicMock  # noqa: ARG002
+    ) -> None:
         """Test --run argument bypasses confirmation."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = "test.esp"
@@ -144,7 +150,7 @@ class TestLegacyModeHandling:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.run_build")
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_legacy_mode_combinations(self, mock_find_tools, mock_run_build, mock_setup_logger):
+    def test_legacy_mode_combinations(self, mock_find_tools: MagicMock, mock_run_build: MagicMock, mock_setup_logger: MagicMock) -> None:  # noqa: ARG002
         """Test various legacy mode combinations."""
         mock_tool_paths = MagicMock()
         mock_tool_paths.validate.return_value = []

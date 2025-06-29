@@ -8,19 +8,19 @@ from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep, CKP
 class TestEnums:
     """Test enumeration classes."""
 
-    def test_build_mode_values(self):
+    def test_build_mode_values(self) -> None:
         """Test BuildMode enum values."""
         assert BuildMode.CLEAN.value == "clean"
         assert BuildMode.FILTERED.value == "filtered"
         assert BuildMode.XBOX.value == "xbox"
 
-    def test_build_step_string_representation(self):
+    def test_build_step_string_representation(self) -> None:
         """Test BuildStep string formatting."""
         assert str(BuildStep.GENERATE_PRECOMBINED) == "Generate Precombined"
         assert str(BuildStep.MERGE_COMBINED_OBJECTS) == "Merge Combined Objects"
         assert str(BuildStep.FINAL_PACKAGING) == "Final Packaging"
 
-    def test_archive_tool_values(self):
+    def test_archive_tool_values(self) -> None:
         """Test ArchiveTool enum values."""
         assert ArchiveTool.ARCHIVE2.value == "Archive2"
         assert ArchiveTool.BSARCH.value == "BSArch"
@@ -29,7 +29,7 @@ class TestEnums:
 class TestToolPaths:
     """Test ToolPaths data class."""
 
-    def test_default_initialization(self):
+    def test_default_initialization(self) -> None:
         """Test default ToolPaths initialization."""
         paths = ToolPaths()
         assert paths.creation_kit is None
@@ -38,7 +38,7 @@ class TestToolPaths:
         assert paths.bsarch is None
         assert paths.fallout4 is None
 
-    def test_validation_with_no_tools(self):
+    def test_validation_with_no_tools(self) -> None:
         """Test validation when no tools are configured."""
         paths = ToolPaths()
         errors = paths.validate()
@@ -52,7 +52,7 @@ class TestToolPaths:
 
         assert all(error in errors for error in expected_errors)
 
-    def test_validation_with_nonexistent_tools(self):
+    def test_validation_with_nonexistent_tools(self) -> None:
         """Test validation with non-existent tool paths."""
         paths = ToolPaths(
             creation_kit=Path("/fake/ck.exe"),
@@ -64,7 +64,7 @@ class TestToolPaths:
         errors = paths.validate()
         assert len(errors) >= 3  # At least CK, xEdit, and FO4 not found
 
-    def test_validation_with_valid_tools_but_missing_scripts(self, tmp_path):
+    def test_validation_with_valid_tools_but_missing_scripts(self, tmp_path: Path) -> None:
         """Test validation with valid tools but missing xEdit scripts."""
         # Create fake tool files
         ck_path = tmp_path / "CreationKit.exe"
@@ -83,7 +83,7 @@ class TestToolPaths:
         assert any("xEdit scripts validation failed" in error for error in errors)
         assert any("Edit Scripts directory not found" in error for error in errors)
 
-    def test_validation_with_valid_tools_and_scripts(self, tmp_path):
+    def test_validation_with_valid_tools_and_scripts(self, tmp_path: Path) -> None:
         """Test validation with valid tools and xEdit scripts."""
         # Create fake tool files
         ck_path = tmp_path / "CreationKit.exe"
@@ -114,7 +114,7 @@ class TestToolPaths:
 class TestCKPEConfig:
     """Test CKPE configuration data class."""
 
-    def test_default_initialization(self, tmp_path):
+    def test_default_initialization(self, tmp_path: Path) -> None:
         """Test default CKPE config initialization."""
         # Create a minimal TOML config file
         config_file = tmp_path / "test.toml"
@@ -133,7 +133,7 @@ sOutputFile = ""
         assert config.config_path == config_file
         assert isinstance(config.raw_config, dict)
 
-    def test_custom_initialization(self, tmp_path):
+    def test_custom_initialization(self, tmp_path: Path) -> None:
         """Test CKPE config with custom values."""
         # Create a TOML config file with custom settings
         config_file = tmp_path / "custom.toml"
@@ -152,7 +152,7 @@ sOutputFile = "test.log"
         assert config.config_path == config_file
         assert isinstance(config.raw_config, dict)
 
-    def test_direct_instantiation_prevented(self):
+    def test_direct_instantiation_prevented(self) -> None:
         """Test that direct instantiation of CKPEConfig is prevented."""
         import pytest
 

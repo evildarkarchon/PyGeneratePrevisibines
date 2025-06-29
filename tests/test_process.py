@@ -2,7 +2,8 @@
 
 import subprocess
 from pathlib import Path
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
 
 from PrevisLib.utils.process import (
     ProcessResult,
@@ -17,7 +18,7 @@ from PrevisLib.utils.process import (
 class TestProcessResult:
     """Test ProcessResult class."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test ProcessResult initialization."""
         result = ProcessResult(0, "stdout", "stderr", 1.5)
 
@@ -27,7 +28,7 @@ class TestProcessResult:
         assert result.elapsed_time == 1.5
         assert result.success is True
 
-    def test_success_property(self):
+    def test_success_property(self) -> None:
         """Test success property for different return codes."""
         success_result = ProcessResult(0, "", "", 1.0)
         assert success_result.success is True
@@ -44,7 +45,7 @@ class TestRunProcess:
 
     @patch("PrevisLib.utils.process.subprocess.run")
     @patch("PrevisLib.utils.process.time.perf_counter")
-    def test_successful_execution(self, mock_perf_counter, mock_run):
+    def test_successful_execution(self, mock_perf_counter: MagicMock, mock_run: MagicMock) -> None:
         """Test successful process execution."""
         mock_perf_counter.side_effect = [0.0, 1.5]  # start and end times
 
@@ -64,7 +65,7 @@ class TestRunProcess:
 
     @patch("PrevisLib.utils.process.subprocess.run")
     @patch("PrevisLib.utils.process.time.perf_counter")
-    def test_failed_execution(self, mock_perf_counter, mock_run):
+    def test_failed_execution(self, mock_perf_counter: MagicMock, mock_run: MagicMock) -> None:
         """Test failed process execution."""
         mock_perf_counter.side_effect = [0.0, 2.0]
 
@@ -83,7 +84,7 @@ class TestRunProcess:
         assert result.success is False
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_timeout_handling(self, mock_run):
+    def test_timeout_handling(self, mock_run: MagicMock) -> None:
         """Test process timeout handling."""
         mock_run.side_effect = subprocess.TimeoutExpired("cmd", 30)
 
@@ -94,7 +95,7 @@ class TestRunProcess:
         assert result.success is False
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_exception_handling(self, mock_run):
+    def test_exception_handling(self, mock_run: MagicMock) -> None:
         """Test exception handling during process execution."""
         mock_run.side_effect = OSError("Command not found")
 
@@ -105,7 +106,7 @@ class TestRunProcess:
         assert result.success is False
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_string_command(self, mock_run):
+    def test_string_command(self, mock_run: MagicMock) -> None:
         """Test running command as string."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -120,7 +121,7 @@ class TestRunProcess:
         mock_run.assert_called_once()
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_shell_command(self, mock_run):
+    def test_shell_command(self, mock_run: MagicMock) -> None:
         """Test running command with shell=True."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -136,7 +137,7 @@ class TestRunProcess:
         assert call_args[1]["shell"] is True
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_working_directory(self, mock_run, tmp_path):
+    def test_working_directory(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """Test running command in specific directory."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -151,7 +152,7 @@ class TestRunProcess:
         assert call_args[1]["cwd"] == tmp_path
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_capture_output_false(self, mock_run):
+    def test_capture_output_false(self, mock_run: MagicMock) -> None:
         """Test running command without capturing output."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -167,7 +168,7 @@ class TestRunProcess:
         assert result.stderr == ""
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_environment_variables(self, mock_run):
+    def test_environment_variables(self, mock_run: MagicMock) -> None:
         """Test running command with custom environment."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -186,13 +187,13 @@ class TestRunProcess:
 class TestProcessRunner:
     """Test ProcessRunner class."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test ProcessRunner initialization."""
         runner = ProcessRunner()
         assert runner is not None
 
     @patch("PrevisLib.utils.process.run_process")
-    def test_run_process_success(self, mock_run_process):
+    def test_run_process_success(self, mock_run_process: MagicMock) -> None:
         """Test ProcessRunner.execute with successful execution."""
         mock_result = Mock()
         mock_result.success = True
@@ -205,7 +206,7 @@ class TestProcessRunner:
         mock_run_process.assert_called_once()
 
     @patch("PrevisLib.utils.process.run_process")
-    def test_run_process_failure(self, mock_run_process):
+    def test_run_process_failure(self, mock_run_process: MagicMock) -> None:
         """Test ProcessRunner.execute with failed execution."""
         mock_result = Mock()
         mock_result.success = False
@@ -217,7 +218,7 @@ class TestProcessRunner:
         assert result is False
 
     @patch("PrevisLib.utils.process.run_process")
-    def test_run_process_with_options(self, mock_run_process):
+    def test_run_process_with_options(self, mock_run_process: MagicMock) -> None:
         """Test ProcessRunner.execute with various options."""
         mock_result = Mock()
         mock_result.success = True
@@ -238,7 +239,7 @@ class TestProcessRunner:
 class TestProcessManagement:
     """Test process management functions."""
 
-    def test_check_process_running_found(self):
+    def test_check_process_running_found(self) -> None:
         """Test checking for running process when found."""
         with patch("builtins.__import__") as mock_import:
             mock_psutil = Mock()
@@ -246,7 +247,7 @@ class TestProcessManagement:
             mock_proc.info = {"name": "notepad.exe"}
             mock_psutil.process_iter.return_value = [mock_proc]
 
-            def import_side_effect(name, *args, **kwargs):
+            def import_side_effect(name: str, *args: Any, **kwargs: Any) -> Any:
                 if name == "psutil":
                     return mock_psutil
                 return __import__(name, *args, **kwargs)
@@ -256,7 +257,7 @@ class TestProcessManagement:
             result = check_process_running("notepad")
             assert result is True
 
-    def test_check_process_running_not_found(self):
+    def test_check_process_running_not_found(self) -> None:
         """Test checking for running process when not found."""
         with patch("builtins.__import__") as mock_import:
             mock_psutil = Mock()
@@ -264,7 +265,7 @@ class TestProcessManagement:
             mock_proc.info = {"name": "other.exe"}
             mock_psutil.process_iter.return_value = [mock_proc]
 
-            def import_side_effect(name, *args, **kwargs):
+            def import_side_effect(name: str, *args: Any, **kwargs: Any) -> Any:
                 if name == "psutil":
                     return mock_psutil
                 return __import__(name, *args, **kwargs)
@@ -274,11 +275,11 @@ class TestProcessManagement:
             result = check_process_running("notepad")
             assert result is False
 
-    def test_check_process_running_psutil_unavailable(self):
+    def test_check_process_running_psutil_unavailable(self) -> None:
         """Test checking process when psutil raises ImportError."""
         with patch("builtins.__import__") as mock_import:
 
-            def import_side_effect(name, *args, **kwargs):
+            def import_side_effect(name: str, *args: Any, **kwargs: Any) -> Any:
                 if name == "psutil":
                     raise ImportError("psutil not available")
                 return __import__(name, *args, **kwargs)
@@ -288,13 +289,13 @@ class TestProcessManagement:
             result = check_process_running("notepad")
             assert result is False
 
-    def test_check_process_running_exception(self):
+    def test_check_process_running_exception(self) -> None:
         """Test checking process when exception occurs."""
         with patch("builtins.__import__") as mock_import:
             mock_psutil = Mock()
             mock_psutil.process_iter.side_effect = Exception("Process error")
 
-            def import_side_effect(name, *args, **kwargs):
+            def import_side_effect(name: str, *args: Any, **kwargs: Any) -> Any:
                 if name == "psutil":
                     return mock_psutil
                 return __import__(name, *args, **kwargs)
@@ -305,7 +306,7 @@ class TestProcessManagement:
             result = check_process_running("notepad")
             assert result is False
 
-    def test_kill_process_success(self):
+    def test_kill_process_success(self) -> None:
         """Test killing process successfully."""
         with patch("builtins.__import__") as mock_import:
             mock_psutil = Mock()
@@ -314,7 +315,7 @@ class TestProcessManagement:
             mock_proc.pid = 1234
             mock_psutil.process_iter.return_value = [mock_proc]
 
-            def import_side_effect(name, *args, **kwargs):
+            def import_side_effect(name: str, *args: Any, **kwargs: Any) -> Any:
                 if name == "psutil":
                     return mock_psutil
                 return __import__(name, *args, **kwargs)
@@ -325,7 +326,7 @@ class TestProcessManagement:
             assert result is True
             mock_proc.kill.assert_called_once()
 
-    def test_kill_process_not_found(self):
+    def test_kill_process_not_found(self) -> None:
         """Test killing process when not found."""
         with patch("builtins.__import__") as mock_import:
             mock_psutil = Mock()
@@ -333,7 +334,7 @@ class TestProcessManagement:
             mock_proc.info = {"name": "other.exe"}
             mock_psutil.process_iter.return_value = [mock_proc]
 
-            def import_side_effect(name, *args, **kwargs):
+            def import_side_effect(name: str, *args: Any, **kwargs: Any) -> Any:
                 if name == "psutil":
                     return mock_psutil
                 return __import__(name, *args, **kwargs)
@@ -343,11 +344,11 @@ class TestProcessManagement:
             result = kill_process("notepad")
             assert result is False
 
-    def test_kill_process_psutil_unavailable(self):
+    def test_kill_process_psutil_unavailable(self) -> None:
         """Test killing process when psutil unavailable."""
         with patch("builtins.__import__") as mock_import:
 
-            def import_side_effect(name, *args, **kwargs):
+            def import_side_effect(name: str, *args: Any, **kwargs: Any) -> Any:
                 if name == "psutil":
                     raise ImportError("psutil not available")
                 return __import__(name, *args, **kwargs)
@@ -362,7 +363,7 @@ class TestWindowAutomation:
     """Test window automation functionality."""
 
     @patch("PrevisLib.utils.process.sys.platform", "linux")
-    def test_window_automation_non_windows(self):
+    def test_window_automation_non_windows(self) -> None:
         """Test window automation on non-Windows platform."""
         result = run_with_window_automation(["notepad"], "Notepad")
 
@@ -370,7 +371,7 @@ class TestWindowAutomation:
         assert "not supported" in result.stderr
 
     @patch("PrevisLib.utils.process.sys.platform", "win32")
-    def test_window_automation_pywinauto_unavailable(self):
+    def test_window_automation_pywinauto_unavailable(self) -> None:
         """Test window automation when pywinauto unavailable."""
         with patch("builtins.__import__", side_effect=ImportError):
             result = run_with_window_automation(["notepad"], "Notepad")

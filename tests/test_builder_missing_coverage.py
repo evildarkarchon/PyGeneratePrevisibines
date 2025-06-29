@@ -1,21 +1,21 @@
 """Tests to improve coverage for remaining uncovered lines in builder.py."""
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch, call
 from enum import Enum
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from PrevisLib.config.settings import Settings
 from PrevisLib.core.builder import PrevisBuilder
-from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep, ToolPaths
+from PrevisLib.models.data_classes import BuildMode, BuildStep, ToolPaths
 
 
 class TestBuilderValidationEdgeCases:
     """Test edge cases in builder validation."""
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_init_no_creation_kit_path(self, mock_validate):
+    def test_init_no_creation_kit_path(self, mock_validate: MagicMock) -> None:  # noqa: ARG002
         """Test initialization when Creation Kit path is missing."""
         settings = Settings(
             plugin_name="test.esp",
@@ -31,7 +31,7 @@ class TestBuilderValidationEdgeCases:
         with pytest.raises(ValueError, match="Creation Kit path is required but not configured"):
             PrevisBuilder(settings)
 
-    def test_init_no_xedit_path(self):
+    def test_init_no_xedit_path(self) -> None:
         """Test initialization when xEdit path is missing."""
         settings = Settings(
             plugin_name="test.esp",
@@ -48,7 +48,7 @@ class TestBuilderValidationEdgeCases:
             PrevisBuilder(settings)
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_init_no_fallout4_path(self, mock_validate):
+    def test_init_no_fallout4_path(self, mock_validate: MagicMock) -> None:
         """Test initialization when Fallout 4 path is missing."""
         mock_validate.return_value = (True, "OK")
 
@@ -67,7 +67,7 @@ class TestBuilderValidationEdgeCases:
             PrevisBuilder(settings)
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_get_resume_options_with_failed_step(self, mock_validate):
+    def test_get_resume_options_with_failed_step(self, mock_validate: MagicMock) -> None:
         """Test get_resume_options when there's a failed step."""
         mock_validate.return_value = (True, "OK")
 
@@ -90,7 +90,7 @@ class TestBuilderValidationEdgeCases:
         assert BuildStep.FINAL_PACKAGING in resume_options
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_get_steps_all_modes(self, mock_validate):
+    def test_get_steps_all_modes(self, mock_validate: MagicMock) -> None:
         """Test _get_steps for different build modes."""
         mock_validate.return_value = (True, "OK")
 
@@ -111,7 +111,7 @@ class TestBuilderValidationEdgeCases:
 
     @patch("PrevisLib.core.builder.logger")
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_build_resume_with_invalid_step(self, mock_validate, mock_logger):
+    def test_build_resume_with_invalid_step(self, mock_validate: MagicMock, mock_logger: MagicMock) -> None:
         """Test build with invalid start_from_step."""
         mock_validate.return_value = (True, "OK")
 
@@ -130,7 +130,7 @@ class TestBuilderValidationEdgeCases:
             INVALID_STEP = 99
 
         with patch.object(builder, "_execute_step", return_value=True):
-            result = builder.build(start_from_step=DummyStep.INVALID_STEP)
+            result = builder.build(start_from_step=DummyStep.INVALID_STEP)  # type: ignore
 
         assert result is True  # Should succeed but run all steps
         mock_logger.warning.assert_called_with(f"Invalid start step: {DummyStep.INVALID_STEP}, running all steps")
@@ -141,7 +141,7 @@ class TestPackageFilesEdgeCases:
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.logger")
-    def test_package_files_create_archive_fails(self, mock_logger, mock_validate, tmp_path):
+    def test_package_files_create_archive_fails(self, mock_logger: MagicMock, mock_validate: MagicMock, tmp_path: Path) -> None:  # noqa: ARG002
         """Test when archive creation fails."""
         mock_validate.return_value = (True, "OK")
 
@@ -181,7 +181,9 @@ class TestCleanupExtended:
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.fs.clean_directory")
     @patch("PrevisLib.core.builder.fs.safe_delete")
-    def test_cleanup_success(self, mock_safe_delete, mock_clean_dir, mock_validate, tmp_path):
+    def test_cleanup_success(
+        self, mock_safe_delete: MagicMock, mock_clean_dir: MagicMock, mock_validate: MagicMock, tmp_path: Path
+    ) -> None:
         """Test successful cleanup."""
         mock_validate.return_value = (True, "OK")
         mock_safe_delete.return_value = True

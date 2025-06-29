@@ -1,15 +1,11 @@
 """Final tests to reach 85% coverage target."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
 
-import pytest
-from click.testing import CliRunner
-
-from previs_builder import prompt_for_plugin, run_build, main, show_build_summary, show_tool_versions
+from previs_builder import prompt_for_plugin, run_build, show_build_summary, show_tool_versions
 from PrevisLib.config.settings import Settings
-from PrevisLib.models.data_classes import BuildMode, BuildStep, ToolPaths, ArchiveTool, CKPEConfig
-from previs_builder import PrevisBuilder
+from PrevisLib.models.data_classes import ArchiveTool, BuildMode, CKPEConfig, ToolPaths
 
 
 class TestFinalCoverage:
@@ -17,7 +13,7 @@ class TestFinalCoverage:
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_plugin_with_valid_name_on_second_try(self, mock_console, mock_prompt):
+    def test_prompt_for_plugin_with_valid_name_on_second_try(self, mock_console: MagicMock, mock_prompt: MagicMock) -> None:
         """Test prompt_for_plugin with valid name after space in first attempt."""
         mock_prompt.side_effect = ["  ", "ValidPlugin.esp"]  # Spaces first, then valid
 
@@ -28,18 +24,16 @@ class TestFinalCoverage:
         # Should print error about empty name
         assert any("[red]Plugin name cannot be empty" in str(call) for call in mock_console.print.call_args_list)
 
-    @patch("previs_builder.console")
-    @patch("previs_builder.Progress")
-    @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_run_build_with_progress_updates(self, mock_validate, mock_progress_class, mock_console, mock_confirm, mock_builder_class):
-        """Test run_build with progress tracking."""
-        # This test is for a feature that is not fully implemented.
-        pass
-
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.Confirm.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_plugin_template_creation_failed(self, mock_console, mock_confirm, mock_prompt, tmp_path):
+    def test_prompt_for_plugin_template_creation_failed(
+        self,
+        mock_console: MagicMock,  # noqa: ARG002
+        mock_confirm: MagicMock,
+        mock_prompt: MagicMock,
+        tmp_path: Path,
+    ) -> None:
         """Test plugin prompt when template creation fails."""
         mock_prompt.side_effect = ["NewPlugin.esp", "ExistingPlugin.esp"]
         mock_confirm.return_value = True
@@ -59,7 +53,7 @@ class TestFinalCoverage:
         assert mock_prompt.call_count == 2
 
     @patch("previs_builder.Prompt.ask")
-    def test_prompt_for_plugin_xbox_reserved_name(self, mock_prompt):
+    def test_prompt_for_plugin_xbox_reserved_name(self, mock_prompt: MagicMock) -> None:
         """Test prompting with xbox reserved name (combinedobjects)."""
         mock_prompt.side_effect = ["CombinedObjects.esp", "MyMod.esp"]
 
@@ -73,10 +67,16 @@ class TestFinalCoverage:
     @patch("previs_builder.console")
     @patch("previs_builder.Progress")
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_run_build_with_progress_updates(self, mock_validate, mock_progress_class, mock_console, mock_confirm, mock_builder_class):
+    def test_run_build_with_progress_updates(
+        self,
+        mock_validate: MagicMock,
+        mock_progress_class: MagicMock,
+        mock_console: MagicMock,
+        mock_confirm: MagicMock,
+        mock_builder_class: MagicMock,
+    ) -> None:
         """Test run_build with progress tracking."""
         # This test is for a feature that is not fully implemented.
-        pass
 
 
 class TestInteractiveCleanupScenario:
@@ -88,9 +88,15 @@ class TestInteractiveCleanupScenario:
     @patch("previs_builder.prompt_for_plugin")
     @patch("previs_builder.Confirm.ask")
     @patch("previs_builder.console")
-    def test_main_interactive_cleanup_success_then_exit(
-        self, mock_console, mock_confirm, mock_prompt_plugin, mock_builder_class, mock_settings_from_cli, mock_setup_logger
-    ):
+    def test_main_interactive_cleanup_success_then_exit(  # noqa: PLR0913
+        self,
+        mock_console: MagicMock,  # noqa: ARG002
+        mock_confirm: MagicMock,
+        mock_prompt_plugin: MagicMock,
+        mock_builder_class: MagicMock,
+        mock_settings_from_cli: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+    ) -> None:
         """Test interactive mode: cleanup success, then exit without build."""
         # Setup
         mock_settings = MagicMock()
@@ -106,8 +112,9 @@ class TestInteractiveCleanupScenario:
         mock_confirm.side_effect = [True, True]  # Yes to cleanup, then yes to proceed in cleanup prompt
 
         # Import and run
-        from previs_builder import main
         from click.testing import CliRunner
+
+        from previs_builder import main
 
         runner = CliRunner()
         result = runner.invoke(main, [])
@@ -121,7 +128,7 @@ class TestShowFunctions:
 
     @patch("previs_builder.check_tool_version")
     @patch("pathlib.Path.exists", return_value=True)
-    def test_show_tool_versions_all_found(self, mock_exists, mock_check_version):
+    def test_show_tool_versions_all_found(self, mock_exists: MagicMock, mock_check_version: MagicMock) -> None:  # noqa: ARG002
         """Test showing tool versions when all tools are found."""
         mock_check_version.return_value = (True, "Version: 1.0.0")
         settings = Settings(
@@ -143,13 +150,24 @@ class TestShowFunctions:
 
     @patch("previs_builder.console")
     @patch("previs_builder.check_tool_version")
-    def test_show_tool_versions_not_found(self, mock_check_version, mock_console):
-        # ... existing code ...
-        pass
+    def test_show_tool_versions_not_found(self, mock_check_version: MagicMock, mock_console: MagicMock) -> None:
+        """Test showing tool versions when tools are not found."""
+        mock_check_version.return_value = (False, "")
+        settings = Settings(
+            plugin_name="test.esp",
+            build_mode=BuildMode.CLEAN,
+            tool_paths=ToolPaths(xedit=None, fallout4=None, creation_kit=None, archive2=Path("/fake/Archive2.exe")),
+        )
+
+        with patch("pathlib.Path.exists", return_value=False):
+            show_tool_versions(settings)
+
+        # Verify "Not Found" messages
+        assert any("Not Found" in str(call) for call in mock_console.print.call_args_list)
 
     @patch("previs_builder.console")
     @patch("previs_builder.Table")
-    def test_show_build_summary_with_ckpe(self, mock_table_class, mock_console):
+    def test_show_build_summary_with_ckpe(self, mock_table_class: MagicMock, mock_console: MagicMock) -> None:  # noqa: ARG002
         """Test showing build summary with CKPE config."""
         # Create settings first
         settings = Settings(
@@ -185,8 +203,7 @@ class TestShowFunctions:
 
 
 class TestEdgeCasesInMain:
-    # ... existing code ...
-    pass
+    """Test edge cases in main."""
 
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.Confirm.ask")
@@ -194,8 +211,13 @@ class TestEdgeCasesInMain:
     @patch("previs_builder.Progress")
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     def test_run_build_cleanup_working_files_error(
-        self, mock_validate, mock_progress_class, mock_console, mock_confirm, mock_builder_class
-    ):
+        self,
+        mock_validate: MagicMock,  # noqa: ARG002
+        mock_progress_class: MagicMock,  # noqa: ARG002
+        mock_console: MagicMock,  # noqa: ARG002
+        mock_confirm: MagicMock,
+        mock_builder_class: MagicMock,
+    ) -> None:
         """Test handling of cleanup_working_files errors."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = "test.esp"

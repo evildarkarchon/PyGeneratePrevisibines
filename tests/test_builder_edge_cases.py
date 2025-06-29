@@ -1,12 +1,12 @@
 """Tests for edge cases and error handling in PrevisBuilder."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from PrevisLib.core.builder import PrevisBuilder
 from PrevisLib.config.settings import Settings
+from PrevisLib.core.builder import PrevisBuilder
 from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep, ToolPaths
 
 
@@ -14,7 +14,7 @@ class TestPrevisBuilderInitialization:
     """Test PrevisBuilder initialization edge cases."""
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_init_with_bsarch_missing_path(self, mock_validate):
+    def test_init_with_bsarch_missing_path(self, mock_validate: MagicMock) -> None:
         """Test initialization when BSArch is selected but path is missing."""
         mock_validate.return_value = (True, "OK")
 
@@ -35,7 +35,7 @@ class TestPrevisBuilderInitialization:
             PrevisBuilder(settings)
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_init_with_archive2_missing_path(self, mock_validate):
+    def test_init_with_archive2_missing_path(self, mock_validate: MagicMock) -> None:
         """Test initialization when Archive2 is selected but path is missing."""
         mock_validate.return_value = (True, "OK")
 
@@ -56,7 +56,7 @@ class TestPrevisBuilderInitialization:
             PrevisBuilder(settings)
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_init_with_invalid_plugin_extension(self, mock_validate):
+    def test_init_with_invalid_plugin_extension(self, mock_validate: MagicMock) -> None:
         """Test initialization with invalid plugin extension."""
         mock_validate.return_value = (True, "OK")
 
@@ -73,7 +73,7 @@ class TestPrevisBuilderInitialization:
 class TestXEditScriptFinding:
     """Test xEdit script finding functionality."""
 
-    def test_find_xedit_script_no_xedit_path(self):
+    def test_find_xedit_script_no_xedit_path(self) -> None:
         """Test finding script when xEdit path is not configured."""
         settings = Settings(
             plugin_name="test.esp",
@@ -90,7 +90,7 @@ class TestXEditScriptFinding:
             PrevisBuilder(settings)
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_find_xedit_script_not_found(self, mock_validate, tmp_path):
+    def test_find_xedit_script_not_found(self, mock_validate: MagicMock, tmp_path: Path) -> None:
         """Test finding script that doesn't exist."""
         mock_validate.return_value = (True, "OK")
         fo4_path = tmp_path / "Fallout4"
@@ -111,7 +111,7 @@ class TestXEditScriptFinding:
         assert result is None
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_find_xedit_script_found(self, mock_validate, tmp_path):
+    def test_find_xedit_script_found(self, mock_validate: MagicMock, tmp_path: Path) -> None:
         """Test successfully finding a script."""
         mock_validate.return_value = (True, "OK")
         fo4_path = tmp_path / "Fallout4"
@@ -146,7 +146,7 @@ class TestPackageFiles:
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.logger")
-    def test_package_files_no_visibility_files(self, mock_logger, mock_validate, tmp_path):
+    def test_package_files_no_visibility_files(self, mock_logger: MagicMock, mock_validate: MagicMock, tmp_path: Path) -> None:
         """Test packaging when no visibility files are found."""
         mock_validate.return_value = (True, "OK")
         # Setup
@@ -188,7 +188,7 @@ class TestPackageFiles:
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.logger")
-    def test_package_files_add_to_archive_fails(self, mock_logger, mock_validate, tmp_path):
+    def test_package_files_add_to_archive_fails(self, mock_logger: MagicMock, mock_validate: MagicMock, tmp_path: Path) -> None:
         """Test packaging when adding to archive fails."""
         mock_validate.return_value = (True, "OK")
         # Setup
@@ -225,7 +225,7 @@ class TestPackageFiles:
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.logger")
-    def test_package_files_no_main_archive(self, mock_logger, mock_validate, tmp_path):
+    def test_package_files_no_main_archive(self, mock_logger: MagicMock, mock_validate: MagicMock, tmp_path: Path) -> None:
         """Test packaging when main archive is not created."""
         mock_validate.return_value = (True, "OK")
         # Setup
@@ -259,7 +259,7 @@ class TestCleanupMethods:
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.fs.safe_delete", side_effect=OSError("Permission denied"))
-    def test_cleanup_with_error(self, mock_safe_delete, mock_validate, tmp_path):
+    def test_cleanup_with_error(self, mock_safe_delete: MagicMock, mock_validate: MagicMock, tmp_path: Path) -> None:  # noqa: ARG002
         """Test cleanup when cleaner raises exception."""
         mock_validate.return_value = (True, "OK")
 
@@ -287,7 +287,9 @@ class TestCleanupMethods:
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.fs.safe_delete")
     @patch("PrevisLib.core.builder.logger")
-    def test_cleanup_working_files_error(self, mock_logger, mock_safe_delete, mock_validate, tmp_path):
+    def test_cleanup_working_files_error(
+        self, mock_logger: MagicMock, mock_safe_delete: MagicMock, mock_validate: MagicMock, tmp_path: Path
+    ) -> None:
         """Test cleanup_working_files when directory cleaning fails."""
         mock_validate.return_value = (True, "OK")
 
@@ -319,7 +321,7 @@ class TestBuildProcessEdgeCases:
     """Test edge cases in the build process."""
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    def test_build_with_failed_step(self, mock_validate):
+    def test_build_with_failed_step(self, mock_validate: MagicMock) -> None:
         """Test build process when a step fails."""
         mock_validate.return_value = (True, "OK")
         settings = Settings(
@@ -343,7 +345,7 @@ class TestBuildProcessEdgeCases:
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
     @patch("PrevisLib.core.builder.logger")
-    def test_build_with_start_from_step(self, mock_logger, mock_validate):
+    def test_build_with_start_from_step(self, mock_logger: MagicMock, mock_validate: MagicMock) -> None:  # noqa: ARG002
         """Test building from a specific step."""
         mock_validate.return_value = (True, "OK")
         settings = Settings(

@@ -2,7 +2,7 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -13,7 +13,7 @@ from PrevisLib.tools.creation_kit import CreationKitWrapper
 from PrevisLib.tools.xedit import XEditWrapper
 
 
-def create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file="test.log"):
+def create_test_ckpe_config(tmp_path: Path, handle_setting: bool = True, log_output_file: str = "test.log") -> CKPEConfig:
     """Helper function to create CKPE config properly using class methods."""
     config_file = tmp_path / "ckpe_test.toml"
     # Convert Windows backslashes to forward slashes for TOML compatibility
@@ -33,21 +33,21 @@ class TestCreationKit:
     """Test Creation Kit wrapper."""
 
     @pytest.fixture
-    def wrapper(self, tmp_path) -> CreationKitWrapper:
+    def wrapper(self, tmp_path: Path) -> CreationKitWrapper:
         """Create a CreationKit wrapper for testing."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
         return CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, None)
 
     @pytest.fixture
-    def wrapper_with_ckpe(self, tmp_path) -> CreationKitWrapper:
+    def wrapper_with_ckpe(self, tmp_path: Path) -> CreationKitWrapper:
         """Create a test Creation Kit wrapper with CKPE config."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
         ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file="test.log")
         return CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
-    def test_initialization(self, tmp_path) -> None:
+    def test_initialization(self, tmp_path: Path) -> None:
         """Test Creation Kit wrapper initialization."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -62,7 +62,7 @@ class TestCreationKit:
             assert wrapper.process_runner is not None
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_success(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_generate_precombined_success(self, mock_runner_class: MagicMock, wrapper: CreationKitWrapper, tmp_path: Path) -> None:
         """Test successful precombined mesh generation."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -71,10 +71,12 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            with patch.object(wrapper, "_disable_graphics_dlls") as mock_disable:
-                with patch.object(wrapper, "_restore_graphics_dlls") as mock_restore:
-                    result = wrapper.generate_precombined(data_path)
+        with (
+            patch.object(wrapper, "_check_ck_errors", return_value=False),
+            patch.object(wrapper, "_disable_graphics_dlls") as mock_disable,
+            patch.object(wrapper, "_restore_graphics_dlls") as mock_restore,
+        ):
+            result = wrapper.generate_precombined(data_path)
 
         assert result is True
         mock_runner.execute.assert_called_once()
@@ -90,7 +92,7 @@ class TestCreationKit:
         assert "all" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_filtered_mode(self, mock_runner_class, tmp_path) -> None:
+    def test_generate_precombined_filtered_mode(self, mock_runner_class: MagicMock, tmp_path: Path) -> None:
         """Test precombined generation in filtered mode."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -103,10 +105,12 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            with patch.object(wrapper, "_disable_graphics_dlls"):
-                with patch.object(wrapper, "_restore_graphics_dlls"):
-                    result = wrapper.generate_precombined(data_path)
+        with (
+            patch.object(wrapper, "_check_ck_errors", return_value=False),
+            patch.object(wrapper, "_disable_graphics_dlls"),
+            patch.object(wrapper, "_restore_graphics_dlls"),
+        ):
+            result = wrapper.generate_precombined(data_path)
 
         assert result is True
         args = mock_runner.execute.call_args[0][0]
@@ -115,7 +119,7 @@ class TestCreationKit:
         assert "all" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_xbox_mode(self, mock_runner_class, tmp_path) -> None:
+    def test_generate_precombined_xbox_mode(self, mock_runner_class: MagicMock, tmp_path: Path) -> None:
         """Test precombined generation in Xbox mode."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -138,7 +142,7 @@ class TestCreationKit:
         assert "all" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_process_failure(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_generate_precombined_process_failure(self, mock_runner_class: MagicMock, wrapper: CreationKitWrapper, tmp_path: Path) -> None:
         """Test precombined generation when process fails."""
         mock_runner = Mock()
         mock_runner.execute.return_value = False
@@ -147,16 +151,18 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        with patch.object(wrapper, "_disable_graphics_dlls"):
-            with patch.object(wrapper, "_restore_graphics_dlls") as mock_restore:
-                result = wrapper.generate_precombined(data_path)
+        with (
+            patch.object(wrapper, "_disable_graphics_dlls"),
+            patch.object(wrapper, "_restore_graphics_dlls") as mock_restore,
+        ):
+            result = wrapper.generate_precombined(data_path)
 
         assert result is False
         # Should still restore DLLs even on failure
         mock_restore.assert_called_once()
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_precombined_with_ck_errors(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_generate_precombined_with_ck_errors(self, mock_runner_class: MagicMock, wrapper: CreationKitWrapper, tmp_path: Path) -> None:
         """Test precombined generation when CK reports errors."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -165,15 +171,17 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        with patch.object(wrapper, "_check_ck_errors", return_value=True):
-            with patch.object(wrapper, "_disable_graphics_dlls"):
-                with patch.object(wrapper, "_restore_graphics_dlls"):
-                    result = wrapper.generate_precombined(data_path)
+        with (
+            patch.object(wrapper, "_check_ck_errors", return_value=True),
+            patch.object(wrapper, "_disable_graphics_dlls"),
+            patch.object(wrapper, "_restore_graphics_dlls"),
+        ):
+            result = wrapper.generate_precombined(data_path)
 
         assert result is False
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_compress_psg_success(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_compress_psg_success(self, mock_runner_class: MagicMock, wrapper: CreationKitWrapper, tmp_path: Path) -> None:
         """Test successful PSG compression."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -182,10 +190,12 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            with patch.object(wrapper, "_disable_graphics_dlls"):
-                with patch.object(wrapper, "_restore_graphics_dlls"):
-                    result = wrapper.compress_psg(data_path)
+        with (
+            patch.object(wrapper, "_check_ck_errors", return_value=False),
+            patch.object(wrapper, "_disable_graphics_dlls"),
+            patch.object(wrapper, "_restore_graphics_dlls"),
+        ):
+            result = wrapper.compress_psg(data_path)
 
         assert result is True
         mock_runner.execute.assert_called_once()
@@ -194,7 +204,7 @@ class TestCreationKit:
         assert f"-CompressPSG:{wrapper.plugin_name}" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_build_cdx_success(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_build_cdx_success(self, mock_runner_class: MagicMock, wrapper: CreationKitWrapper, tmp_path: Path) -> None:
         """Test successful CDX building."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -203,10 +213,12 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            with patch.object(wrapper, "_disable_graphics_dlls"):
-                with patch.object(wrapper, "_restore_graphics_dlls"):
-                    result = wrapper.build_cdx(data_path)
+        with (
+            patch.object(wrapper, "_check_ck_errors", return_value=False),
+            patch.object(wrapper, "_disable_graphics_dlls"),
+            patch.object(wrapper, "_restore_graphics_dlls"),
+        ):
+            result = wrapper.build_cdx(data_path)
 
         assert result is True
         mock_runner.execute.assert_called_once()
@@ -215,7 +227,7 @@ class TestCreationKit:
         assert f"-BuildCDX:{wrapper.plugin_name}" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_previs_data_success(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_generate_previs_data_success(self, mock_runner_class: MagicMock, wrapper: CreationKitWrapper, tmp_path: Path) -> None:
         """Test successful previs data generation."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -224,11 +236,13 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            with patch.object(wrapper, "_check_previs_completion", return_value=True):
-                with patch.object(wrapper, "_disable_graphics_dlls"):
-                    with patch.object(wrapper, "_restore_graphics_dlls"):
-                        result = wrapper.generate_previs_data(data_path)
+        with (
+            patch.object(wrapper, "_check_ck_errors", return_value=False),
+            patch.object(wrapper, "_check_previs_completion", return_value=True),
+            patch.object(wrapper, "_disable_graphics_dlls"),
+            patch.object(wrapper, "_restore_graphics_dlls"),
+        ):
+            result = wrapper.generate_previs_data(data_path)
 
         assert result is True
         mock_runner.execute.assert_called_once()
@@ -245,7 +259,9 @@ class TestCreationKit:
         assert "all" in args
 
     @patch("PrevisLib.tools.creation_kit.ProcessRunner")
-    def test_generate_previs_data_completion_failure(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_generate_previs_data_completion_failure(
+        self, mock_runner_class: MagicMock, wrapper: CreationKitWrapper, tmp_path: Path
+    ) -> None:
         """Test previs data generation when completion check fails."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -254,15 +270,17 @@ class TestCreationKit:
 
         data_path = tmp_path / "Data"
 
-        with patch.object(wrapper, "_check_ck_errors", return_value=False):
-            with patch.object(wrapper, "_check_previs_completion", return_value=False):
-                with patch.object(wrapper, "_disable_graphics_dlls"):
-                    with patch.object(wrapper, "_restore_graphics_dlls"):
-                        result = wrapper.generate_previs_data(data_path)
+        with (
+            patch.object(wrapper, "_check_ck_errors", return_value=False),
+            patch.object(wrapper, "_check_previs_completion", return_value=False),
+            patch.object(wrapper, "_disable_graphics_dlls"),
+            patch.object(wrapper, "_restore_graphics_dlls"),
+        ):
+            result = wrapper.generate_previs_data(data_path)
 
         assert result is False
 
-    def test_check_ck_errors_multiple_patterns(self, tmp_path) -> None:
+    def test_check_ck_errors_multiple_patterns(self, tmp_path: Path) -> None:
         """Test CK error checking with multiple error patterns."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -287,7 +305,7 @@ class TestCreationKit:
             result = wrapper._check_ck_errors(data_path)
             assert result is True
 
-    def test_check_ck_errors_multiple_locations(self, tmp_path) -> None:
+    def test_check_ck_errors_multiple_locations(self, tmp_path: Path) -> None:
         """Test CK error checking in multiple log locations."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -311,7 +329,7 @@ class TestCreationKit:
             # Clean up
             log_path.unlink()
 
-    def test_check_ck_errors_file_read_exception(self, tmp_path) -> None:
+    def test_check_ck_errors_file_read_exception(self, tmp_path: Path) -> None:
         """Test CK error checking when file read fails."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -333,7 +351,7 @@ class TestCreationKit:
             # Should return False when exception occurs
             assert result is False
 
-    def test_check_previs_completion_patterns(self, tmp_path) -> None:
+    def test_check_previs_completion_patterns(self, tmp_path: Path) -> None:
         """Test previs completion checking with different failure patterns."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -363,7 +381,7 @@ class TestCreationKit:
         result = wrapper._check_previs_completion(data_path)
         assert result is True
 
-    def test_check_previs_completion_success(self, tmp_path) -> None:
+    def test_check_previs_completion_success(self, tmp_path: Path) -> None:
         """Test previs completion checking with successful log."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -382,7 +400,7 @@ class TestCreationKit:
         result = wrapper._check_previs_completion(data_path)
         assert result is True
 
-    def test_ckpe_config_log_file(self, tmp_path) -> None:
+    def test_ckpe_config_log_file(self, tmp_path: Path) -> None:
         """Test error checking with CKPE config log file."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -405,7 +423,7 @@ class TestCreationKit:
         result = wrapper._check_ck_errors(data_path)
         assert result is False
 
-    def test_ckpe_config_no_log_file(self, tmp_path) -> None:
+    def test_ckpe_config_no_log_file(self, tmp_path: Path) -> None:
         """Test error checking with CKPE config but no log file specified."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -425,7 +443,7 @@ class TestCreationKit:
         result = wrapper._check_previs_completion(data_path)
         assert result is True
 
-    def test_ckpe_config_relative_log_path(self, tmp_path) -> None:
+    def test_ckpe_config_relative_log_path(self, tmp_path: Path) -> None:
         """Test error checking with relative log path in CKPE config."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -447,7 +465,7 @@ class TestCreationKit:
         result = wrapper._check_ck_errors(data_path)
         assert result is True
 
-    def test_dll_management(self, tmp_path) -> None:
+    def test_dll_management(self, tmp_path: Path) -> None:
         """Test DLL disable/restore functionality."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -480,7 +498,7 @@ class TestCreationKit:
             assert original_path.exists()
             assert not disabled_path.exists()
 
-    def test_dll_management_missing_dlls(self, tmp_path) -> None:
+    def test_dll_management_missing_dlls(self, tmp_path: Path) -> None:
         """Test DLL management when DLLs don't exist."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -491,7 +509,7 @@ class TestCreationKit:
         wrapper._disable_graphics_dlls()
         wrapper._restore_graphics_dlls()
 
-    def test_check_ck_errors_enhanced_patterns(self, tmp_path) -> None:
+    def test_check_ck_errors_enhanced_patterns(self, tmp_path: Path) -> None:
         """Test enhanced CK error checking with patterns from batch file."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -516,7 +534,7 @@ class TestCreationKit:
             result = wrapper._check_ck_errors(data_path)
             assert result is True
 
-    def test_check_previs_completion_enhanced_patterns(self, tmp_path) -> None:
+    def test_check_previs_completion_enhanced_patterns(self, tmp_path: Path) -> None:
         """Test enhanced previs completion checking with patterns from batch file."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
@@ -546,14 +564,14 @@ class TestXEdit:
     """Test xEdit wrapper functionality."""
 
     @pytest.fixture
-    def wrapper(self, tmp_path) -> XEditWrapper:
+    def wrapper(self, tmp_path: Path) -> XEditWrapper:
         """Create a test xEdit wrapper."""
         xedit_path = tmp_path / "FO4Edit.exe"
         xedit_path.write_text("fake xedit")
         return XEditWrapper(xedit_path, "TestMod.esp")
 
     @patch("PrevisLib.tools.xedit.ProcessRunner")
-    def test_merge_combined_objects_success(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_merge_combined_objects_success(self, mock_runner_class: MagicMock, wrapper: XEditWrapper, tmp_path: Path) -> None:
         """Test successful combined objects merge."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -563,15 +581,19 @@ class TestXEdit:
         data_path = tmp_path / "Data"
         script_path = tmp_path / "TestScript.pas"
 
-        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False):
-            with patch.object(wrapper, "_check_xedit_log", return_value=True):
-                result = wrapper.merge_combined_objects(data_path, script_path)
+        with (
+            patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False),
+            patch.object(wrapper, "_check_xedit_log", return_value=True),
+        ):
+            result = wrapper.merge_combined_objects(data_path, script_path)
 
         assert result is True
         mock_runner.execute.assert_called_once()
 
     @patch("PrevisLib.tools.xedit.ProcessRunner")
-    def test_merge_combined_objects_process_runner_failure(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_merge_combined_objects_process_runner_failure(
+        self, mock_runner_class: MagicMock, wrapper: XEditWrapper, tmp_path: Path
+    ) -> None:
         """Test combined objects merge failure using ProcessRunner."""
         mock_runner = Mock()
         mock_runner.execute.return_value = False
@@ -587,20 +609,22 @@ class TestXEdit:
         assert result is False
 
     @patch("PrevisLib.tools.xedit.XEditWrapper._run_with_automation", return_value=True)
-    def test_merge_combined_objects_with_automation_success(self, mock_run_auto, wrapper, tmp_path) -> None:
+    def test_merge_combined_objects_with_automation_success(self, mock_run_auto: MagicMock, wrapper: XEditWrapper, tmp_path: Path) -> None:
         """Test successful combined objects merge with pywinauto."""
         data_path = tmp_path / "Data"
         script_path = tmp_path / "TestScript.pas"
 
-        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True):
-            with patch.object(wrapper, "_check_xedit_log", return_value=True):
-                result = wrapper.merge_combined_objects(data_path, script_path)
+        with (
+            patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True),
+            patch.object(wrapper, "_check_xedit_log", return_value=True),
+        ):
+            result = wrapper.merge_combined_objects(data_path, script_path)
 
         assert result is True
         mock_run_auto.assert_called_once()
 
     @patch("PrevisLib.tools.xedit.XEditWrapper._run_with_automation", return_value=False)
-    def test_merge_combined_objects_with_automation_failure(self, mock_run_auto, wrapper, tmp_path) -> None:
+    def test_merge_combined_objects_with_automation_failure(self, mock_run_auto: MagicMock, wrapper: XEditWrapper, tmp_path: Path) -> None:
         """Test failing combined objects merge with pywinauto."""
         data_path = tmp_path / "Data"
         script_path = tmp_path / "TestScript.pas"
@@ -612,7 +636,7 @@ class TestXEdit:
         mock_run_auto.assert_called_once()
 
     @patch("PrevisLib.tools.xedit.ProcessRunner")
-    def test_merge_previs_success(self, mock_runner_class, wrapper, tmp_path) -> None:
+    def test_merge_previs_success(self, mock_runner_class: MagicMock, wrapper: XEditWrapper, tmp_path: Path) -> None:
         """Test successful previs merge."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -622,32 +646,36 @@ class TestXEdit:
         data_path = tmp_path / "Data"
         script_path = tmp_path / "TestScript.pas"
 
-        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False):
-            with patch.object(wrapper, "_check_xedit_log", return_value=True):
-                result = wrapper.merge_previs(data_path, script_path)
+        with (
+            patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False),
+            patch.object(wrapper, "_check_xedit_log", return_value=True),
+        ):
+            result = wrapper.merge_previs(data_path, script_path)
 
         assert result is True
         mock_runner.execute.assert_called_once()
 
-    def test_check_xedit_log_no_log_found(self, wrapper) -> None:
+    def test_check_xedit_log_no_log_found(self, wrapper: XEditWrapper) -> None:
         """Test xEdit log check when no log file is found."""
         with patch.object(Path, "exists", return_value=False):
             # Should return True with a warning
             result = wrapper._check_xedit_log("test operation")
         assert result is True
 
-    def test_check_xedit_log_read_error(self, wrapper, tmp_path) -> None:
+    def test_check_xedit_log_read_error(self, wrapper: XEditWrapper, tmp_path: Path) -> None:
         """Test xEdit log check when reading the log file fails."""
         log_path = tmp_path / "UnattendedScript.log"
         log_path.touch()
 
-        with patch("os.environ.get", return_value=str(tmp_path)):
-            with patch("PrevisLib.tools.xedit.Path.open", side_effect=OSError("Read error")):
-                # Should warn and assume success
-                result = wrapper._check_xedit_log("test operation")
+        with (
+            patch("os.environ.get", return_value=str(tmp_path)),
+            patch("PrevisLib.tools.xedit.Path.open", side_effect=OSError("Read error")),
+        ):
+            # Should warn and assume success
+            result = wrapper._check_xedit_log("test operation")
         assert result is True
 
-    def test_check_xedit_log_no_completion_indicator(self, wrapper, tmp_path) -> None:
+    def test_check_xedit_log_no_completion_indicator(self, wrapper: XEditWrapper, tmp_path: Path) -> None:
         """Test xEdit log check when log exists but lacks a completion indicator."""
         unattended_log = tmp_path / "UnattendedScript.log"
         unattended_log.write_text("Some random content without completion marker.")
@@ -657,7 +685,7 @@ class TestXEdit:
         assert result is False
 
     @patch("subprocess.Popen")
-    def test_run_with_automation_success(self, mock_popen, wrapper) -> None:
+    def test_run_with_automation_success(self, mock_popen: MagicMock, wrapper: XEditWrapper) -> None:
         """Test the happy path for _run_with_automation."""
         mock_process = Mock()
         mock_process.pid = 1234
@@ -670,18 +698,20 @@ class TestXEdit:
         mock_main_window.descendants.return_value = []
         mock_app.window.return_value = mock_main_window
 
-        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True):
-            with patch("PrevisLib.tools.xedit.Application") as mock_pywin_app:
-                mock_pywin_app.return_value.connect.return_value = mock_app
-                with patch.object(wrapper, "_is_xedit_busy", return_value=False):
-                    result = wrapper._run_with_automation([], "test op")
+        with (
+            patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True),
+            patch("PrevisLib.tools.xedit.Application") as mock_pywin_app,
+            patch.object(wrapper, "_is_xedit_busy", return_value=False),
+        ):
+            mock_pywin_app.return_value.connect.return_value = mock_app
+            result = wrapper._run_with_automation([], "test op")
 
         assert result is True
         mock_popen.assert_called_once()
         mock_main_window.close.assert_called_once()
 
     @patch("subprocess.Popen")
-    def test_run_with_automation_error_dialog(self, mock_popen, wrapper) -> None:
+    def test_run_with_automation_error_dialog(self, mock_popen: MagicMock, wrapper: XEditWrapper) -> None:
         """Test _run_with_automation when an error dialog appears."""
         mock_process = Mock()
         mock_process.pid = 1234
@@ -695,15 +725,17 @@ class TestXEdit:
         mock_main_window.descendants.return_value = [mock_error_dialog]
         mock_app.window.return_value = mock_main_window
 
-        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True):
-            with patch("PrevisLib.tools.xedit.Application") as mock_pywin_app:
-                mock_pywin_app.return_value.connect.return_value = mock_app
-                result = wrapper._run_with_automation([], "test op")
+        with (
+            patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True),
+            patch("PrevisLib.tools.xedit.Application") as mock_pywin_app,
+        ):
+            mock_pywin_app.return_value.connect.return_value = mock_app
+            result = wrapper._run_with_automation([], "test op")
 
         assert result is False
         mock_error_dialog.close.assert_called_once()
 
-    def test_is_xedit_busy(self, wrapper) -> None:
+    def test_is_xedit_busy(self, wrapper: XEditWrapper) -> None:
         """Test the _is_xedit_busy helper function."""
         mock_window = Mock()
         mock_status_bar = Mock()
@@ -722,13 +754,11 @@ class TestXEdit:
         mock_status_bar.exists.return_value = False
         assert wrapper._is_xedit_busy(mock_window) is False
 
-    def test_check_xedit_log_enhanced_patterns(self, tmp_path) -> None:
+    def test_check_xedit_log_enhanced_patterns(self, tmp_path: Path) -> None:
         """Test enhanced xEdit log checking with patterns from batch file."""
         xedit_path = tmp_path / "FO4Edit.exe"
         xedit_path.write_text("fake xedit")
         wrapper = XEditWrapper(xedit_path, "TestMod.esp")
-
-        data_path = tmp_path / "Data"
 
         # Create a temporary unattended log file
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -761,18 +791,18 @@ class TestCKPEConfigHandler:
     """Test CKPE configuration handler."""
 
     @pytest.fixture
-    def handler(self, tmp_path) -> CKPEConfigHandler:
+    def handler(self, tmp_path: Path) -> CKPEConfigHandler:
         """Create a CKPEConfigHandler for testing."""
         return CKPEConfigHandler(tmp_path)
 
-    def test_load_config_no_files(self, handler, tmp_path) -> None:
+    def test_load_config_no_files(self, handler: CKPEConfigHandler, tmp_path: Path) -> None:
         """Test loading config when no config files exist."""
         (tmp_path / "Data").mkdir()
         result = handler.load_config("TestPlugin")
         assert result is None
 
     @patch("PrevisLib.tools.ckpe.CKPEConfig")
-    def test_load_toml_config_success(self, mock_ckpe_config, handler, tmp_path) -> None:
+    def test_load_toml_config_success(self, mock_ckpe_config: MagicMock, handler: CKPEConfigHandler, tmp_path: Path) -> None:
         """Test loading a valid TOML config file."""
         data_path = tmp_path / "Data"
         data_path.mkdir()
@@ -788,7 +818,7 @@ class TestCKPEConfigHandler:
         mock_ckpe_config.from_toml.assert_called_once_with(toml_path)
 
     @patch("PrevisLib.tools.ckpe.CKPEConfig")
-    def test_load_ini_config_success(self, mock_ckpe_config, handler, tmp_path) -> None:
+    def test_load_ini_config_success(self, mock_ckpe_config: MagicMock, handler: CKPEConfigHandler, tmp_path: Path) -> None:
         """Test loading a valid INI config file when TOML is absent."""
         data_path = tmp_path / "Data"
         data_path.mkdir()
@@ -805,7 +835,7 @@ class TestCKPEConfigHandler:
         mock_ckpe_config.from_toml.assert_not_called()
 
     @patch("PrevisLib.tools.ckpe.CKPEConfig")
-    def test_load_prefers_toml_over_ini(self, mock_ckpe_config, handler, tmp_path) -> None:
+    def test_load_prefers_toml_over_ini(self, mock_ckpe_config: MagicMock, handler: CKPEConfigHandler, tmp_path: Path) -> None:
         """Test that TOML config is preferred when both TOML and INI exist."""
         data_path = tmp_path / "Data"
         data_path.mkdir()
@@ -824,7 +854,7 @@ class TestCKPEConfigHandler:
         mock_ckpe_config.from_ini.assert_not_called()
 
     @patch("PrevisLib.tools.ckpe.CKPEConfig")
-    def test_load_falls_back_to_ini_on_toml_error(self, mock_ckpe_config, handler, tmp_path) -> None:
+    def test_load_falls_back_to_ini_on_toml_error(self, mock_ckpe_config: MagicMock, handler: CKPEConfigHandler, tmp_path: Path) -> None:
         """Test fallback to INI when TOML loading fails."""
         data_path = tmp_path / "Data"
         data_path.mkdir()
@@ -844,7 +874,7 @@ class TestCKPEConfigHandler:
         mock_ckpe_config.from_ini.assert_called_once_with(ini_path)
 
     @patch("PrevisLib.tools.ckpe.CKPEConfig")
-    def test_load_returns_none_on_all_errors(self, mock_ckpe_config, handler, tmp_path) -> None:
+    def test_load_returns_none_on_all_errors(self, mock_ckpe_config: MagicMock, handler: CKPEConfigHandler, tmp_path: Path) -> None:
         """Test that None is returned if both TOML and INI loading fail."""
         data_path = tmp_path / "Data"
         data_path.mkdir()
@@ -867,27 +897,27 @@ class TestArchiveWrapper:
     """Test Archive wrapper functionality."""
 
     @pytest.fixture
-    def archive2_wrapper(self, tmp_path) -> ArchiveWrapper:
+    def archive2_wrapper(self, tmp_path: Path) -> ArchiveWrapper:
         """Create an Archive2 wrapper for testing."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
         return ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, BuildMode.CLEAN)
 
     @pytest.fixture
-    def archive2_wrapper_xbox(self, tmp_path) -> ArchiveWrapper:
+    def archive2_wrapper_xbox(self, tmp_path: Path) -> ArchiveWrapper:
         """Create an Archive2 wrapper with Xbox build mode for testing."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
         return ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, BuildMode.XBOX)
 
     @pytest.fixture
-    def bsarch_wrapper(self, tmp_path) -> ArchiveWrapper:
+    def bsarch_wrapper(self, tmp_path: Path) -> ArchiveWrapper:
         """Create a BSArch wrapper for testing."""
         bsarch_path = tmp_path / "BSArch.exe"
         bsarch_path.write_text("fake bsarch")
         return ArchiveWrapper(ArchiveTool.BSARCH, bsarch_path, BuildMode.CLEAN)
 
-    def test_initialization(self, tmp_path) -> None:
+    def test_initialization(self, tmp_path: Path) -> None:
         """Test ArchiveWrapper initialization with different build modes."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
@@ -901,7 +931,9 @@ class TestArchiveWrapper:
             assert wrapper.process_runner is not None
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_default_compression(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+    def test_create_archive2_default_compression(
+        self, mock_runner_class: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path
+    ) -> None:
         """Test Archive2 archive creation with default compression."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -927,7 +959,9 @@ class TestArchiveWrapper:
         assert "-compression=Default" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_xbox_compression(self, mock_runner_class, archive2_wrapper_xbox, tmp_path) -> None:
+    def test_create_archive2_xbox_compression(
+        self, mock_runner_class: MagicMock, archive2_wrapper_xbox: ArchiveWrapper, tmp_path: Path
+    ) -> None:
         """Test Archive2 archive creation with Xbox compression mode."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -953,7 +987,7 @@ class TestArchiveWrapper:
         assert "-compression=XBox" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_no_compression(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+    def test_create_archive2_no_compression(self, mock_runner_class: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test Archive2 archive creation with no compression."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -976,7 +1010,7 @@ class TestArchiveWrapper:
         assert "-compression=None" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_with_file_list(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+    def test_create_archive2_with_file_list(self, mock_runner_class: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test Archive2 archive creation with specific file list."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -1001,7 +1035,7 @@ class TestArchiveWrapper:
         assert len(source_file_arg) == 1
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_bsarch_archive(self, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
+    def test_create_bsarch_archive(self, mock_runner_class: MagicMock, bsarch_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test BSArch archive creation."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -1030,7 +1064,7 @@ class TestArchiveWrapper:
         assert "-fo4" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_extract_archive2(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+    def test_extract_archive2(self, mock_runner_class: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test Archive2 archive extraction."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -1053,7 +1087,7 @@ class TestArchiveWrapper:
         assert f"-extract={output_dir}" in args
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_extract_bsarch(self, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
+    def test_extract_bsarch(self, mock_runner_class: MagicMock, bsarch_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test BSArch archive extraction."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -1076,7 +1110,7 @@ class TestArchiveWrapper:
         assert str(archive_path) in args
         assert str(output_dir) in args
 
-    def test_extract_nonexistent_archive(self, archive2_wrapper, tmp_path) -> None:
+    def test_extract_nonexistent_archive(self, archive2_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test extraction of non-existent archive."""
         archive_path = tmp_path / "nonexistent.ba2"
         output_dir = tmp_path / "output"
@@ -1087,7 +1121,13 @@ class TestArchiveWrapper:
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
     @patch("PrevisLib.tools.archive.shutil")
-    def test_add_to_archive_success(self, mock_shutil, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+    def test_add_to_archive_success(
+        self,
+        mock_shutil: MagicMock,  # noqa: ARG002
+        mock_runner_class: MagicMock,
+        archive2_wrapper: ArchiveWrapper,
+        tmp_path: Path,
+    ) -> None:
         """Test adding files to existing archive."""
         # Setup mocks
         mock_runner = Mock()
@@ -1106,15 +1146,17 @@ class TestArchiveWrapper:
         base_dir = tmp_path
 
         # Mock the extract and create operations
-        with patch.object(archive2_wrapper, "extract_archive", return_value=True):
-            with patch.object(archive2_wrapper, "create_archive", return_value=True):
-                with patch.object(Path, "exists", return_value=True):
-                    result = archive2_wrapper.add_to_archive(archive_path, files_to_add, base_dir)
+        with (
+            patch.object(archive2_wrapper, "extract_archive", return_value=True),
+            patch.object(archive2_wrapper, "create_archive", return_value=True),
+            patch.object(Path, "exists", return_value=True),
+        ):
+            result = archive2_wrapper.add_to_archive(archive_path, files_to_add, base_dir)
 
         assert result is True
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive_process_failure(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+    def test_create_archive_process_failure(self, mock_runner_class: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test archive creation when process fails."""
         mock_runner = Mock()
         mock_runner.execute.return_value = False
@@ -1130,7 +1172,9 @@ class TestArchiveWrapper:
         assert result is False
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_archive2_creation_fails_despite_process_success(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+    def test_create_archive2_creation_fails_despite_process_success(
+        self, mock_runner_class: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path
+    ) -> None:
         """Test archive creation failure when file not found after supposedly successful process run."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -1148,7 +1192,9 @@ class TestArchiveWrapper:
         assert result is False
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_create_bsarch_creation_fails_despite_process_success(self, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
+    def test_create_bsarch_creation_fails_despite_process_success(
+        self, mock_runner_class: MagicMock, bsarch_wrapper: ArchiveWrapper, tmp_path: Path
+    ) -> None:
         """Test BSArch creation failure when file not found after supposedly successful process run."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -1167,7 +1213,9 @@ class TestArchiveWrapper:
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
     @patch("PrevisLib.tools.archive.shutil")
-    def test_create_bsarch_with_file_list(self, mock_shutil, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
+    def test_create_bsarch_with_file_list(
+        self, mock_shutil: MagicMock, mock_runner_class: MagicMock, bsarch_wrapper: ArchiveWrapper, tmp_path: Path
+    ) -> None:
         """Test BSArch archive creation with a specific file list."""
         mock_runner = Mock()
         mock_runner.execute.return_value = True
@@ -1191,7 +1239,7 @@ class TestArchiveWrapper:
         assert mock_shutil.rmtree.call_count == 1
 
     @patch("PrevisLib.tools.archive.shutil")
-    def test_add_to_archive_extraction_fails(self, mock_shutil, archive2_wrapper, tmp_path) -> None:
+    def test_add_to_archive_extraction_fails(self, mock_shutil: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test add_to_archive when the initial extraction fails."""
         archive_path = tmp_path / "test.ba2"
         files_to_add = [tmp_path / "file1.txt"]
@@ -1208,36 +1256,42 @@ class TestArchiveWrapper:
         mock_shutil.rmtree.assert_called_once()  # Ensure cleanup is still called
 
     @patch("PrevisLib.tools.archive.shutil")
-    def test_add_to_archive_recreation_fails(self, mock_shutil, archive2_wrapper, tmp_path) -> None:
+    def test_add_to_archive_recreation_fails(self, mock_shutil: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test add_to_archive when the final recreation fails."""
         archive_path = tmp_path / "test.ba2"
         file_to_add = tmp_path / "file1.txt"
         file_to_add.touch()
         base_dir = tmp_path
 
-        with patch.object(archive2_wrapper, "extract_archive", return_value=True):
-            with patch.object(archive2_wrapper, "create_archive", return_value=False):
-                result = archive2_wrapper.add_to_archive(archive_path, [file_to_add], base_dir)
+        with (
+            patch.object(archive2_wrapper, "extract_archive", return_value=True),
+            patch.object(archive2_wrapper, "create_archive", return_value=False),
+        ):
+            result = archive2_wrapper.add_to_archive(archive_path, [file_to_add], base_dir)
 
         assert result is False
         mock_shutil.rmtree.assert_called_once()  # Ensure cleanup is still called
 
     @patch("PrevisLib.tools.archive.shutil")
-    def test_add_to_archive_with_nonexistent_source_file(self, mock_shutil, archive2_wrapper, tmp_path) -> None:
+    def test_add_to_archive_with_nonexistent_source_file(
+        self, mock_shutil: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path
+    ) -> None:
         """Test add_to_archive when a file to add does not exist."""
         archive_path = tmp_path / "test.ba2"
         non_existent_file = tmp_path / "nonexistent.txt"
         base_dir = tmp_path
 
-        with patch.object(archive2_wrapper, "extract_archive", return_value=True):
-            with patch.object(archive2_wrapper, "create_archive", return_value=True):
-                result = archive2_wrapper.add_to_archive(archive_path, [non_existent_file], base_dir)
+        with (
+            patch.object(archive2_wrapper, "extract_archive", return_value=True),
+            patch.object(archive2_wrapper, "create_archive", return_value=True),
+        ):
+            result = archive2_wrapper.add_to_archive(archive_path, [non_existent_file], base_dir)
 
         assert result is True  # Should still succeed
         mock_shutil.copy2.assert_not_called()  # But should not copy the file
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_extract_archive2_process_failure(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+    def test_extract_archive2_process_failure(self, mock_runner_class: MagicMock, archive2_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test Archive2 extraction when the process fails."""
         mock_runner = Mock()
         mock_runner.execute.return_value = False
@@ -1252,7 +1306,7 @@ class TestArchiveWrapper:
         assert result is False
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_extract_bsarch_process_failure(self, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
+    def test_extract_bsarch_process_failure(self, mock_runner_class: MagicMock, bsarch_wrapper: ArchiveWrapper, tmp_path: Path) -> None:
         """Test BSArch extraction when the process fails."""
         mock_runner = Mock()
         mock_runner.execute.return_value = False
@@ -1266,7 +1320,7 @@ class TestArchiveWrapper:
         result = bsarch_wrapper.extract_archive(archive_path, output_dir)
         assert result is False
 
-    def test_build_mode_inheritance(self, tmp_path) -> None:
+    def test_build_mode_inheritance(self, tmp_path: Path) -> None:
         """Test that build mode is properly inherited and accessible."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")
@@ -1277,7 +1331,7 @@ class TestArchiveWrapper:
             assert wrapper.build_mode == mode
 
     @patch("PrevisLib.tools.archive.ProcessRunner")
-    def test_compression_mode_combinations(self, mock_runner_class, tmp_path) -> None:
+    def test_compression_mode_combinations(self, mock_runner_class: MagicMock, tmp_path: Path) -> None:
         """Test all combinations of build modes and compression settings."""
         archive_path = tmp_path / "Archive2.exe"
         archive_path.write_text("fake archive2")

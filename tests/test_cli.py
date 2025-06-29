@@ -1,7 +1,7 @@
 """Tests for command line interface."""
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -13,7 +13,7 @@ from PrevisLib.models.data_classes import BuildMode, ToolPaths
 class TestCommandLineParsing:
     """Test command line argument parsing."""
 
-    def test_empty_args(self):
+    def test_empty_args(self) -> None:
         """Test parsing with no arguments."""
         plugin, mode, bsarch = parse_command_line([])
 
@@ -21,7 +21,7 @@ class TestCommandLineParsing:
         assert mode is None
         assert bsarch is False
 
-    def test_plugin_only(self):
+    def test_plugin_only(self) -> None:
         """Test parsing with plugin name only."""
         plugin, mode, bsarch = parse_command_line(["TestMod.esp"])
 
@@ -29,7 +29,7 @@ class TestCommandLineParsing:
         assert mode == BuildMode.CLEAN
         assert bsarch is False
 
-    def test_build_mode_flags(self):
+    def test_build_mode_flags(self) -> None:
         """Test parsing build mode flags."""
         test_cases = [
             (["-clean"], BuildMode.CLEAN),
@@ -41,12 +41,12 @@ class TestCommandLineParsing:
             plugin, mode, bsarch = parse_command_line(args)
             assert mode == expected_mode
 
-    def test_bsarch_flag(self):
+    def test_bsarch_flag(self) -> None:
         """Test parsing BSArch flag."""
         plugin, mode, bsarch = parse_command_line(["-bsarch"])
         assert bsarch is True
 
-    def test_combined_flags(self):
+    def test_combined_flags(self) -> None:
         """Test parsing multiple flags together."""
         plugin, mode, bsarch = parse_command_line(["-filtered", "-bsarch", "TestMod.esp"])
 
@@ -54,7 +54,7 @@ class TestCommandLineParsing:
         assert mode == BuildMode.FILTERED
         assert bsarch is True
 
-    def test_order_independence(self):
+    def test_order_independence(self) -> None:
         """Test that argument order doesn't matter."""
         # Test different orderings
         orderings = [
@@ -69,20 +69,20 @@ class TestCommandLineParsing:
             assert mode == BuildMode.FILTERED
             assert bsarch is True
 
-    def test_case_sensitivity(self):
+    def test_case_sensitivity(self) -> None:
         """Test that flags are case insensitive."""
         plugin, mode, bsarch = parse_command_line(["-FILTERED", "-BSARCH"])
 
         assert mode == BuildMode.FILTERED
         assert bsarch is True
 
-    def test_multiple_plugins_first_wins(self):
+    def test_multiple_plugins_first_wins(self) -> None:
         """Test that only the first plugin name is used."""
         plugin, mode, bsarch = parse_command_line(["First.esp", "Second.esp"])
 
         assert plugin == "First.esp"
 
-    def test_override_build_mode(self):
+    def test_override_build_mode(self) -> None:
         """Test that later build mode flags override earlier ones."""
         plugin, mode, bsarch = parse_command_line(["-clean", "-filtered", "-xbox"])
 
@@ -94,7 +94,7 @@ class TestCLIPathOverrides:
     """Test CLI path override functionality."""
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_fallout4_path_override(self, mock_find_tools):
+    def test_fallout4_path_override(self, mock_find_tools: MagicMock) -> None:
         """Test that --fallout4-path correctly overrides tool discovery."""
         # Mock the default tool discovery
         mock_tool_paths = ToolPaths()
@@ -107,7 +107,7 @@ class TestCLIPathOverrides:
         fake_archive_exe = fake_fo4_path / "Tools" / "Archive2" / "Archive2.exe"
 
         # Mock file existence by patching the exists method to return True for our test paths
-        def mock_exists(self):
+        def mock_exists(self) -> bool:  # noqa: ANN001
             return self in [fake_fo4_exe, fake_ck_exe, fake_archive_exe]
 
         with patch.object(Path, "exists", mock_exists):
@@ -119,7 +119,7 @@ class TestCLIPathOverrides:
             assert settings.tool_paths.archive2 == fake_archive_exe
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_xedit_path_override(self, mock_find_tools):
+    def test_xedit_path_override(self, mock_find_tools: MagicMock) -> None:
         """Test that --xedit-path correctly overrides tool discovery."""
         # Mock the default tool discovery
         mock_tool_paths = ToolPaths()
@@ -130,7 +130,7 @@ class TestCLIPathOverrides:
         fake_bsarch_path = fake_xedit_path.parent / "BSArch.exe"
 
         # Mock file existence by patching the exists method to return True for our test paths
-        def mock_exists(self):
+        def mock_exists(self) -> bool:  # noqa: ANN001
             return self in [fake_xedit_path, fake_bsarch_path]
 
         with patch.object(Path, "exists", mock_exists):
@@ -141,19 +141,18 @@ class TestCLIPathOverrides:
             assert settings.tool_paths.bsarch == fake_bsarch_path
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_fallout4_path_missing_exe_raises_error(self, mock_find_tools):
+    def test_fallout4_path_missing_exe_raises_error(self, mock_find_tools: MagicMock) -> None:
         """Test that missing Fallout4.exe in specified path raises error."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths
 
         fake_fo4_path = Path("/fake/fallout4")
 
-        with patch.object(Path, "exists", return_value=False):
-            with pytest.raises(ValueError, match="Fallout4.exe not found in specified path"):
-                Settings.from_cli_args(fallout4_path=fake_fo4_path)
+        with patch.object(Path, "exists", return_value=False), pytest.raises(ValueError, match="Fallout4.exe not found in specified path"):
+            Settings.from_cli_args(fallout4_path=fake_fo4_path)
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_combined_path_overrides(self, mock_find_tools):
+    def test_combined_path_overrides(self, mock_find_tools: MagicMock) -> None:
         """Test using both --fallout4-path and --xedit-path together."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths
@@ -165,7 +164,7 @@ class TestCLIPathOverrides:
         fake_xedit_path = Path("/different/tools/FO4Edit.exe")
 
         # Mock file existence by patching the exists method to return True for our test paths
-        def mock_exists(self):
+        def mock_exists(self) -> bool:  # noqa: ANN001
             return self in [fake_fo4_exe, fake_ck_exe, fake_xedit_path]
 
         with patch.object(Path, "exists", mock_exists):
@@ -181,7 +180,7 @@ class TestPluginPrompting:
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.Confirm.ask")
-    def test_prompt_for_plugin_exit(self, mock_confirm, mock_prompt):
+    def test_prompt_for_plugin_exit(self, mock_confirm: MagicMock, mock_prompt: MagicMock) -> None:
         """Test exiting plugin prompt with KeyboardInterrupt."""
         mock_prompt.side_effect = KeyboardInterrupt()
         mock_confirm.return_value = True
@@ -191,21 +190,20 @@ class TestPluginPrompting:
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console.print")
-    def test_prompt_for_plugin_validation_error(self, mock_print, mock_prompt):
+    def test_prompt_for_plugin_validation_error(self, mock_print: MagicMock, mock_prompt: MagicMock) -> None:
         """Test plugin validation error handling."""
         # First call returns invalid name, second call raises KeyboardInterrupt to exit
         mock_prompt.side_effect = ["invalid name with spaces", KeyboardInterrupt()]
 
-        with patch("previs_builder.Confirm.ask", return_value=True):
-            with pytest.raises(KeyboardInterrupt):
-                prompt_for_plugin()
+        with patch("previs_builder.Confirm.ask", return_value=True), pytest.raises(KeyboardInterrupt):
+            prompt_for_plugin()
 
         # Should have printed an error about spaces
         mock_print.assert_any_call("\n[red]Error:[/red] Plugin name cannot contain spaces")
 
     @patch("previs_builder.validate_plugin_name")
     @patch("previs_builder.Prompt.ask")
-    def test_prompt_for_plugin_valid_name(self, mock_prompt, mock_validate):
+    def test_prompt_for_plugin_valid_name(self, mock_prompt: MagicMock, mock_validate: MagicMock) -> None:
         """Test successful plugin name validation."""
         mock_prompt.return_value = "TestMod.esp"
         mock_validate.return_value = (True, "")
@@ -218,7 +216,7 @@ class TestModernCLIArguments:
     """Test modern Click-style CLI arguments."""
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_modern_build_mode_argument(self, mock_find_tools):
+    def test_modern_build_mode_argument(self, mock_find_tools: MagicMock) -> None:
         """Test --build-mode argument."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths
@@ -229,7 +227,7 @@ class TestModernCLIArguments:
             assert settings.build_mode.value == mode
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_modern_archive_tool_argument(self, mock_find_tools):
+    def test_modern_archive_tool_argument(self, mock_find_tools: MagicMock) -> None:
         """Test --archive-tool argument."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths
@@ -243,7 +241,7 @@ class TestModernCLIArguments:
         assert settings.archive_tool.value == "BSArch"
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_modern_plugin_argument(self, mock_find_tools):
+    def test_modern_plugin_argument(self, mock_find_tools: MagicMock) -> None:
         """Test --plugin argument."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths
@@ -252,7 +250,7 @@ class TestModernCLIArguments:
         assert settings.plugin_name == "MyMod.esp"
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_modern_verbose_argument(self, mock_find_tools):
+    def test_modern_verbose_argument(self, mock_find_tools: MagicMock) -> None:
         """Test --verbose argument."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths
@@ -264,7 +262,7 @@ class TestModernCLIArguments:
         assert settings.verbose is False
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_combined_modern_arguments(self, mock_find_tools):
+    def test_combined_modern_arguments(self, mock_find_tools: MagicMock) -> None:
         """Test multiple modern arguments together."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths
@@ -281,7 +279,7 @@ class TestBackwardCompatibility:
     """Test that legacy and modern arguments work together."""
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_legacy_arguments_still_work(self, mock_find_tools):
+    def test_legacy_arguments_still_work(self, mock_find_tools: MagicMock) -> None:
         """Test that legacy batch-file style arguments still work."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths
@@ -301,7 +299,7 @@ class TestBackwardCompatibility:
         assert settings.archive_tool.value == "BSArch"
 
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_modern_arguments_override_legacy(self, mock_find_tools):
+    def test_modern_arguments_override_legacy(self, mock_find_tools: MagicMock) -> None:
         """Test that modern arguments take precedence over legacy ones."""
         mock_tool_paths = ToolPaths()
         mock_find_tools.return_value = mock_tool_paths

@@ -1,6 +1,7 @@
 """Tests for configuration management."""
 
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -12,7 +13,7 @@ class TestRegistryReaderNonWindows:
     """Test registry reading on non-Windows platforms."""
 
     @patch("PrevisLib.config.registry.sys.platform", "linux")
-    def test_linux_compatibility(self, caplog):
+    def test_linux_compatibility(self, caplog: MagicMock) -> None:
         """Test that registry reader warns and returns empty ToolPaths on Linux."""
         tool_paths = find_tool_paths()
         assert "Registry reading is only available on Windows" in caplog.text
@@ -24,7 +25,7 @@ class TestRegistryReaderWindows:
     """Test Windows registry reading functionality with a mocked registry."""
 
     @pytest.fixture(autouse=True)
-    def setup(self, mock_winreg, tmp_path):
+    def setup(self, mock_winreg: MagicMock, tmp_path: Path) -> None:
         """Setup for each test."""
         self.mock_winreg = mock_winreg
         self.tmp_path = tmp_path
@@ -44,7 +45,7 @@ class TestRegistryReaderWindows:
         self.xedit_exe.touch()
 
     @patch("PrevisLib.config.registry.sys.platform", "win32")
-    def test_find_all_tools_from_registry(self):
+    def test_find_all_tools_from_registry(self) -> None:
         """Test finding all tools via registry keys."""
         # Set up registry
         self.mock_winreg.SetValue(
@@ -71,14 +72,14 @@ class TestRegistryReaderWindows:
         assert tool_paths.bsarch == bsarch_exe
 
     @patch("PrevisLib.config.registry.sys.platform", "win32")
-    def test_find_xedit_in_local_path_as_fallback(self):
+    def test_find_xedit_in_local_path_as_fallback(self) -> None:
         """Test finding xEdit via fallback when registry key is missing."""
         with patch("pathlib.Path.cwd", return_value=self.xedit_dir):
             tool_paths = find_tool_paths()
             assert tool_paths.xedit == self.xedit_exe
 
     @patch("PrevisLib.config.registry.sys.platform", "win32")
-    def test_registry_read_failure(self, caplog):
+    def test_registry_read_failure(self, caplog: MagicMock) -> None:
         """Test graceful failure when registry keys do not exist."""
         # No registry keys are set
         tool_paths = find_tool_paths()
@@ -88,7 +89,7 @@ class TestRegistryReaderWindows:
         assert "Failed to find Fallout 4 in registry" in caplog.text
 
     @patch("PrevisLib.config.registry.sys.platform", "win32")
-    def test_import_error_for_winreg(self, caplog):
+    def test_import_error_for_winreg(self, caplog: MagicMock) -> None:
         """Test handling of ImportError for the winreg module."""
         with patch.dict("sys.modules", {"winreg": None}):
             tool_paths = find_tool_paths()
@@ -99,7 +100,7 @@ class TestRegistryReaderWindows:
 class TestCKPEConfig:
     """Test CKPE configuration data class."""
 
-    def test_toml_config_reading(self, tmp_path):
+    def test_toml_config_reading(self, tmp_path: Path) -> None:
         """Test reading TOML configuration."""
         config_content = """
 [CreationKit]
@@ -117,7 +118,7 @@ sOutputFile = "test.log"
         assert config.log_output_file == "test.log"
         assert config.config_path == config_file
 
-    def test_ini_config_reading(self, tmp_path):
+    def test_ini_config_reading(self, tmp_path: Path) -> None:
         """Test reading INI configuration."""
         config_content = """[CreationKit]
 bBSPointerHandleExtremly = true
@@ -134,14 +135,14 @@ sOutputFile = custom.log
         assert config.log_output_file == "custom.log"
         assert config.config_path == config_file
 
-    def test_missing_config_file(self, tmp_path):
+    def test_missing_config_file(self, tmp_path: Path) -> None:
         """Test handling of missing configuration file."""
         missing_file = tmp_path / "missing.toml"
 
         with pytest.raises(FileNotFoundError):
             CKPEConfig.from_toml(missing_file)
 
-    def test_malformed_toml(self, tmp_path):
+    def test_malformed_toml(self, tmp_path: Path) -> None:
         """Test handling of malformed TOML."""
         config_content = """[CreationKit]
 missing closing bracket
@@ -149,10 +150,10 @@ missing closing bracket
         config_file = tmp_path / "malformed.toml"
         config_file.write_text(config_content)
 
-        with pytest.raises(Exception):  # Should raise parsing error
+        with pytest.raises(Exception):  # Should raise parsing error  # noqa: B017, PT011
             CKPEConfig.from_toml(config_file)
 
-    def test_default_values(self, tmp_path):
+    def test_default_values(self, tmp_path: Path) -> None:
         """Test default values when sections are missing."""
         config_content = """[SomeOtherSection]
 key = "value"

@@ -1,7 +1,8 @@
 """Extended tests for file system utilities."""
 
 import time
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from PrevisLib.utils.file_system import (
     copy_with_callback,
@@ -18,12 +19,12 @@ from PrevisLib.utils.file_system import (
 class TestExtendedFileOperations:
     """Test extended file system operations."""
 
-    def test_is_directory_empty_nonexistent(self, tmp_path):
+    def test_is_directory_empty_nonexistent(self, tmp_path: Path) -> None:
         """Test checking if non-existent directory is empty."""
         nonexistent = tmp_path / "nonexistent"
         assert is_directory_empty(nonexistent) is True
 
-    def test_is_directory_empty_with_files(self, tmp_path):
+    def test_is_directory_empty_with_files(self, tmp_path: Path) -> None:
         """Test checking if directory with files is empty."""
         test_dir = tmp_path / "test_dir"
         test_dir.mkdir()
@@ -36,7 +37,7 @@ class TestExtendedFileOperations:
         test_file.write_text("content")
         assert is_directory_empty(test_dir) is False
 
-    def test_is_directory_empty_with_subdirs(self, tmp_path):
+    def test_is_directory_empty_with_subdirs(self, tmp_path: Path) -> None:
         """Test checking directory with subdirectories."""
         test_dir = tmp_path / "test_dir"
         test_dir.mkdir()
@@ -46,7 +47,7 @@ class TestExtendedFileOperations:
         subdir.mkdir()
         assert is_directory_empty(test_dir) is False
 
-    def test_wait_for_file_exists_immediately(self, tmp_path):
+    def test_wait_for_file_exists_immediately(self, tmp_path: Path) -> None:
         """Test waiting for file that already exists."""
         test_file = tmp_path / "existing.txt"
         test_file.write_text("content")
@@ -54,7 +55,7 @@ class TestExtendedFileOperations:
         result = wait_for_file(test_file, timeout=1.0)
         assert result is True
 
-    def test_wait_for_file_timeout(self, tmp_path):
+    def test_wait_for_file_timeout(self, tmp_path: Path) -> None:
         """Test waiting for file that never appears."""
         test_file = tmp_path / "nonexistent.txt"
 
@@ -65,11 +66,11 @@ class TestExtendedFileOperations:
         assert result is False
         assert elapsed >= 0.1
 
-    def test_wait_for_file_appears_later(self, tmp_path):
+    def test_wait_for_file_appears_later(self, tmp_path: Path) -> None:
         """Test waiting for file that appears during wait."""
         test_file = tmp_path / "delayed.txt"
 
-        def create_file_later():
+        def create_file_later() -> None:
             time.sleep(0.05)
             test_file.write_text("content")
 
@@ -84,7 +85,7 @@ class TestExtendedFileOperations:
         assert result is True
 
     @patch("time.sleep")
-    def test_mo2_aware_move(self, mock_sleep, tmp_path):
+    def test_mo2_aware_move(self, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test MO2-aware file move."""
         source = tmp_path / "source.txt"
         dest = tmp_path / "dest.txt"
@@ -98,7 +99,7 @@ class TestExtendedFileOperations:
         mock_sleep.assert_called_once_with(1.5)
 
     @patch("time.sleep")
-    def test_mo2_aware_copy_file(self, mock_sleep, tmp_path):
+    def test_mo2_aware_copy_file(self, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test MO2-aware file copy."""
         source = tmp_path / "source.txt"
         dest = tmp_path / "dest.txt"
@@ -112,7 +113,7 @@ class TestExtendedFileOperations:
         mock_sleep.assert_called_once_with(2.0)
 
     @patch("time.sleep")
-    def test_mo2_aware_copy_directory(self, mock_sleep, tmp_path):
+    def test_mo2_aware_copy_directory(self, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test MO2-aware directory copy."""
         source_dir = tmp_path / "source_dir"
         dest_dir = tmp_path / "dest_dir"
@@ -130,7 +131,7 @@ class TestExtendedFileOperations:
         assert (dest_dir / "file2.txt").read_text() == "content2"
         mock_sleep.assert_called_once_with(1.0)
 
-    def test_find_files_non_recursive(self, tmp_path):
+    def test_find_files_non_recursive(self, tmp_path: Path) -> None:
         """Test finding files non-recursively."""
         # Create files in different levels
         (tmp_path / "root1.txt").write_text("content")
@@ -145,7 +146,7 @@ class TestExtendedFileOperations:
         assert len(txt_files) == 1
         assert txt_files[0].name == "root1.txt"
 
-    def test_find_files_recursive(self, tmp_path):
+    def test_find_files_recursive(self, tmp_path: Path) -> None:
         """Test finding files recursively."""
         # Create files in different levels
         (tmp_path / "root1.txt").write_text("content")
@@ -162,7 +163,7 @@ class TestExtendedFileOperations:
         txt_files = find_files(tmp_path, "*.txt", recursive=True)
         assert len(txt_files) == 3
 
-    def test_count_files(self, tmp_path):
+    def test_count_files(self, tmp_path: Path) -> None:
         """Test counting files."""
         # Create test files
         (tmp_path / "file1.txt").write_text("content")
@@ -185,7 +186,7 @@ class TestExtendedFileOperations:
         root_count = count_files(tmp_path, "*", recursive=False)
         assert root_count == 4  # 3 files + 1 directory
 
-    def test_safe_delete_file(self, tmp_path):
+    def test_safe_delete_file(self, tmp_path: Path) -> None:
         """Test safe deletion of file."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
@@ -195,7 +196,7 @@ class TestExtendedFileOperations:
         assert result is True
         assert not test_file.exists()
 
-    def test_safe_delete_directory(self, tmp_path):
+    def test_safe_delete_directory(self, tmp_path: Path) -> None:
         """Test safe deletion of directory."""
         test_dir = tmp_path / "test_dir"
         test_dir.mkdir()
@@ -206,7 +207,7 @@ class TestExtendedFileOperations:
         assert result is True
         assert not test_dir.exists()
 
-    def test_safe_delete_nonexistent(self, tmp_path):
+    def test_safe_delete_nonexistent(self, tmp_path: Path) -> None:
         """Test safe deletion of non-existent file."""
         nonexistent = tmp_path / "nonexistent.txt"
 
@@ -215,7 +216,7 @@ class TestExtendedFileOperations:
         assert result is True  # Should return True for already gone files
 
     @patch("time.sleep")
-    def test_safe_delete_with_retries(self, mock_sleep, tmp_path):
+    def test_safe_delete_with_retries(self, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test safe deletion with retry logic."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
@@ -231,7 +232,7 @@ class TestExtendedFileOperations:
             assert mock_sleep.call_count == 2  # Two retries
 
     @patch("time.sleep")
-    def test_safe_delete_all_retries_fail(self, mock_sleep, tmp_path):
+    def test_safe_delete_all_retries_fail(self, mock_sleep: MagicMock, tmp_path: Path) -> None:
         """Test safe deletion when all retries fail."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
@@ -245,7 +246,7 @@ class TestExtendedFileOperations:
             assert mock_unlink.call_count == 2
             assert mock_sleep.call_count == 1  # One retry
 
-    def test_copy_with_callback_file(self, tmp_path):
+    def test_copy_with_callback_file(self, tmp_path: Path) -> None:
         """Test copying file with progress callback."""
         source = tmp_path / "source.txt"
         dest = tmp_path / "dest.txt"
@@ -253,7 +254,7 @@ class TestExtendedFileOperations:
 
         callback_calls = []
 
-        def progress_callback(current, total):
+        def progress_callback(current: int, total: int) -> None:
             callback_calls.append((current, total))
 
         copy_with_callback(source, dest, progress_callback)
@@ -262,7 +263,7 @@ class TestExtendedFileOperations:
         assert dest.read_text() == "content"
         assert callback_calls == [(1, 1)]
 
-    def test_copy_with_callback_directory(self, tmp_path):
+    def test_copy_with_callback_directory(self, tmp_path: Path) -> None:
         """Test copying directory with progress callback."""
         source_dir = tmp_path / "source_dir"
         dest_dir = tmp_path / "dest_dir"
@@ -275,7 +276,7 @@ class TestExtendedFileOperations:
 
         callback_calls = []
 
-        def progress_callback(current, total):
+        def progress_callback(current: int, total: int) -> None:
             callback_calls.append((current, total))
 
         copy_with_callback(source_dir, dest_dir, progress_callback)
@@ -289,7 +290,7 @@ class TestExtendedFileOperations:
         assert len(callback_calls) == 3
         assert callback_calls[-1] == (3, 3)  # Final call should be (3, 3)
 
-    def test_copy_with_callback_no_callback(self, tmp_path):
+    def test_copy_with_callback_no_callback(self, tmp_path: Path) -> None:
         """Test copying without callback function."""
         source = tmp_path / "source.txt"
         dest = tmp_path / "dest.txt"
@@ -301,7 +302,7 @@ class TestExtendedFileOperations:
         assert dest.exists()
         assert dest.read_text() == "content"
 
-    def test_copy_with_callback_nested_directory(self, tmp_path):
+    def test_copy_with_callback_nested_directory(self, tmp_path: Path) -> None:
         """Test copying directory with nested structure."""
         source_dir = tmp_path / "source_dir"
         dest_dir = tmp_path / "dest_dir"
@@ -315,7 +316,7 @@ class TestExtendedFileOperations:
 
         callback_calls = []
 
-        def progress_callback(current, total):
+        def progress_callback(current: int, total: int) -> None:
             callback_calls.append((current, total))
 
         copy_with_callback(source_dir, dest_dir, progress_callback)

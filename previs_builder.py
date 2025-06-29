@@ -320,7 +320,7 @@ def run_build(settings: Settings) -> bool | None:
                     console.print("[green]✓ Working files cleaned up[/green]")
                 else:
                     console.print("[yellow]⚠ Some working files could not be removed[/yellow]")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error(f"Failed to clean up working files: {e}")
                 console.print("[red]✗ An error occurred during cleanup.[/red]")
 
@@ -358,7 +358,7 @@ def prompt_for_cleanup(settings: Settings) -> bool:
     try:
         with console.status("Cleaning up files..."):
             success: bool = builder.cleanup()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Cleanup failed: {e}")
         success = False
 
@@ -493,7 +493,7 @@ def main(  # noqa: PLR0913
         console.print("\n\n[yellow]Build cancelled by user.[/yellow]")
         sys.exit(130)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         console.print(f"\n[bold red]Unexpected error:[/bold red] {e}")
         if verbose:
             console.print_exception()

@@ -1,7 +1,7 @@
 """Tests for BuildStepExecutor and build step logic."""
 
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -13,7 +13,7 @@ class TestBuildStepExecutor:
     """Test BuildStepExecutor class."""
 
     @pytest.fixture
-    def executor(self, tmp_path):
+    def executor(self, tmp_path: Path) -> BuildStepExecutor:
         """Create BuildStepExecutor for testing."""
         fo4_path = tmp_path / "Fallout4"
         fo4_path.mkdir()
@@ -21,7 +21,7 @@ class TestBuildStepExecutor:
 
         return BuildStepExecutor("TestMod.esp", fo4_path, BuildMode.CLEAN)
 
-    def test_initialization(self, executor, tmp_path):
+    def test_initialization(self, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test BuildStepExecutor initialization."""
         assert executor.plugin_name == "TestMod.esp"
         assert executor.plugin_base == "TestMod"
@@ -29,33 +29,33 @@ class TestBuildStepExecutor:
         assert executor.fo4_path == tmp_path / "Fallout4"
         assert executor.data_path == tmp_path / "Fallout4" / "Data"
 
-    def test_get_plugin_base_name_valid_esp(self):
+    def test_get_plugin_base_name_valid_esp(self) -> None:
         """Test plugin base name extraction for .esp file."""
         executor = BuildStepExecutor("MyMod.esp", Path("/fake"), BuildMode.CLEAN)
         assert executor.plugin_base == "MyMod"
 
-    def test_get_plugin_base_name_valid_esm(self):
+    def test_get_plugin_base_name_valid_esm(self) -> None:
         """Test plugin base name extraction for .esm file."""
         executor = BuildStepExecutor("MyMod.esm", Path("/fake"), BuildMode.CLEAN)
         assert executor.plugin_base == "MyMod"
 
-    def test_get_plugin_base_name_valid_esl(self):
+    def test_get_plugin_base_name_valid_esl(self) -> None:
         """Test plugin base name extraction for .esl file."""
         executor = BuildStepExecutor("MyMod.esl", Path("/fake"), BuildMode.CLEAN)
         assert executor.plugin_base == "MyMod"
 
-    def test_get_plugin_base_name_invalid_extension(self):
+    def test_get_plugin_base_name_invalid_extension(self) -> None:
         """Test plugin base name extraction with invalid extension."""
         with pytest.raises(ValueError, match="Invalid plugin extension"):
             BuildStepExecutor("MyMod.txt", Path("/fake"), BuildMode.CLEAN)
 
-    def test_get_plugin_base_name_no_extension(self):
+    def test_get_plugin_base_name_no_extension(self) -> None:
         """Test plugin base name extraction with no extension."""
         with pytest.raises(ValueError, match="Invalid plugin extension"):
             BuildStepExecutor("MyMod", Path("/fake"), BuildMode.CLEAN)
 
     @patch("PrevisLib.core.build_steps.fs")
-    def test_validate_precombined_output_success(self, mock_fs, executor, tmp_path):
+    def test_validate_precombined_output_success(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test successful precombined output validation."""
         output_path = tmp_path / "output"
         output_path.mkdir()
@@ -77,7 +77,7 @@ class TestBuildStepExecutor:
         assert result["errors"] == []
 
     @patch("PrevisLib.core.build_steps.fs")
-    def test_validate_precombined_output_no_meshes(self, mock_fs, executor, tmp_path):
+    def test_validate_precombined_output_no_meshes(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test precombined output validation with no meshes."""
         output_path = tmp_path / "output"
         output_path.mkdir()
@@ -91,7 +91,7 @@ class TestBuildStepExecutor:
         assert "No mesh files generated" in result["errors"]
 
     @patch("PrevisLib.core.build_steps.fs")
-    def test_validate_precombined_output_small_files(self, mock_fs, executor, tmp_path):
+    def test_validate_precombined_output_small_files(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test precombined output validation with suspiciously small files."""
         output_path = tmp_path / "output"
         output_path.mkdir()
@@ -111,7 +111,7 @@ class TestBuildStepExecutor:
         assert "suspiciously small" in result["errors"][0]
 
     @patch("PrevisLib.core.build_steps.fs")
-    def test_validate_precombined_output_error_mesh(self, mock_fs, executor, tmp_path):
+    def test_validate_precombined_output_error_mesh(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test precombined output validation with error mesh files."""
         output_path = tmp_path / "output"
         output_path.mkdir()
@@ -132,7 +132,9 @@ class TestBuildStepExecutor:
 
     @patch("PrevisLib.core.build_steps.fs")
     @patch("PrevisLib.core.build_steps.shutil")
-    def test_prepare_for_archiving_reorganize_needed(self, mock_shutil, mock_fs, executor, tmp_path):
+    def test_prepare_for_archiving_reorganize_needed(
+        self, mock_shutil: MagicMock, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path
+    ) -> None:
         """Test file preparation when reorganization is needed."""
         source_path = tmp_path / "source"
         source_path.mkdir()
@@ -155,7 +157,7 @@ class TestBuildStepExecutor:
         assert mock_shutil.move.call_count == 2
 
     @patch("PrevisLib.core.build_steps.fs")
-    def test_prepare_for_archiving_already_organized(self, mock_fs, executor, tmp_path):
+    def test_prepare_for_archiving_already_organized(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:  # noqa: ARG002
         """Test file preparation when files are already organized."""
         source_path = tmp_path / "source"
         expected_structure = source_path / "meshes" / "precombined" / "TestMod"
@@ -167,7 +169,13 @@ class TestBuildStepExecutor:
 
     @patch("PrevisLib.core.build_steps.fs")
     @patch("PrevisLib.core.build_steps.shutil")
-    def test_prepare_for_archiving_error(self, mock_shutil, mock_fs, executor, tmp_path):
+    def test_prepare_for_archiving_error(
+        self,
+        mock_shutil: MagicMock,  # noqa: ARG002
+        mock_fs: MagicMock,
+        executor: BuildStepExecutor,
+        tmp_path: Path,
+    ) -> None:
         """Test file preparation when error occurs."""
         source_path = tmp_path / "source"
         source_path.mkdir()
@@ -181,7 +189,7 @@ class TestBuildStepExecutor:
         assert result is False
 
     @patch("PrevisLib.core.build_steps.fs")
-    def test_validate_visibility_output_success(self, mock_fs, executor, tmp_path):
+    def test_validate_visibility_output_success(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test successful visibility output validation."""
         output_path = tmp_path / "output"
         output_path.mkdir()
@@ -203,7 +211,7 @@ class TestBuildStepExecutor:
         assert result["errors"] == []
 
     @patch("PrevisLib.core.build_steps.fs")
-    def test_validate_visibility_output_no_files(self, mock_fs, executor, tmp_path):
+    def test_validate_visibility_output_no_files(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test visibility output validation with no files."""
         output_path = tmp_path / "output"
         output_path.mkdir()
@@ -217,7 +225,7 @@ class TestBuildStepExecutor:
         assert "No visibility data files generated" in result["errors"]
 
     @patch("PrevisLib.core.build_steps.fs")
-    def test_validate_visibility_output_small_files(self, mock_fs, executor, tmp_path):
+    def test_validate_visibility_output_small_files(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test visibility output validation with small files."""
         output_path = tmp_path / "output"
         output_path.mkdir()
@@ -235,7 +243,7 @@ class TestBuildStepExecutor:
         assert "suspiciously small" in result["errors"][0]
 
     @patch("PrevisLib.core.build_steps.shutil")
-    def test_create_backup_success(self, mock_shutil, executor, tmp_path):
+    def test_create_backup_success(self, mock_shutil: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test successful backup creation."""
         file_path = tmp_path / "test.esp"
         file_path.write_text("plugin content")
@@ -249,7 +257,7 @@ class TestBuildStepExecutor:
         assert result == expected_backup
         mock_shutil.copy2.assert_called_once_with(file_path, expected_backup)
 
-    def test_create_backup_nonexistent_file(self, executor, tmp_path):
+    def test_create_backup_nonexistent_file(self, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test backup creation for nonexistent file."""
         file_path = tmp_path / "nonexistent.esp"
 
@@ -258,7 +266,7 @@ class TestBuildStepExecutor:
         assert result is None
 
     @patch("PrevisLib.core.build_steps.shutil")
-    def test_create_backup_error(self, mock_shutil, executor, tmp_path):
+    def test_create_backup_error(self, mock_shutil: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test backup creation when error occurs."""
         file_path = tmp_path / "test.esp"
         file_path.write_text("plugin content")
@@ -271,7 +279,7 @@ class TestBuildStepExecutor:
         assert result is None
 
     @patch("PrevisLib.core.build_steps.shutil")
-    def test_restore_backup_success(self, mock_shutil, executor, tmp_path):
+    def test_restore_backup_success(self, mock_shutil: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test successful backup restoration."""
         backup_path = tmp_path / "test.esp.backup"
         backup_path.write_text("backup content")
@@ -285,7 +293,7 @@ class TestBuildStepExecutor:
         original_path = backup_path.with_suffix("")
         mock_shutil.copy2.assert_called_once_with(backup_path, original_path)
 
-    def test_restore_backup_nonexistent(self, executor, tmp_path):
+    def test_restore_backup_nonexistent(self, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test backup restoration for nonexistent backup."""
         backup_path = tmp_path / "nonexistent.backup"
 
@@ -295,7 +303,7 @@ class TestBuildStepExecutor:
         assert result is False
 
     @patch("PrevisLib.core.build_steps.shutil")
-    def test_restore_backup_error(self, mock_shutil, executor, tmp_path):
+    def test_restore_backup_error(self, mock_shutil: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
         """Test backup restoration when error occurs."""
         backup_path = tmp_path / "test.esp.backup"
         backup_path.write_text("backup content")
@@ -311,7 +319,7 @@ class TestBuildStepExecutor:
 class TestBuildStepExecutorBuildModes:
     """Test BuildStepExecutor with different build modes."""
 
-    def test_clean_mode(self, tmp_path):
+    def test_clean_mode(self, tmp_path: Path) -> None:
         """Test executor with clean build mode."""
         fo4_path = tmp_path / "Fallout4"
         fo4_path.mkdir()
@@ -321,7 +329,7 @@ class TestBuildStepExecutorBuildModes:
 
         assert executor.build_mode == BuildMode.CLEAN
 
-    def test_filtered_mode(self, tmp_path):
+    def test_filtered_mode(self, tmp_path: Path) -> None:
         """Test executor with filtered build mode."""
         fo4_path = tmp_path / "Fallout4"
         fo4_path.mkdir()
@@ -331,7 +339,7 @@ class TestBuildStepExecutorBuildModes:
 
         assert executor.build_mode == BuildMode.FILTERED
 
-    def test_xbox_mode(self, tmp_path):
+    def test_xbox_mode(self, tmp_path: Path) -> None:
         """Test executor with xbox build mode."""
         fo4_path = tmp_path / "Fallout4"
         fo4_path.mkdir()

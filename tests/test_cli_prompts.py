@@ -3,8 +3,6 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from previs_builder import (
     prompt_for_build_mode,
     prompt_for_cleanup,
@@ -18,7 +16,7 @@ from PrevisLib.utils.validation import create_plugin_from_template
 class TestPluginCreation:
     """Test plugin creation from template."""
 
-    def test_create_plugin_from_template_success(self, tmp_path):
+    def test_create_plugin_from_template_success(self, tmp_path: Path) -> None:
         """Test successful plugin creation from template."""
         # Create mock data directory with template
         data_path = tmp_path / "Data"
@@ -33,7 +31,7 @@ class TestPluginCreation:
         assert (data_path / "MyMod.esp").exists()
         assert (data_path / "MyMod.esp").read_text() == "template content"
 
-    def test_create_plugin_from_template_no_template(self, tmp_path):
+    def test_create_plugin_from_template_no_template(self, tmp_path: Path) -> None:
         """Test plugin creation when template doesn't exist."""
         data_path = tmp_path / "Data"
         data_path.mkdir()
@@ -43,7 +41,7 @@ class TestPluginCreation:
         assert success is False
         assert "xPrevisPatch.esp template not found in Data directory" in message
 
-    def test_create_plugin_from_template_copy_error(self, tmp_path):
+    def test_create_plugin_from_template_copy_error(self, tmp_path: Path) -> None:
         """Test plugin creation when copy fails."""
         data_path = tmp_path / "Data"
         data_path.mkdir()
@@ -62,7 +60,7 @@ class TestPromptForPlugin:
     """Test plugin name prompting."""
 
     @patch("previs_builder.Prompt.ask")
-    def test_prompt_for_plugin_valid_name(self, mock_prompt):
+    def test_prompt_for_plugin_valid_name(self, mock_prompt: MagicMock) -> None:
         """Test prompting with a valid plugin name."""
         mock_prompt.return_value = "MyMod.esp"
 
@@ -73,7 +71,7 @@ class TestPromptForPlugin:
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_plugin_empty_name(self, mock_console, mock_prompt):
+    def test_prompt_for_plugin_empty_name(self, mock_console: MagicMock, mock_prompt: MagicMock) -> None:
         """Test prompting with empty name then valid name."""
         mock_prompt.side_effect = ["", "MyMod.esp"]
 
@@ -86,7 +84,7 @@ class TestPromptForPlugin:
     @patch("previs_builder.validate_plugin_name")
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_plugin_invalid_name(self, mock_console, mock_prompt, mock_validate):
+    def test_prompt_for_plugin_invalid_name(self, mock_console: MagicMock, mock_prompt: MagicMock, mock_validate: MagicMock) -> None:
         """Test prompting with invalid name then valid name."""
         mock_prompt.side_effect = ["Invalid@Plugin.esp", "MyMod.esp"]
         mock_validate.side_effect = [(False, "Invalid character"), (True, "")]
@@ -100,7 +98,7 @@ class TestPromptForPlugin:
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_plugin_reserved_name(self, mock_console, mock_prompt):
+    def test_prompt_for_plugin_reserved_name(self, mock_console: MagicMock, mock_prompt: MagicMock) -> None:
         """Test prompting with reserved name."""
         mock_prompt.side_effect = ["previs.esp", "MyMod.esp"]
 
@@ -113,7 +111,9 @@ class TestPromptForPlugin:
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.Confirm.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_plugin_nonexistent_create_yes(self, mock_console, mock_confirm, mock_prompt, tmp_path):
+    def test_prompt_for_plugin_nonexistent_create_yes(
+        self, mock_console: MagicMock, mock_confirm: MagicMock, mock_prompt: MagicMock, tmp_path: Path  # noqa: ARG002
+    ) -> None:
         """Test prompting for non-existent plugin and creating it."""
         mock_prompt.return_value = "NewMod.esp"
         mock_confirm.return_value = True
@@ -137,7 +137,9 @@ class TestPromptForPlugin:
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.Confirm.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_plugin_nonexistent_create_no(self, mock_console, mock_confirm, mock_prompt, tmp_path):
+    def test_prompt_for_plugin_nonexistent_create_no(
+        self, mock_console: MagicMock, mock_confirm: MagicMock, mock_prompt: MagicMock, tmp_path: Path
+    ) -> None:
         """Test prompting for non-existent plugin and declining to create."""
         mock_prompt.side_effect = ["NewMod.esp", "ExistingMod.esp"]
         mock_confirm.return_value = False
@@ -166,7 +168,7 @@ class TestPromptForBuildMode:
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_build_mode_clean(self, mock_console, mock_prompt):
+    def test_prompt_for_build_mode_clean(self, mock_console: MagicMock, mock_prompt: MagicMock) -> None:  # noqa: ARG002
         """Test selecting clean build mode."""
         mock_prompt.return_value = "1"
 
@@ -176,7 +178,7 @@ class TestPromptForBuildMode:
         mock_prompt.assert_called_with("\nSelect mode", choices=["1", "2", "3"], default="1")
 
     @patch("previs_builder.Prompt.ask")
-    def test_prompt_for_build_mode_filtered(self, mock_prompt):
+    def test_prompt_for_build_mode_filtered(self, mock_prompt: MagicMock) -> None:
         """Test selecting filtered build mode."""
         mock_prompt.return_value = "2"
 
@@ -185,7 +187,7 @@ class TestPromptForBuildMode:
         assert result == BuildMode.FILTERED
 
     @patch("previs_builder.Prompt.ask")
-    def test_prompt_for_build_mode_xbox(self, mock_prompt):
+    def test_prompt_for_build_mode_xbox(self, mock_prompt: MagicMock) -> None:
         """Test selecting xbox build mode."""
         mock_prompt.return_value = "3"
 
@@ -199,7 +201,7 @@ class TestPromptForResume:
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_resume_start_fresh(self, mock_console, mock_prompt):
+    def test_prompt_for_resume_start_fresh(self, mock_console: MagicMock, mock_prompt: MagicMock) -> None:  # noqa: ARG002
         """Test selecting to start fresh."""
         mock_prompt.return_value = "0"
         mock_builder = MagicMock()
@@ -211,7 +213,7 @@ class TestPromptForResume:
 
     @patch("previs_builder.Prompt.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_resume_select_step(self, mock_console, mock_prompt):
+    def test_prompt_for_resume_select_step(self, mock_console: MagicMock, mock_prompt: MagicMock) -> None:  # noqa: ARG002
         """Test selecting a specific step to resume from."""
         mock_prompt.return_value = "2"
         mock_builder = MagicMock()
@@ -228,7 +230,7 @@ class TestPromptForCleanup:
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.Confirm.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_cleanup_confirmed(self, mock_console, mock_confirm, mock_builder_class):
+    def test_prompt_for_cleanup_confirmed(self, mock_console: MagicMock, mock_confirm: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test cleanup prompt when user confirms."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = "TestPlugin.esp"
@@ -249,7 +251,7 @@ class TestPromptForCleanup:
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.Confirm.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_cleanup_declined(self, mock_console, mock_confirm, mock_builder_class):
+    def test_prompt_for_cleanup_declined(self, mock_console: MagicMock, mock_confirm: MagicMock, mock_builder_class: MagicMock) -> None:  # noqa: ARG002
         """Test cleanup prompt when user declines."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = "TestPlugin.esp"
@@ -264,7 +266,7 @@ class TestPromptForCleanup:
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.Confirm.ask")
     @patch("previs_builder.console")
-    def test_prompt_for_cleanup_failed(self, mock_console, mock_confirm, mock_builder_class):
+    def test_prompt_for_cleanup_failed(self, mock_console: MagicMock, mock_confirm: MagicMock, mock_builder_class: MagicMock) -> None:
         """Test cleanup prompt when cleanup fails."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = "TestPlugin.esp"

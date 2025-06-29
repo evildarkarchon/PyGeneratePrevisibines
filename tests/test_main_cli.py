@@ -11,7 +11,7 @@ from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep, Too
 
 
 @pytest.fixture
-def mock_settings():
+def mock_settings() -> MagicMock:
     """Fixture to provide a mock Settings object."""
     settings = MagicMock()
     settings.plugin_name = "MyTestPlugin.esp"
@@ -23,7 +23,7 @@ def mock_settings():
 
 
 @pytest.fixture
-def mock_builder():
+def mock_builder() -> MagicMock:
     """Fixture to provide a mock PrevisBuilder."""
     builder = MagicMock()
     builder.failed_step = None
@@ -41,8 +41,13 @@ class TestMainCLI:
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.PrevisBuilder")
     def test_successful_build_non_interactive(
-        self, mock_previs_builder, mock_settings_from_cli, mock_setup_logger, mock_settings, mock_builder
-    ):
+        self,
+        mock_previs_builder: MagicMock,
+        mock_settings_from_cli: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+        mock_settings: MagicMock,
+        mock_builder: MagicMock,
+    ) -> None:
         """Test a successful build in non-interactive mode."""
         mock_settings.plugin_name = "MyMod.esp"
         mock_settings_from_cli.return_value = mock_settings
@@ -60,7 +65,9 @@ class TestMainCLI:
 
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.Settings.from_cli_args")
-    def test_tool_validation_failure(self, mock_settings_from_cli, mock_setup_logger, mock_settings):
+    def test_tool_validation_failure(
+        self, mock_settings_from_cli: MagicMock, mock_setup_logger: MagicMock, mock_settings: MagicMock  # noqa: ARG002
+    ) -> None:
         """Test that the application exits if tool validation fails."""
         mock_settings.tool_paths.validate.return_value = ["xEdit not found"]
         mock_settings_from_cli.return_value = mock_settings
@@ -78,7 +85,9 @@ class TestMainCLI:
     @patch("previs_builder.platform.system", return_value="Linux")
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.run_build", return_value=True)
-    def test_non_windows_warning(self, mock_run_build, mock_settings_from_cli, mock_setup_logger, mock_settings):
+    def test_non_windows_warning(
+        self, mock_run_build: MagicMock, mock_settings_from_cli: MagicMock, mock_setup_logger: MagicMock, mock_settings: MagicMock  # noqa: ARG002
+    ) -> None:
         """Test that a warning is shown on non-Windows platforms."""
         mock_settings_from_cli.return_value = mock_settings
 
@@ -92,7 +101,14 @@ class TestMainCLI:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.PrevisBuilder")
-    def test_build_cancellation(self, mock_previs_builder, mock_settings_from_cli, mock_setup_logger, mock_settings, mock_builder):
+    def test_build_cancellation(
+        self,
+        mock_previs_builder: MagicMock,
+        mock_settings_from_cli: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+        mock_settings: MagicMock,
+        mock_builder: MagicMock,
+    ) -> None:
         """Test cancelling the build at the final confirmation."""
         mock_settings_from_cli.return_value = mock_settings
         mock_previs_builder.return_value = mock_builder
@@ -108,7 +124,7 @@ class TestMainCLI:
         mock_builder.build.assert_not_called()
 
     @patch("previs_builder.setup_logger")
-    def test_help_message(self, mock_setup_logger):
+    def test_help_message(self, mock_setup_logger: MagicMock) -> None:  # noqa: ARG002
         """Test that the --help message is displayed correctly."""
         runner = CliRunner()
         result = runner.invoke(main, ["--help"])
@@ -119,7 +135,13 @@ class TestMainCLI:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.PrevisBuilder")
-    def test_keyboard_interrupt_handling(self, mock_previs_builder, mock_settings_from_cli, mock_setup_logger, mock_settings):
+    def test_keyboard_interrupt_handling(
+        self,
+        mock_previs_builder: MagicMock,  # noqa: ARG002
+        mock_settings_from_cli: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+        mock_settings: MagicMock,  # noqa: ARG002
+    ) -> None:
         """Test that KeyboardInterrupt is handled gracefully."""
         mock_settings_from_cli.side_effect = KeyboardInterrupt
         runner = CliRunner()
@@ -134,17 +156,17 @@ class TestMainCLI:
     @patch("previs_builder.prompt_for_plugin")
     @patch("previs_builder.prompt_for_build_mode")
     @patch("previs_builder.Confirm.ask")
-    def test_successful_build_interactive(
+    def test_successful_build_interactive(  # noqa: PLR0913
         self,
-        mock_confirm,
-        mock_prompt_build_mode,
-        mock_prompt_plugin,
-        mock_previs_builder,
-        mock_settings_from_cli,
-        mock_setup_logger,
-        mock_settings,
-        mock_builder,
-    ):
+        mock_confirm: MagicMock,
+        mock_prompt_build_mode: MagicMock,
+        mock_prompt_plugin: MagicMock,
+        mock_previs_builder: MagicMock,
+        mock_settings_from_cli: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+        mock_settings: MagicMock,
+        mock_builder: MagicMock,
+    ) -> None:
         """Test a successful build in fully interactive mode."""
         # Simulate interactive session:
         # 1. Not cleaning up -> False
@@ -174,15 +196,15 @@ class TestMainCLI:
     @patch("previs_builder.Settings.from_cli_args")
     @patch("previs_builder.PrevisBuilder")
     @patch("previs_builder.prompt_for_resume")
-    def test_resume_build_flow(
+    def test_resume_build_flow(  # noqa: PLR0913
         self,
-        mock_prompt_resume,
-        mock_previs_builder,
-        mock_settings_from_cli,
-        mock_setup_logger,
-        mock_settings,
-        mock_builder,
-    ):
+        mock_prompt_resume: MagicMock,
+        mock_previs_builder: MagicMock,
+        mock_settings_from_cli: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+        mock_settings: MagicMock,
+        mock_builder: MagicMock,
+    ) -> None:
         """Test the build resume flow."""
         mock_builder.failed_step = BuildStep.GENERATE_PRECOMBINED
         mock_settings_from_cli.return_value = mock_settings
@@ -203,17 +225,17 @@ class TestMainCLI:
     @patch("previs_builder.prompt_for_plugin")
     @patch("previs_builder.prompt_for_cleanup")
     @patch("previs_builder.Confirm.ask")
-    def test_interactive_cleanup_flow(
+    def test_interactive_cleanup_flow(  # noqa: PLR0913
         self,
-        mock_confirm,
-        mock_prompt_cleanup,
-        mock_prompt_plugin,
-        mock_previs_builder,
-        mock_settings_from_cli,
-        mock_setup_logger,
-        mock_settings,
-        mock_builder,
-    ):
+        mock_confirm: MagicMock,
+        mock_prompt_cleanup: MagicMock,
+        mock_prompt_plugin: MagicMock,
+        mock_previs_builder: MagicMock,
+        mock_settings_from_cli: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+        mock_settings: MagicMock,
+        mock_builder: MagicMock,
+    ) -> None:
         """Test the interactive cleanup flow."""
         mock_settings.plugin_name = ""  # No plugin to trigger interactive
         mock_settings_from_cli.return_value = mock_settings
@@ -266,16 +288,16 @@ class TestCommandLineArguments:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.run_build")
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_argument_parsing(
+    def test_argument_parsing(  # noqa: PLR0913
         self,
-        mock_tool_discover,
-        mock_run_build,
-        mock_setup_logger,
-        cli_args,
-        expected_plugin,
-        expected_mode,
-        expected_bsarch,
-    ):
+        mock_tool_discover: MagicMock,
+        mock_run_build: MagicMock,
+        mock_setup_logger: MagicMock,  # noqa: ARG002
+        cli_args: list[str],
+        expected_plugin: str,
+        expected_mode: BuildMode,
+        expected_bsarch: bool,
+    ) -> None:
         """Test that CLI arguments are parsed and result in the correct settings."""
         # Create mock tool paths with validation that passes
         mock_tool_paths = ToolPaths(
@@ -285,7 +307,7 @@ class TestCommandLineArguments:
             archive2=Path("/fake/Archive2.exe"),
         )
         # Mock validation to return no errors
-        mock_tool_paths.validate = MagicMock(return_value=[])
+        mock_tool_paths.validate = MagicMock(return_value=[])  # type: ignore
         mock_tool_discover.return_value = mock_tool_paths
 
         mock_run_build.return_value = True
@@ -306,11 +328,16 @@ class TestCommandLineArguments:
     @patch("previs_builder.setup_logger")
     @patch("previs_builder.run_build")
     @patch("PrevisLib.config.settings.find_tool_paths")
-    def test_path_overrides(self, mock_tool_discover, mock_run_build, mock_setup_logger):
+    def test_path_overrides(self, mock_tool_discover: MagicMock, mock_run_build: MagicMock, mock_setup_logger: MagicMock) -> None:  # noqa: ARG002
         """Test that --fallout4-path and --xedit-path are passed correctly."""
         # Create mock tool paths with validation that passes
-        mock_tool_paths = ToolPaths()
-        mock_tool_paths.validate = MagicMock(return_value=[])
+        mock_tool_paths = ToolPaths(
+            creation_kit=Path("/fake/CreationKit.exe"),
+            xedit=Path("/fake/FO4Edit.exe"),
+            fallout4=Path("/fake/Fallout4.exe"),
+            archive2=Path("/fake/Archive2.exe"),
+        )
+        mock_tool_paths.validate = MagicMock(return_value=[])  # type: ignore
         mock_tool_discover.return_value = mock_tool_paths
 
         mock_run_build.return_value = True

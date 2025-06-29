@@ -1,6 +1,7 @@
 """Tests for utility modules."""
 
-from unittest.mock import Mock, patch
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -12,7 +13,7 @@ from PrevisLib.utils.process import ProcessRunner, run_process
 class TestFileOperations:
     """Test file operation utilities."""
 
-    def test_ensure_directory(self, tmp_path):
+    def test_ensure_directory(self, tmp_path: Path) -> None:
         """Test directory creation."""
         test_dir = tmp_path / "test" / "nested" / "directory"
 
@@ -21,7 +22,7 @@ class TestFileOperations:
         assert test_dir.exists()
         assert test_dir.is_dir()
 
-    def test_ensure_existing_directory(self, tmp_path):
+    def test_ensure_existing_directory(self, tmp_path: Path) -> None:
         """Test ensuring an already existing directory."""
         test_dir = tmp_path / "existing"
         test_dir.mkdir()
@@ -30,7 +31,7 @@ class TestFileOperations:
         ensure_directory(test_dir)
         assert test_dir.exists()
 
-    def test_clean_directory(self, tmp_path):
+    def test_clean_directory(self, tmp_path: Path) -> None:
         """Test directory cleaning."""
         test_dir = tmp_path / "test_clean"
         test_dir.mkdir()
@@ -42,7 +43,7 @@ class TestFileOperations:
         assert test_dir.exists()
         assert not test_file.exists()
 
-    def test_safe_delete(self, tmp_path):
+    def test_safe_delete(self, tmp_path: Path) -> None:
         """Test safe file deletion."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
@@ -52,7 +53,7 @@ class TestFileOperations:
         assert result is True
         assert not test_file.exists()
 
-    def test_find_files(self, tmp_path):
+    def test_find_files(self, tmp_path: Path) -> None:
         """Test file finding."""
         test_files = [tmp_path / "file1.txt", tmp_path / "file2.txt", tmp_path / "subdir" / "file3.txt"]
 
@@ -67,13 +68,13 @@ class TestFileOperations:
 class TestProcessRunner:
     """Test process execution utilities."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test ProcessRunner initialization."""
         runner = ProcessRunner()
         assert runner is not None
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_successful_execution(self, mock_run):
+    def test_successful_execution(self, mock_run: MagicMock) -> None:
         """Test successful process execution."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -87,7 +88,7 @@ class TestProcessRunner:
         assert result is True
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_failed_execution(self, mock_run):
+    def test_failed_execution(self, mock_run: MagicMock) -> None:
         """Test failed process execution."""
         mock_result = Mock()
         mock_result.returncode = 1
@@ -101,7 +102,7 @@ class TestProcessRunner:
         assert result is False
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    def test_run_process_function(self, mock_run):
+    def test_run_process_function(self, mock_run: MagicMock) -> None:
         """Test run_process function directly."""
         # Mock successful process execution
         mock_result = Mock()
@@ -119,14 +120,16 @@ class TestProcessRunner:
 class TestLogging:
     """Test logging utilities."""
 
-    def test_setup_logger(self):
+    @patch("PrevisLib.utils.logging.logger.remove")
+    def test_setup_logger(self, mock_remove: Mock) -> None:
         """Test logger setup."""
-        logger = setup_logger("test_logger")
+        logger = setup_logger()
 
         assert logger is not None
+        mock_remove.assert_called_once_with()
         # loguru logger doesn't have a .name attribute
 
-    def test_get_logger(self):
+    def test_get_logger(self) -> None:
         """Test getting logger instance."""
         logger1 = get_logger("test_module")
         logger2 = get_logger("test_module")
@@ -135,7 +138,7 @@ class TestLogging:
         assert logger1 is not None
         assert logger2 is not None
 
-    def test_logger_basic_functionality(self):
+    def test_logger_basic_functionality(self) -> None:
         """Test basic logger functionality."""
         logger = get_logger("basic_test")
 
@@ -144,7 +147,7 @@ class TestLogging:
             logger.info("test message")
             logger.debug("debug message")
             logger.error("error message")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             pytest.fail(f"Logger methods should not raise exceptions: {e}")
 
         assert logger is not None
