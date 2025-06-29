@@ -253,8 +253,6 @@ class XEditWrapper:
         possible_log_paths: list[Path] = [
             unattended_log,  # Primary location matching batch file
             self.xedit_path.parent / "Edit Scripts" / "Edit Logs" / f"{self.plugin_name}.log",
-            data_path / "Edit Scripts" / "Edit Logs" / f"{self.plugin_name}.log",
-            Path.home() / "Documents" / "My Games" / "Fallout4" / "Edit Logs" / f"{self.plugin_name}.log",
         ]
 
         # Enhanced patterns to match the batch file exactly

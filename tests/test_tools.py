@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from PrevisLib.models.data_classes import BuildMode, CKPEConfig
+from PrevisLib.tools.archive import ArchiveTool, ArchiveWrapper
 from PrevisLib.tools.creation_kit import CreationKitWrapper
 from PrevisLib.tools.xedit import XEditWrapper
 
@@ -604,3 +605,316 @@ class TestXEdit:
                 unattended_log.write_text("Some content\nNo completion indicator\nMore content")
                 result = wrapper._check_xedit_log(data_path, "test operation")
                 assert result is False
+
+
+class TestArchiveWrapper:
+    """Test Archive wrapper functionality."""
+
+    @pytest.fixture
+    def archive2_wrapper(self, tmp_path):
+        """Create an Archive2 wrapper for testing."""
+        archive_path = tmp_path / "Archive2.exe"
+        archive_path.write_text("fake archive2")
+        return ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, BuildMode.CLEAN)
+
+    @pytest.fixture
+    def archive2_wrapper_xbox(self, tmp_path):
+        """Create an Archive2 wrapper with Xbox build mode for testing."""
+        archive_path = tmp_path / "Archive2.exe"
+        archive_path.write_text("fake archive2")
+        return ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, BuildMode.XBOX)
+
+    @pytest.fixture
+    def bsarch_wrapper(self, tmp_path):
+        """Create a BSArch wrapper for testing."""
+        bsarch_path = tmp_path / "BSArch.exe"
+        bsarch_path.write_text("fake bsarch")
+        return ArchiveWrapper(ArchiveTool.BSARCH, bsarch_path, BuildMode.CLEAN)
+
+    def test_initialization(self, tmp_path):
+        """Test ArchiveWrapper initialization with different build modes."""
+        archive_path = tmp_path / "Archive2.exe"
+        archive_path.write_text("fake archive2")
+
+        # Test different build modes
+        for mode in [BuildMode.CLEAN, BuildMode.FILTERED, BuildMode.XBOX]:
+            wrapper = ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, mode)
+            assert wrapper.tool == ArchiveTool.ARCHIVE2
+            assert wrapper.tool_path == archive_path
+            assert wrapper.build_mode == mode
+            assert wrapper.process_runner is not None
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_create_archive2_default_compression(self, mock_runner_class, archive2_wrapper, tmp_path):
+        """Test Archive2 archive creation with default compression."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+
+        # Mock archive file creation
+        with patch.object(Path, "exists", return_value=True):
+            result = archive2_wrapper.create_archive(archive_path, source_dir, compress=True)
+
+        assert result is True
+        mock_runner.execute.assert_called_once()
+
+        # Check command arguments
+        args = mock_runner.execute.call_args[0][0]
+        assert str(archive2_wrapper.tool_path) in args
+        assert f"-create={archive_path}" in args
+        assert f"-root={source_dir}" in args
+        assert "-compression=Default" in args
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_create_archive2_xbox_compression(self, mock_runner_class, archive2_wrapper_xbox, tmp_path):
+        """Test Archive2 archive creation with Xbox compression mode."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper_xbox.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+
+        # Mock archive file creation
+        with patch.object(Path, "exists", return_value=True):
+            result = archive2_wrapper_xbox.create_archive(archive_path, source_dir, compress=True)
+
+        assert result is True
+        mock_runner.execute.assert_called_once()
+
+        # Check command arguments for Xbox compression
+        args = mock_runner.execute.call_args[0][0]
+        assert str(archive2_wrapper_xbox.tool_path) in args
+        assert f"-create={archive_path}" in args
+        assert f"-root={source_dir}" in args
+        assert "-compression=XBox" in args
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_create_archive2_no_compression(self, mock_runner_class, archive2_wrapper, tmp_path):
+        """Test Archive2 archive creation with no compression."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+
+        # Mock archive file creation
+        with patch.object(Path, "exists", return_value=True):
+            result = archive2_wrapper.create_archive(archive_path, source_dir, compress=False)
+
+        assert result is True
+        mock_runner.execute.assert_called_once()
+
+        # Check command arguments
+        args = mock_runner.execute.call_args[0][0]
+        assert "-compression=None" in args
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_create_archive2_with_file_list(self, mock_runner_class, archive2_wrapper, tmp_path):
+        """Test Archive2 archive creation with specific file list."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        file_list = ["file1.nif", "file2.nif"]
+
+        # Mock archive file creation
+        with patch.object(Path, "exists", return_value=True):
+            result = archive2_wrapper.create_archive(archive_path, source_dir, file_list=file_list, compress=True)
+
+        assert result is True
+        mock_runner.execute.assert_called_once()
+
+        # Check that sourceFile argument was used
+        args = mock_runner.execute.call_args[0][0]
+        source_file_arg = [arg for arg in args if arg.startswith("-sourceFile=")]
+        assert len(source_file_arg) == 1
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_create_bsarch_archive(self, mock_runner_class, bsarch_wrapper, tmp_path):
+        """Test BSArch archive creation."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        bsarch_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+
+        # Mock archive file creation
+        with patch.object(Path, "exists", return_value=True):
+            result = bsarch_wrapper.create_archive(archive_path, source_dir, compress=True)
+
+        assert result is True
+        mock_runner.execute.assert_called_once()
+
+        # Check command arguments
+        args = mock_runner.execute.call_args[0][0]
+        assert str(bsarch_wrapper.tool_path) in args
+        assert "pack" in args
+        assert str(source_dir) in args
+        assert str(archive_path) in args
+        assert "-z" in args
+        assert "1" in args  # Compression enabled
+        assert "-fo4" in args
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_extract_archive2(self, mock_runner_class, archive2_wrapper, tmp_path):
+        """Test Archive2 archive extraction."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        archive_path.write_text("fake archive")
+        output_dir = tmp_path / "output"
+
+        result = archive2_wrapper.extract_archive(archive_path, output_dir)
+
+        assert result is True
+        mock_runner.execute.assert_called_once()
+
+        # Check command arguments
+        args = mock_runner.execute.call_args[0][0]
+        assert str(archive2_wrapper.tool_path) in args
+        assert str(archive_path) in args
+        assert f"-extract={output_dir}" in args
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_extract_bsarch(self, mock_runner_class, bsarch_wrapper, tmp_path):
+        """Test BSArch archive extraction."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        bsarch_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        archive_path.write_text("fake archive")
+        output_dir = tmp_path / "output"
+
+        result = bsarch_wrapper.extract_archive(archive_path, output_dir)
+
+        assert result is True
+        mock_runner.execute.assert_called_once()
+
+        # Check command arguments
+        args = mock_runner.execute.call_args[0][0]
+        assert str(bsarch_wrapper.tool_path) in args
+        assert "unpack" in args
+        assert str(archive_path) in args
+        assert str(output_dir) in args
+
+    def test_extract_nonexistent_archive(self, archive2_wrapper, tmp_path):
+        """Test extraction of non-existent archive."""
+        archive_path = tmp_path / "nonexistent.ba2"
+        output_dir = tmp_path / "output"
+
+        result = archive2_wrapper.extract_archive(archive_path, output_dir)
+
+        assert result is False
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    @patch("PrevisLib.tools.archive.shutil")
+    def test_add_to_archive_success(self, mock_shutil, mock_runner_class, archive2_wrapper, tmp_path):
+        """Test adding files to existing archive."""
+        # Setup mocks
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper.process_runner = mock_runner
+
+        # Create test files
+        archive_path = tmp_path / "test.ba2"
+        archive_path.write_text("fake archive")
+
+        files_to_add = [tmp_path / "file1.txt", tmp_path / "file2.txt"]
+        for file_path in files_to_add:
+            file_path.write_text("test content")
+
+        base_dir = tmp_path
+
+        # Mock the extract and create operations
+        with patch.object(archive2_wrapper, "extract_archive", return_value=True):
+            with patch.object(archive2_wrapper, "create_archive", return_value=True):
+                with patch.object(Path, "exists", return_value=True):
+                    result = archive2_wrapper.add_to_archive(archive_path, files_to_add, base_dir)
+
+        assert result is True
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_create_archive_process_failure(self, mock_runner_class, archive2_wrapper, tmp_path):
+        """Test archive creation when process fails."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = False
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+
+        result = archive2_wrapper.create_archive(archive_path, source_dir, compress=True)
+
+        assert result is False
+
+    def test_build_mode_inheritance(self, tmp_path):
+        """Test that build mode is properly inherited and accessible."""
+        archive_path = tmp_path / "Archive2.exe"
+        archive_path.write_text("fake archive2")
+
+        # Test each build mode
+        for mode in [BuildMode.CLEAN, BuildMode.FILTERED, BuildMode.XBOX]:
+            wrapper = ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, mode)
+            assert wrapper.build_mode == mode
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_compression_mode_combinations(self, mock_runner_class, tmp_path):
+        """Test all combinations of build modes and compression settings."""
+        archive_path = tmp_path / "Archive2.exe"
+        archive_path.write_text("fake archive2")
+
+        test_archive = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+
+        # Test combinations
+        test_cases = [
+            (BuildMode.CLEAN, True, "-compression=Default"),
+            (BuildMode.CLEAN, False, "-compression=None"),
+            (BuildMode.FILTERED, True, "-compression=Default"),
+            (BuildMode.FILTERED, False, "-compression=None"),
+            (BuildMode.XBOX, True, "-compression=XBox"),
+            (BuildMode.XBOX, False, "-compression=None"),
+        ]
+
+        for build_mode, compress, expected_compression in test_cases:
+            mock_runner = Mock()
+            mock_runner.execute.return_value = True
+            mock_runner_class.return_value = mock_runner
+
+            wrapper = ArchiveWrapper(ArchiveTool.ARCHIVE2, archive_path, build_mode)
+            wrapper.process_runner = mock_runner
+
+            # Mock archive file creation
+            with patch.object(Path, "exists", return_value=True):
+                result = wrapper.create_archive(test_archive, source_dir, compress=compress)
+
+            assert result is True
+            args = mock_runner.execute.call_args[0][0]
+            assert expected_compression in args

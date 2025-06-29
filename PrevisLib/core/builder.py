@@ -54,11 +54,11 @@ class PrevisBuilder:
         if settings.archive_tool == ArchiveTool.BSARCH:
             if settings.tool_paths.bsarch is None:
                 raise ValueError("BSArch path is required but not configured")
-            self.archive_wrapper = ArchiveWrapper(ArchiveTool.BSARCH, settings.tool_paths.bsarch)
+            self.archive_wrapper = ArchiveWrapper(ArchiveTool.BSARCH, settings.tool_paths.bsarch, self.build_mode)
         else:
             if settings.tool_paths.archive2 is None:
                 raise ValueError("Archive2 path is required but not configured")
-            self.archive_wrapper = ArchiveWrapper(ArchiveTool.ARCHIVE2, settings.tool_paths.archive2)
+            self.archive_wrapper = ArchiveWrapper(ArchiveTool.ARCHIVE2, settings.tool_paths.archive2, self.build_mode)
 
         # CKPE config handler
         self.ckpe_handler = CKPEConfigHandler(settings.tool_paths.fallout4)

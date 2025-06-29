@@ -6,6 +6,7 @@ from pathlib import Path
 
 from loguru import logger
 
+from PrevisLib.models.data_classes import BuildMode
 from PrevisLib.utils.process import ProcessRunner
 
 
@@ -19,9 +20,10 @@ class ArchiveTool(Enum):
 class ArchiveWrapper:
     """Wrapper for archive operations using Archive2 or BSArch."""
 
-    def __init__(self, tool: ArchiveTool, tool_path: Path) -> None:
+    def __init__(self, tool: ArchiveTool, tool_path: Path, build_mode: BuildMode) -> None:
         self.tool = tool
         self.tool_path = tool_path
+        self.build_mode = build_mode
         self.process_runner = ProcessRunner()
         # File system operations will use module functions directly
 
@@ -133,9 +135,12 @@ class ArchiveWrapper:
         # Add root directory option
         args.append(f"-root={source_dir}")
 
-        # Set compression option
+        # Set compression option based on build mode
         if compress:
-            args.append("-compression=Default")
+            if self.build_mode == BuildMode.XBOX:
+                args.append("-compression=XBox")
+            else:
+                args.append("-compression=Default")
         else:
             args.append("-compression=None")
 
