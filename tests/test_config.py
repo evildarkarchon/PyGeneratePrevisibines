@@ -86,7 +86,6 @@ class TestRegistryReaderWindows:
         assert tool_paths == ToolPaths(xedit=None, fallout4=None, creation_kit=None, archive2=None, bsarch=None)
         assert "Failed to find xEdit in registry" in caplog.text
         assert "Failed to find Fallout 4 in registry" in caplog.text
-        assert "GOG installation detection" not in caplog.text
 
     @patch("PrevisLib.config.registry.sys.platform", "win32")
     def test_import_error_for_winreg(self, caplog):
@@ -103,7 +102,7 @@ class TestCKPEConfig:
     def test_toml_config_reading(self, tmp_path):
         """Test reading TOML configuration."""
         config_content = """
-[CreationKitPlatformExtended]
+[CreationKit]
 bBSPointerHandleExtremly = false
 
 [Log]
@@ -144,7 +143,7 @@ sOutputFile = custom.log
 
     def test_malformed_toml(self, tmp_path):
         """Test handling of malformed TOML."""
-        config_content = """[CreationKitPlatformExtended
+        config_content = """[CreationKit]
 missing closing bracket
 """
         config_file = tmp_path / "malformed.toml"

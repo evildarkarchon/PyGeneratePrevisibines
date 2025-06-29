@@ -16,12 +16,14 @@ from PrevisLib.tools.xedit import XEditWrapper
 def create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file="test.log"):
     """Helper function to create CKPE config properly using class methods."""
     config_file = tmp_path / "ckpe_test.toml"
+    # Convert Windows backslashes to forward slashes for TOML compatibility
+    log_file_path = log_output_file.replace("\\", "/") if log_output_file else ""
     config_content = f"""
-[CreationKitPlatformExtended]
+[CreationKit]
 bBSPointerHandleExtremly = {str(handle_setting).lower()}
 
 [Log]
-sOutputFile = "{log_output_file}"
+sOutputFile = "{log_file_path}"
 """
     config_file.write_text(config_content)
     return CKPEConfig.from_toml(config_file)

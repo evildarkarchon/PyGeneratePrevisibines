@@ -80,7 +80,7 @@ class CKPEConfig:
             data: dict[str, Any] = tomli.load(f)
 
         return cls(
-            handle_setting=data.get("CreationKitPlatformExtended", {}).get(
+            handle_setting=data.get("CreationKit", {}).get(
                 "bBSPointerHandleExtremly", False
             ),  # Placeholder as CKPE release with TOML has not been released
             log_output_file=data.get("Log", {}).get("sOutputFile", ""),
