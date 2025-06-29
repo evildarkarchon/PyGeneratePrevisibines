@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from PrevisLib.config.settings import Settings
-from PrevisLib.models.data_classes import BuildStep, CKPEConfig
+from PrevisLib.models.data_classes import ArchiveTool, BuildStep, CKPEConfig
 from PrevisLib.tools import ArchiveWrapper, CKPEConfigHandler, CreationKitWrapper, XEditWrapper
-from PrevisLib.tools.archive import ArchiveTool
 from PrevisLib.utils import file_system as fs
 from PrevisLib.utils.validation import validate_xedit_scripts
 

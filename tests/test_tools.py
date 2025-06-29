@@ -6,11 +6,25 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from PrevisLib.models.data_classes import BuildMode, CKPEConfig
-from PrevisLib.tools.archive import ArchiveTool, ArchiveWrapper
+from PrevisLib.models.data_classes import ArchiveTool, BuildMode, CKPEConfig
+from PrevisLib.tools.archive import ArchiveWrapper
 from PrevisLib.tools.ckpe import CKPEConfigHandler
 from PrevisLib.tools.creation_kit import CreationKitWrapper
 from PrevisLib.tools.xedit import XEditWrapper
+
+
+def create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file="test.log"):
+    """Helper function to create CKPE config properly using class methods."""
+    config_file = tmp_path / "ckpe_test.toml"
+    config_content = f"""
+[CreationKitPlatformExtended]
+bBSPointerHandleExtremly = {str(handle_setting).lower()}
+
+[Log]
+sOutputFile = "{log_output_file}"
+"""
+    config_file.write_text(config_content)
+    return CKPEConfig.from_toml(config_file)
 
 
 class TestCreationKit:
@@ -28,7 +42,7 @@ class TestCreationKit:
         """Create a test Creation Kit wrapper with CKPE config."""
         ck_path = tmp_path / "CreationKit.exe"
         ck_path.write_text("fake ck")
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file="test.log", config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file="test.log")
         return CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
     def test_initialization(self, tmp_path) -> None:
@@ -259,7 +273,7 @@ class TestCreationKit:
         log_file = log_dir / "CreationKit.log"
 
         # Create CKPE config pointing to the log file
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file=str(log_file))
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
         # Test each error pattern - use exact patterns from implementation
@@ -286,7 +300,7 @@ class TestCreationKit:
             log_path.write_text("Some content\nERROR: test error\nMore content")
 
             # Create CKPE config pointing to this specific log file
-            ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_path), config_path=None)
+            ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file=str(log_path))
             wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
             result = wrapper._check_ck_errors(data_path)
@@ -308,7 +322,7 @@ class TestCreationKit:
         log_file.write_text("content")
 
         # Create CKPE config pointing to the log file
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file=str(log_file))
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
         # Mock file read to raise exception
@@ -330,7 +344,7 @@ class TestCreationKit:
         log_file = log_dir / "CreationKit.log"
 
         # Create CKPE config pointing to the log file
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file=str(log_file))
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
         # Use the exact failure patterns from the implementation
@@ -360,7 +374,7 @@ class TestCreationKit:
         log_file.write_text("Some content\nPrevis generation completed\nMore content")
 
         # Create CKPE config pointing to the log file
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file=str(log_file))
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
         result = wrapper._check_previs_completion(data_path)
@@ -375,7 +389,7 @@ class TestCreationKit:
 
         # Create CKPE config with custom log path
         log_path = tmp_path / "custom_ck.log"
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_path), config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file=str(log_path))
 
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
@@ -397,7 +411,7 @@ class TestCreationKit:
         data_path.mkdir()
 
         # Create CKPE config without log file
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file="", config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file="")
 
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
@@ -422,7 +436,7 @@ class TestCreationKit:
         log_file = log_dir / "custom.log"
 
         # CKPE config with relative path
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file="Logs/custom.log", config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file="Logs/custom.log")
 
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
@@ -488,7 +502,7 @@ class TestCreationKit:
         log_file = log_dir / "CreationKit.log"
 
         # Create CKPE config pointing to the log file
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file=str(log_file))
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
         # Test enhanced error patterns including exact batch file pattern
@@ -513,7 +527,7 @@ class TestCreationKit:
         log_file = log_dir / "CreationKit.log"
 
         # Create CKPE config pointing to the log file
-        ckpe_config = CKPEConfig(handle_setting=True, log_output_file=str(log_file), config_path=None)
+        ckpe_config = create_test_ckpe_config(tmp_path, handle_setting=True, log_output_file=str(log_file))
         wrapper = CreationKitWrapper(ck_path, "TestMod.esp", BuildMode.CLEAN, ckpe_config)
 
         # Test enhanced failure patterns including exact batch file pattern

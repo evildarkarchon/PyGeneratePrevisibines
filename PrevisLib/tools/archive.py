@@ -1,20 +1,12 @@
 """Archive tool wrapper for Archive2 and BSArch."""
 
 import shutil
-from enum import Enum
 from pathlib import Path
 
 from loguru import logger
 
-from PrevisLib.models.data_classes import BuildMode
+from PrevisLib.models.data_classes import ArchiveTool, BuildMode
 from PrevisLib.utils.process import ProcessRunner
-
-
-class ArchiveTool(Enum):
-    """Available archive tools."""
-
-    ARCHIVE2 = "Archive2"
-    BSARCH = "BSArch"
 
 
 class ArchiveWrapper:

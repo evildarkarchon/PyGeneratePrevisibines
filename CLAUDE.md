@@ -4,92 +4,108 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PyGeneratePrevisibines is a Python port of PJM's GeneratePrevisibines.bat (V2.9) for Fallout 4. It automates the generation of precombined meshes and visibility data (previsibines) for Fallout 4 mods to improve game performance.
+PyGeneratePrevisibines is a Python port of PJM's GeneratePrevisibines batch file for Fallout 4. It automates the generation of precombined meshes and visibility data (previsibines) for Fallout 4 mods to improve game performance.
 
-## Development Commands
+**Status**: Phase 1 (Foundation) Complete - Currently under active development
 
-### Setup
+## Essential Commands
+
+### Development Environment
 ```bash
-poetry install                    # Install core dependencies
-poetry install --with win32      # Install with Windows-specific dependencies
-```
+# Install dependencies
+poetry install
 
-### Development
-```bash
-poetry run pytest                # Run all tests
-poetry run pytest -k test_name   # Run specific test
-poetry run black .               # Format code
-poetry run ruff check .          # Lint code
-poetry run ruff check --fix .    # Auto-fix linting issues
-poetry run mypy .                # Type check
-poetry run pytest --cov          # Run tests with coverage
+# Install with Windows-specific features
+poetry install --with win32
 ```
 
 ### Running the Application
 ```bash
-poetry run python PyGeneratePrevisibines.py [options]
-# Options: [-clean|-filtered|-xbox] [-bsarch] [modname.esp]
+# Basic usage
+poetry run python PyGeneratePrevisibines.py
+
+# With parameters
+poetry run python PyGeneratePrevisibines.py MyMod.esp --build-mode clean --verbose
+
+# Using BSArch instead of Archive2
+poetry run python PyGeneratePrevisibines.py MyMod.esp --bsarch
 ```
 
-## Architecture
+### Testing and Quality Assurance
+```bash
+# Run tests with coverage
+poetry run pytest
 
-The project follows a modular architecture as outlined in `previs-builder-checklist.md`:
+# Code formatting
+poetry run black .
 
-### Core Package Structure
-- **PrevisLib/config/**: Configuration management, registry reading, CKPE config parsing
-- **PrevisLib/core/**: Main builder orchestration, build modes, and step implementations
-- **PrevisLib/tools/**: Wrappers for Creation Kit, xEdit/FO4Edit, and Archive tools
-- **PrevisLib/utils/**: File operations, process execution, validation, and logging
-- **PrevisLib/models/**: Data classes for configuration
+# Linting
+poetry run ruff check .
 
-### Build Process
-The tool executes 8 distinct steps:
-1. Generate precombined meshes (Creation Kit)
-2. Merge combined objects (xEdit)
-3. Archive meshes (Archive2/BSArch)
-4. Compress PSG files (Creation Kit)
-5. Build CDX files (Creation Kit)
-6. Generate visibility data (Creation Kit)
-7. Merge previs data (xEdit)
-8. Final packaging
+# Type checking
+poetry run mypy .
+```
 
-### Key Implementation Notes
+## Architecture Overview
 
-1. **Windows Tool Integration**: The project wraps Windows-only tools (Creation Kit, xEdit, Archive2/BSArch) and must handle window automation for xEdit operations.
+### Core Structure
+- **Entry Points**: `PyGeneratePrevisibines.py` (wrapper) and `previs_builder.py` (main CLI)
+- **Core Logic**: `PrevisLib/core/` - Contains `PrevisBuilder` orchestrator and `BuildStepExecutor`
+- **Tool Integration**: `PrevisLib/tools/` - Wrappers for Creation Kit, xEdit, Archive tools
+- **Configuration**: `PrevisLib/config/` - Settings management and Windows registry reading
+- **Data Models**: `PrevisLib/models/data_classes.py` - Pydantic models for all components
+- **Utilities**: `PrevisLib/utils/` - File system, logging, process execution, validation
 
-2. **MO2 Compatibility**: File operations must include proper delays to allow Mod Organizer 2's virtual file system to update.
+### Key Components
+1. **PrevisBuilder** (`PrevisLib/core/builder.py`): Main orchestrator that coordinates the build process
+2. **BuildStepExecutor** (`PrevisLib/core/build_steps.py`): Handles individual build step execution
+3. **Tool Wrappers**: Creation Kit, xEdit, Archive tools integration
+4. **Settings System**: Comprehensive configuration management with Windows registry support
 
-3. **Error Detection**: Must parse Creation Kit and xEdit logs for specific error patterns like "OUT OF HANDLE ARRAY ENTRIES" and "visibility task did not complete".
+### Build Process Flow
+The application follows a structured build pipeline:
+1. Configuration validation and tool path resolution
+2. Plugin validation and dependency checking
+3. Build step execution (clean, filtered, or xbox modes)
+4. Tool orchestration (Creation Kit → xEdit → Archive tools)
+5. Output validation and cleanup
 
-4. **Build Modes**:
-   - `clean`: Full rebuild
-   - `filtered`: Selective generation
-   - `xbox`: Optimized for Xbox
+## Development Standards (Critical)
 
-5. **Resume Functionality**: Support resuming from any failed step without repeating successful operations.
+### Test Synchronization (TOP PRIORITY)
+- **Every new function/method MUST have corresponding unit tests**
+- Minimum 85% test coverage requirement
+- Test files mirror source structure in `tests/`
+- Run coverage: `poetry run pytest --cov=PrevisLib --cov-report=html`
 
-## Platform Limitations
+### Type Annotations (MANDATORY)
+- Use Python 3.12-style type annotations
+- Prefer union syntax with `|` over `Union`
+- Use `from __future__ import annotations` for forward references
+- Import type hints under `TYPE_CHECKING` to avoid circular imports
 
-When developing on Linux:
-- Registry reading functionality cannot be tested
-- Window automation (pywinauto) features cannot be tested
-- Tool execution must be mocked for testing
+### Exception Handling
+- Avoid blind exception catching
+- Be specific with exception types (`FileNotFoundError`, `ValueError`, etc.)
+- When catching broad exceptions, always log details
+- Use context managers for resource management
 
-## Code Style
+### Platform Considerations
+- Windows-focused tool with graceful cross-platform degradation
+- Handle registry access and Windows-specific paths appropriately
+- Provide meaningful error messages on non-Windows platforms
 
-- Use type hints throughout (Python 3.12+ syntax supported)
-- Follow black formatting (140 char line length)
-- Comprehensive ruff linting rules are enforced
-- Minimum 85% test coverage required
-- Use pathlib.Path for all file operations
-- Prefer loguru for logging over standard logging
+## File Organization Rules
+- Business logic: `PrevisLib/core/`
+- Utilities: `PrevisLib/utils/`
+- Data models: `PrevisLib/models/`
+- Tool integrations: `PrevisLib/tools/`
+- Configuration: `PrevisLib/config/`
+- Tests: `tests/` (mirror source structure)
 
-## Current Implementation Status
-
-The project is in early development with:
-- Empty main Python file (PyGeneratePrevisibines.py)
-- Comprehensive implementation checklist available
-- Original batch file included for reference
-- All tooling and dependencies configured
-
-Start implementation following the phases outlined in `previs-builder-checklist.md`, beginning with Phase 1 (Foundation).
+## Requirements
+- Python 3.12+
+- Windows OS (for full functionality)
+- Fallout 4 with Creation Kit
+- xEdit/FO4Edit
+- Archive2 or BSArch

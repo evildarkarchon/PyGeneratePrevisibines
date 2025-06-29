@@ -114,20 +114,40 @@ class TestToolPaths:
 class TestCKPEConfig:
     """Test CKPE configuration data class."""
 
-    def test_default_initialization(self):
+    def test_default_initialization(self, tmp_path):
         """Test default CKPE config initialization."""
-        config = CKPEConfig()
+        # Create a minimal TOML config file
+        config_file = tmp_path / "test.toml"
+        config_file.write_text("""
+[CreationKitPlatformExtended]
+bBSPointerHandleExtremly = true
+
+[Log]
+sOutputFile = ""
+""")
+        
+        config = CKPEConfig.from_toml(config_file)
 
         assert config.handle_setting is True
         assert config.log_output_file == ""
-        assert config.config_path is None
-        assert config.raw_config == {}
+        assert config.config_path == config_file
+        assert isinstance(config.raw_config, dict)
 
-    def test_custom_initialization(self):
+    def test_custom_initialization(self, tmp_path):
         """Test CKPE config with custom values."""
-        config = CKPEConfig(handle_setting=False, log_output_file="test.log", config_path=Path("test.toml"), raw_config={"test": "value"})
+        # Create a TOML config file with custom settings
+        config_file = tmp_path / "custom.toml"
+        config_file.write_text("""
+[CreationKitPlatformExtended]
+bBSPointerHandleExtremly = false
+
+[Log]
+sOutputFile = "test.log"
+""")
+        
+        config = CKPEConfig.from_toml(config_file)
 
         assert config.handle_setting is False
         assert config.log_output_file == "test.log"
-        assert config.config_path == Path("test.toml")
-        assert config.raw_config == {"test": "value"}
+        assert config.config_path == config_file
+        assert isinstance(config.raw_config, dict)
