@@ -36,44 +36,6 @@ BANNER = """
 """
 
 
-def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode | None, bool]:
-    """Parse command line arguments in the style of the original batch file.
-
-    Args:
-        args: Command line arguments (excluding script name)
-
-    Returns:
-        Tuple of (plugin_name, build_mode, use_bsarch)
-    """
-    if not args:
-        return None, None, False
-
-    plugin_name: str | None = None
-    build_mode: BuildMode | None = None
-    use_bsarch: bool = False
-
-    # Default to CLEAN if a plugin is provided without flags
-    if len(args) == 1 and not args[0].startswith("-"):
-        return args[0], BuildMode.CLEAN, False
-
-    for arg in args:
-        if arg.startswith("-"):
-            # Handle flags
-            flag: str = arg.lower()
-            if flag == "-clean":
-                build_mode = BuildMode.CLEAN
-            elif flag == "-filtered":
-                build_mode = BuildMode.FILTERED
-            elif flag == "-xbox":
-                build_mode = BuildMode.XBOX
-            elif flag == "-bsarch":
-                use_bsarch = True
-        # Assume it's the plugin name
-        elif not plugin_name:
-            plugin_name = arg
-
-    return plugin_name, build_mode, use_bsarch
-
 
 def prompt_for_plugin(settings: Settings | None = None) -> str:
     """Prompt user for plugin name with validation and template creation.
@@ -432,13 +394,31 @@ def main(  # noqa: PLR0913
         console.print("Some features may not work correctly.\n")
 
     try:
-        # Parse legacy batch file style arguments first for backward compatibility
-        legacy_plugin, legacy_mode, legacy_bsarch = parse_command_line(list(args))
-
-        # Merge legacy and modern arguments (modern takes precedence)
-        final_plugin = plugin or legacy_plugin
-        final_build_mode = build_mode or (legacy_mode.value if legacy_mode else None)
-        final_use_bsarch = (archive_tool == "bsarch") if archive_tool else legacy_bsarch
+        # Process positional arguments (plugin name)
+        final_plugin = plugin
+        if args and not plugin:
+            # First non-flag argument is the plugin name
+            for arg in args:
+                if not arg.startswith("-"):
+                    final_plugin = arg
+                    break
+        
+        # Process build mode and archive tool
+        final_build_mode = build_mode
+        final_use_bsarch = (archive_tool == "bsarch") if archive_tool else False
+        
+        # Handle legacy flags for backward compatibility
+        for arg in args:
+            if arg.startswith("-"):
+                flag = arg.lower()
+                if flag == "-clean" and not build_mode:
+                    final_build_mode = "clean"
+                elif flag == "-filtered" and not build_mode:
+                    final_build_mode = "filtered"
+                elif flag == "-xbox" and not build_mode:
+                    final_build_mode = "xbox"
+                elif flag == "-bsarch" and not archive_tool:
+                    final_use_bsarch = True
 
         # Initialize settings with tool discovery and CLI overrides
         settings: Settings = Settings.from_cli_args(
