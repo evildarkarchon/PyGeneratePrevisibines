@@ -28,6 +28,9 @@ class PrevisBuilder:
         self.completed_steps: list[BuildStep] = []
         self.failed_step: BuildStep | None = None
 
+        # Validate and store plugin base name
+        self.plugin_base_name: str = self._get_plugin_base_name()
+
         # Type annotations for tool wrappers
         self.archive_wrapper: ArchiveWrapper
 
@@ -102,8 +105,7 @@ class PrevisBuilder:
         self.start_time = datetime.now()
 
         # Load CKPE config if available
-        plugin_base: str = self._get_plugin_base_name()
-        ckpe_config: CKPEConfig | None = self.ckpe_handler.load_config(plugin_base)
+        ckpe_config: CKPEConfig | None = self.ckpe_handler.load_config(self.plugin_base_name)
         if ckpe_config:
             self.settings.ckpe_config = ckpe_config
             logger.info("Loaded CKPE configuration")
@@ -230,8 +232,7 @@ class PrevisBuilder:
         """Step 3: Archive precombined meshes."""
         logger.info("Step 3: Archiving precombined meshes")
 
-        plugin_base: str = self._get_plugin_base_name()
-        archive_path: Path = self.data_path / f"{plugin_base} - Main.ba2"
+        archive_path: Path = self.data_path / f"{self.plugin_base_name} - Main.ba2"
 
         # Create archive from precombined directory
         success: bool = self.archive_wrapper.create_archive(archive_path, self.output_path, compress=True)
@@ -299,8 +300,7 @@ class PrevisBuilder:
         """Step 8: Final packaging and cleanup."""
         logger.info("Step 8: Final packaging")
 
-        plugin_base: str = self._get_plugin_base_name()
-        main_archive_path: Path = self.data_path / f"{plugin_base} - Main.ba2"
+        main_archive_path: Path = self.data_path / f"{self.plugin_base_name} - Main.ba2"
 
         # Add visibility data to existing archive (matches original batch file behavior)
         if self.temp_path.exists() and not fs.is_directory_empty(self.temp_path):
@@ -323,7 +323,7 @@ class PrevisBuilder:
 
         # Verify final output
         if not main_archive_path.exists():
-            logger.error("Main archive not found")
+            logger.error(f"Main archive not found: {main_archive_path}")
             return False
 
         logger.success("All previs files packaged successfully")
@@ -380,13 +380,11 @@ class PrevisBuilder:
         """
         logger.info("Cleaning up previs files")
 
-        plugin_base: str = self._get_plugin_base_name()
-
         # Files to delete
         files_to_clean: list[Path] = [
-            self.data_path / f"{plugin_base} - Main.ba2",
-            self.data_path / f"{plugin_base} - Geometry.csg",  # Only exists in clean mode
-            self.data_path / f"{plugin_base}.cdx",  # Only exists in clean mode
+            self.data_path / f"{self.plugin_base_name} - Main.ba2",
+            self.data_path / f"{self.plugin_base_name} - Geometry.csg",  # Only exists in clean mode
+            self.data_path / f"{self.plugin_base_name}.cdx",  # Only exists in clean mode
             self.data_path / "CombinedObjects.esp",
             self.data_path / "Previs.esp",
         ]
@@ -399,10 +397,12 @@ class PrevisBuilder:
         # Delete files
         for file_path in files_to_clean:
             if file_path.exists():
-                if fs.safe_delete(file_path):
-                    logger.info(f"Deleted: {file_path.name}")
-                else:
-                    logger.error(f"Failed to delete: {file_path.name}")
+                try:
+                    if not fs.safe_delete(file_path):
+                        logger.error(f"Failed to delete: {file_path.name}")
+                        success = False
+                except Exception as e:
+                    logger.error(f"Failed to delete {file_path.name}: {e}")
                     success = False
 
         # Clean directories

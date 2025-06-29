@@ -165,7 +165,7 @@ def create_plugin_from_template(data_path: Path, target_plugin_name: str) -> tup
         logger.success(f"Successfully created {target_plugin_name} from template")
         return True, f"Created {target_plugin_name} from xPrevisPatch.esp template"  # noqa: TRY300
 
-    except (OSError, shutil.Error) as e:
+    except (OSError, shutil.Error, Exception) as e:
         logger.error(f"Failed to copy template: {e}")
         return False, f"Failed to copy template: {e}"
 

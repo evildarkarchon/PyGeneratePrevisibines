@@ -119,7 +119,7 @@ class TestCKPEConfig:
         # Create a minimal TOML config file
         config_file = tmp_path / "test.toml"
         config_file.write_text("""
-[CreationKitPlatformExtended]
+[CreationKit]
 bBSPointerHandleExtremly = true
 
 [Log]
@@ -138,7 +138,7 @@ sOutputFile = ""
         # Create a TOML config file with custom settings
         config_file = tmp_path / "custom.toml"
         config_file.write_text("""
-[CreationKitPlatformExtended]
+[CreationKit]
 bBSPointerHandleExtremly = false
 
 [Log]

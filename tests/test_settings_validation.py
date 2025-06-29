@@ -16,37 +16,21 @@ class TestSettingsValidation:
     def test_validate_plugin_name_with_spaces(self):
         """Test that plugin names with spaces are rejected."""
         with pytest.raises(ValidationError, match="Plugin name cannot contain spaces"):
-            Settings(
-                plugin_name="My Plugin.esp",
-                build_mode=BuildMode.CLEAN,
-                tool_paths=ToolPaths()
-            )
+            Settings(plugin_name="My Plugin.esp", build_mode=BuildMode.CLEAN, tool_paths=ToolPaths())
 
     def test_validate_plugin_name_reserved(self):
         """Test that reserved plugin names are rejected."""
         with pytest.raises(ValidationError, match="Cannot use reserved plugin name"):
-            Settings(
-                plugin_name="Fallout4.esm",
-                build_mode=BuildMode.CLEAN,
-                tool_paths=ToolPaths()
-            )
+            Settings(plugin_name="Fallout4.esm", build_mode=BuildMode.CLEAN, tool_paths=ToolPaths())
 
     def test_validate_plugin_name_auto_extension(self):
         """Test that .esp extension is added automatically."""
-        settings = Settings(
-            plugin_name="MyPlugin",
-            build_mode=BuildMode.CLEAN,
-            tool_paths=ToolPaths()
-        )
+        settings = Settings(plugin_name="MyPlugin", build_mode=BuildMode.CLEAN, tool_paths=ToolPaths())
         assert settings.plugin_name == "MyPlugin.esp"
 
     def test_validate_plugin_name_empty_allowed(self):
         """Test that empty plugin name is allowed (for interactive mode)."""
-        settings = Settings(
-            plugin_name="",
-            build_mode=BuildMode.CLEAN,
-            tool_paths=ToolPaths()
-        )
+        settings = Settings(plugin_name="", build_mode=BuildMode.CLEAN, tool_paths=ToolPaths())
         assert settings.plugin_name == ""
 
     def test_validate_working_directory_string_to_path(self, tmp_path):
@@ -54,13 +38,8 @@ class TestSettingsValidation:
         # Use an existing directory
         working_dir = tmp_path / "work"
         working_dir.mkdir()
-        
-        settings = Settings(
-            plugin_name="test.esp",
-            build_mode=BuildMode.CLEAN,
-            tool_paths=ToolPaths(),
-            working_directory=str(working_dir)
-        )
+
+        settings = Settings(plugin_name="test.esp", build_mode=BuildMode.CLEAN, tool_paths=ToolPaths(), working_directory=str(working_dir))
         assert isinstance(settings.working_directory, Path)
         assert settings.working_directory == working_dir
 
@@ -70,12 +49,12 @@ class TestSettingsValidation:
         # This test verifies the basic Path conversion functionality
         target_dir = tmp_path / "existing_path"
         target_dir.mkdir()
-        
+
         settings = Settings(
             plugin_name="test.esp",
             build_mode=BuildMode.CLEAN,
             tool_paths=ToolPaths(),
-            working_directory=str(target_dir)  # Use actual existing path
+            working_directory=str(target_dir),  # Use actual existing path
         )
         assert settings.working_directory == target_dir
         assert isinstance(settings.working_directory, Path)
@@ -84,10 +63,7 @@ class TestSettingsValidation:
         """Test that non-existent working directory raises error."""
         with pytest.raises(ValidationError, match="Working directory does not exist"):
             Settings(
-                plugin_name="test.esp",
-                build_mode=BuildMode.CLEAN,
-                tool_paths=ToolPaths(),
-                working_directory="/definitely/does/not/exist"
+                plugin_name="test.esp", build_mode=BuildMode.CLEAN, tool_paths=ToolPaths(), working_directory="/definitely/does/not/exist"
             )
 
     def test_post_init_validation_no_paths(self):
@@ -95,9 +71,9 @@ class TestSettingsValidation:
         settings = Settings(
             plugin_name="test.esp",
             build_mode=BuildMode.CLEAN,
-            tool_paths=ToolPaths()  # All paths are None
+            tool_paths=ToolPaths(),  # All paths are None
         )
-        
+
         errors = settings.validate_tools()
         assert len(errors) > 0
         assert any("Fallout 4 not found" in error for error in errors)
@@ -113,10 +89,10 @@ class TestSettingsValidation:
                 creation_kit=Path("/fake/ck"),
                 xedit=Path("/fake/xedit"),
                 archive2=Path("/fake/archive2"),
-                bsarch=None  # BSArch not available
-            )
+                bsarch=None,  # BSArch not available
+            ),
         )
-        
+
         errors = settings.validate_tools()
         # The validate_tools method checks for missing tools, not archive selection logic
         assert len(errors) > 0  # Will have errors for missing files
@@ -129,9 +105,9 @@ class TestSettingsFromCliArgs:
     def test_from_cli_args_basic(self, mock_find_tools):
         """Test basic CLI args parsing."""
         mock_find_tools.return_value = ToolPaths()
-        
+
         settings = Settings.from_cli_args(plugin_name="test.esp")
-        
+
         assert settings.plugin_name == "test.esp"
         assert settings.build_mode == BuildMode.CLEAN
 
@@ -139,14 +115,9 @@ class TestSettingsFromCliArgs:
     def test_from_cli_args_with_options(self, mock_find_tools):
         """Test CLI args with various options."""
         mock_find_tools.return_value = ToolPaths()
-        
-        settings = Settings.from_cli_args(
-            plugin_name="test.esp",
-            build_mode="filtered",
-            verbose=True,
-            xedit_path=Path("/custom/xedit.exe")
-        )
-        
+
+        settings = Settings.from_cli_args(plugin_name="test.esp", build_mode="filtered", verbose=True, xedit_path=Path("/custom/xedit.exe"))
+
         assert settings.plugin_name == "test.esp"
         assert settings.build_mode == BuildMode.FILTERED
         assert settings.verbose is True
@@ -156,13 +127,13 @@ class TestSettingsFromCliArgs:
 class TestFindToolPaths:
     """Test find_tool_paths function."""
 
-    @patch("platform.system")
-    def test_find_tool_paths_non_windows(self, mock_system):
+    @patch("PrevisLib.config.registry.sys.platform")
+    def test_find_tool_paths_non_windows(self, mock_platform):
         """Test tool path discovery on non-Windows systems."""
-        mock_system.return_value = "Linux"
-        
+        mock_platform.return_value = "linux"
+
         paths = find_tool_paths()
-        
+
         assert paths.fallout4 is None
         assert paths.creation_kit is None
         assert paths.xedit is None
@@ -171,15 +142,15 @@ class TestFindToolPaths:
 
     @patch("PrevisLib.config.registry._find_fallout4_paths")
     @patch("PrevisLib.config.registry._find_xedit_path")
-    @patch("platform.system")
-    def test_find_tool_paths_windows_no_registry(self, mock_system, mock_xedit, mock_fo4):
+    @patch("PrevisLib.config.registry.sys.platform")
+    def test_find_tool_paths_windows_no_registry(self, mock_platform, mock_xedit, mock_fo4):
         """Test tool path discovery when registry read fails."""
-        mock_system.return_value = "Windows"
+        mock_platform.return_value = "win32"
         mock_xedit.return_value = None
         mock_fo4.return_value = (None, None)
-        
+
         paths = find_tool_paths()
-        
+
         assert paths.fallout4 is None
         assert paths.creation_kit is None
 
@@ -187,6 +158,6 @@ class TestFindToolPaths:
         """Test tool path discovery - function doesn't take overrides."""
         # find_tool_paths doesn't accept parameters - it discovers automatically
         paths = find_tool_paths()
-        
+
         # Just verify it returns a ToolPaths object
         assert isinstance(paths, ToolPaths)

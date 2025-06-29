@@ -194,3 +194,4 @@ cython_debug/
 .cursorindexingignore
 lcov.info
 /test_logger
+test-results.txt

@@ -95,7 +95,7 @@ def prompt_for_plugin(settings: Settings | None = None) -> str:
     while True:
         plugin_name: str = Prompt.ask("\nPlugin name", default="")
 
-        if not plugin_name:
+        if not plugin_name.strip():
             console.print("[red]Plugin name cannot be empty. Please enter a valid plugin name.[/red]")
             continue
 
@@ -218,19 +218,13 @@ def show_tool_versions(settings: Settings) -> None:
             console.print(f"Using {tool_name} V[red]Not Found[/red]")
 
     # Show tool versions in the same order as the batch file
-    if tool_paths.xedit:
-        show_version(f"{tool_paths.xedit.name}", tool_paths.xedit)
-
-    if tool_paths.fallout4:
-        show_version("Fallout4.exe", tool_paths.fallout4)
-
-    if tool_paths.creation_kit:
-        show_version("CreationKit.exe", tool_paths.creation_kit)
+    show_version(f"{(tool_paths.xedit.name if tool_paths.xedit else 'FO4Edit')}", tool_paths.xedit)
+    show_version("Fallout4.exe", tool_paths.fallout4)
+    show_version("CreationKit.exe", tool_paths.creation_kit)
 
     # Check for CKPE (winhttp.dll in FO4 directory)
-    if tool_paths.fallout4:
-        ckpe_dll = tool_paths.fallout4.parent / "winhttp.dll"
-        show_version("CKPE", ckpe_dll)
+    ckpe_dll_path = tool_paths.fallout4.parent / "winhttp.dll" if tool_paths.fallout4 else None
+    show_version("CKPE", ckpe_dll_path)
 
     console.print()  # Add blank line after versions
 
@@ -320,11 +314,15 @@ def run_build(settings: Settings) -> bool | None:
         # Post-build cleanup prompt (matches original batch file)
         if Confirm.ask("\nRemove working files?", default=True):
             console.print("\n[dim]Removing working files...[/dim]")
-            cleanup_success: bool = builder.cleanup_working_files()
-            if cleanup_success:
-                console.print("[green]✓ Working files cleaned up[/green]")
-            else:
-                console.print("[yellow]⚠ Some working files could not be removed[/yellow]")
+            try:
+                cleanup_success: bool = builder.cleanup_working_files()
+                if cleanup_success:
+                    console.print("[green]✓ Working files cleaned up[/green]")
+                else:
+                    console.print("[yellow]⚠ Some working files could not be removed[/yellow]")
+            except Exception as e:
+                logger.error(f"Failed to clean up working files: {e}")
+                console.print("[red]✗ An error occurred during cleanup.[/red]")
 
         return True
 
@@ -357,8 +355,12 @@ def prompt_for_cleanup(settings: Settings) -> bool:
 
     builder = PrevisBuilder(settings)
 
-    with console.status("Cleaning up files..."):
-        success: bool = builder.cleanup()
+    try:
+        with console.status("Cleaning up files..."):
+            success: bool = builder.cleanup()
+    except Exception as e:
+        logger.error(f"Cleanup failed: {e}")
+        success = False
 
     if success:
         console.print("\n[green]✓ Cleanup completed successfully![/green]")
@@ -491,7 +493,7 @@ def main(  # noqa: PLR0913
         console.print("\n\n[yellow]Build cancelled by user.[/yellow]")
         sys.exit(130)
 
-    except (ValueError, OSError, RuntimeError) as e:
+    except Exception as e:
         console.print(f"\n[bold red]Unexpected error:[/bold red] {e}")
         if verbose:
             console.print_exception()
