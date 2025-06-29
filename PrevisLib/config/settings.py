@@ -54,7 +54,14 @@ class Settings(BaseModel):
         if v in reserved_names:
             raise ValueError(f"Cannot use reserved plugin name: {v}")
 
-        if not v.endswith((".esp", ".esm", ".esl")):
+        # Check if it has a file extension
+        path_obj = Path(v)
+        if path_obj.suffix:
+            # If it has an extension, it must be valid
+            if not v.endswith((".esp", ".esm", ".esl")):
+                raise ValueError(f"Invalid plugin extension '{path_obj.suffix}'. Must be .esp, .esm, or .esl")
+        else:
+            # If no extension, auto-append .esp
             v = f"{v}.esp"
 
         return v

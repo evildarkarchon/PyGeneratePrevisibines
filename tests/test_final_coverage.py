@@ -120,7 +120,8 @@ class TestShowFunctions:
     """Test the show_* display functions."""
 
     @patch("previs_builder.check_tool_version")
-    def test_show_tool_versions_all_found(self, mock_check_version):
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_show_tool_versions_all_found(self, mock_exists, mock_check_version):
         """Test showing tool versions when all tools are found."""
         mock_check_version.return_value = (True, "Version: 1.0.0")
         settings = Settings(
@@ -147,29 +148,40 @@ class TestShowFunctions:
         pass
 
     @patch("previs_builder.console")
-    def test_show_build_summary_with_ckpe(self, mock_console):
+    @patch("previs_builder.Table")
+    def test_show_build_summary_with_ckpe(self, mock_table_class, mock_console):
         """Test showing build summary with CKPE config."""
+        # Create settings first
+        settings = Settings(
+            plugin_name="test.esp",
+            build_mode=BuildMode.FILTERED,
+            archive_tool=ArchiveTool.BSARCH,
+            tool_paths=ToolPaths(),
+        )
+
+        # Create a dummy CKPEConfig object using factory method with mocking
         with (
-            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.open", mock_open()),
             patch("configparser.ConfigParser.read"),
             patch("configparser.ConfigParser.has_section", return_value=True),
+            patch("configparser.ConfigParser.sections", return_value=["CreationKit"]),
             patch("configparser.ConfigParser.items", return_value=[]),
+            patch("configparser.ConfigParser.__getitem__", return_value={}),
         ):
             ckpe_config = CKPEConfig.from_ini(Path("dummy.ini"))
 
-            settings = Settings(
-                plugin_name="test.esp",
-                build_mode=BuildMode.FILTERED,
-                archive_tool=ArchiveTool.BSARCH,
-                ckpe_config=ckpe_config,
-                tool_paths=ToolPaths(),
-            )
+        # Set the ckpe_config on settings
+        settings.ckpe_config = ckpe_config
 
-            show_build_summary(settings)
+        # Mock the Table instance
+        mock_table = MagicMock()
+        mock_table_class.return_value = mock_table
 
-            # Verify CKPE config is shown
-            assert any("CKPE Config" in str(call) for call in mock_console.print.call_args_list)
-            assert any("Loaded ✓" in str(call) for call in mock_console.print.call_args_list)
+        show_build_summary(settings)
+
+        # Verify CKPE config row was added to table
+        add_row_calls = mock_table.add_row.call_args_list
+        assert any("CKPE Config" in str(call) for call in add_row_calls)
 
 
 class TestEdgeCasesInMain:

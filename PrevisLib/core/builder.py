@@ -302,6 +302,11 @@ class PrevisBuilder:
 
         main_archive_path: Path = self.data_path / f"{self.plugin_base_name} - Main.ba2"
 
+        # Verify main archive exists first
+        if not main_archive_path.exists():
+            logger.error(f"Main archive not found: {main_archive_path}")
+            return False
+
         # Add visibility data to existing archive (matches original batch file behavior)
         if self.temp_path.exists() and not fs.is_directory_empty(self.temp_path):
             # Get all files from temp directory to add to archive
@@ -320,11 +325,8 @@ class PrevisBuilder:
                 logger.info("Added visibility data to archive")
             else:
                 logger.warning("No visibility files found to add to archive")
-
-        # Verify final output
-        if not main_archive_path.exists():
-            logger.error(f"Main archive not found: {main_archive_path}")
-            return False
+        else:
+            logger.warning("No visibility files found to add to archive")
 
         logger.success("All previs files packaged successfully")
         return True

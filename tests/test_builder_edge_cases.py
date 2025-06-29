@@ -60,16 +60,14 @@ class TestPrevisBuilderInitialization:
         """Test initialization with invalid plugin extension."""
         mock_validate.return_value = (True, "OK")
 
-        settings = Settings(
-            plugin_name="test.txt",  # Invalid extension
-            build_mode=BuildMode.CLEAN,
-            tool_paths=ToolPaths(
-                creation_kit=Path("/fake/ck"), xedit=Path("/fake/xedit"), fallout4=Path("/fake/fo4"), archive2=Path("/fake/archive2")
-            ),
-        )
-
         with pytest.raises(ValueError, match="Invalid plugin extension"):
-            PrevisBuilder(settings)
+            Settings(
+                plugin_name="test.txt",  # Invalid extension
+                build_mode=BuildMode.CLEAN,
+                tool_paths=ToolPaths(
+                    creation_kit=Path("/fake/ck"), xedit=Path("/fake/xedit"), fallout4=Path("/fake/fo4"), archive2=Path("/fake/archive2")
+                ),
+            )
 
 
 class TestXEditScriptFinding:
@@ -179,6 +177,10 @@ class TestPackageFiles:
         precombined_path.mkdir()
         (precombined_path / "test.nif").touch()
 
+        # Create the main archive (which would have been created in step 3)
+        main_archive_path = data_path / "test - Main.ba2"
+        main_archive_path.touch()
+
         result = builder._step_final_packaging()
 
         assert result is True
@@ -198,7 +200,7 @@ class TestPackageFiles:
         (temp_path / "test.uvd").touch()  # Create a dummy visibility file
 
         # Main archive must exist for this step
-        main_archive_path = data_path / "test.esp - Main.ba2"
+        main_archive_path = data_path / "test - Main.ba2"  # Use plugin base name, not full plugin name
         main_archive_path.touch()
 
         settings = Settings(
@@ -275,7 +277,7 @@ class TestCleanupMethods:
 
         builder = PrevisBuilder(settings)
         # Create a dummy file to be cleaned up to trigger the mock
-        (builder.data_path / "test.esp - Main.ba2").touch()
+        (builder.data_path / "test - Main.ba2").touch()
 
         # Should not raise, just return False
         result = builder.cleanup()
