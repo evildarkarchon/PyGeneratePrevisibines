@@ -1,11 +1,11 @@
 # Test Coverage Expansion Checklist for 85% Coverage
 
-## Current Status: 40% → Target: 85% Coverage
+## Current Status: 78% → Target: 85% Coverage
 
-✅ Phase 1 Complete: Core Builder Logic (+15% coverage achieved)
-🔄 Phase 4 Partial: Some mocking infrastructure in place  
-❌ Phase 2 Pending: Tool Integration (biggest coverage gains available)
-❌ Phase 3 Pending: Configuration & Platform-Specific  
+✅ Phase 1 Complete: Core Builder Logic
+✅ Phase 2 Complete: Tool Integration
+✅ Phase 3 Complete: Configuration & Platform-Specific
+🔄 Phase 4 Partial: Some mocking infrastructure in place
 ❌ Phase 5 Pending: Integration & Edge Cases
 
 ### Phase 1: Core Builder Logic (+15% coverage to 55%)
@@ -38,27 +38,27 @@
   - [ ] Test timeout handling
   - [ ] Test "OUT OF HANDLE ARRAY ENTRIES" detection
 
-- [ ] **Archive operations (`archive.py`)**:
-  - [ ] Mock Archive2/BSArch tool execution
-  - [ ] Test file list generation
-  - [ ] Test archive creation/extraction
-  - [ ] Test error handling for missing tools
+- [x] **Archive operations (`archive.py`)**:
+  - [x] Mock Archive2/BSArch tool execution
+  - [x] Test file list generation
+  - [x] Test archive creation/extraction
+  - [x] Test error handling for missing tools
 
-- [ ] **CKPE configuration (`ckpe.py`)**:
-  - [ ] Test TOML/INI parsing
-  - [ ] Test config file generation
-  - [ ] Test validation of CKPE settings
-  - [ ] Test error handling for malformed configs
+- [x] **CKPE configuration (`ckpe.py`)**:
+  - [x] Test TOML/INI parsing
+  - [x] Test config file generation
+  - [x] Test validation of CKPE settings
+  - [x] Test error handling for malformed configs
 
 ### Phase 3: Configuration & Platform-Specific (+10% coverage to 85%)
 
 #### **Expand `test_config.py`**
-- [ ] **Registry operations (`registry.py`)**:
-  - [ ] Mock `winreg` module completely
-  - [ ] Test Steam/GOG installation detection
-  - [ ] Test Creation Kit path resolution
-  - [ ] Test registry read failures
-  - [ ] Test non-Windows platform handling
+- [x] **Registry operations (`registry.py`)**:
+  - [x] Mock `winreg` module completely
+  - [x] Test Steam/GOG installation detection
+  - [x] Test Creation Kit path resolution
+  - [x] Test registry read failures
+  - [x] Test non-Windows platform handling
 
 #### **New Test File: `test_settings.py`**
 - [ ] Test `Settings` class validation
@@ -68,11 +68,11 @@
 - [ ] Test default value fallbacks
 
 #### **New Test File: `test_main_cli.py`**
-- [ ] Test main CLI interface (`previs_builder.py`)
-- [ ] Test interactive prompts and user input
-- [ ] Test progress display functionality
-- [ ] Test error reporting and logging
-- [ ] Test command-line argument validation
+- [x] Test main CLI interface (`previs_builder.py`)
+- [x] Test interactive prompts and user input
+- [x] Test progress display functionality
+- [x] Test error reporting and logging
+- [x] Test command-line argument validation
 
 ### Phase 4: Platform-Specific Mocking Infrastructure
 
@@ -106,20 +106,17 @@
 
 ### Implementation Priority Order
 
-1. **High Impact (Core functionality)**:
-   - `test_builder.py` - Main orchestration logic
-   - `test_build_steps.py` - Step implementations
-   - Registry mocking in `test_config.py`
+1. **High Impact (Final Push to 85%)**:
+   - `test_main_cli.py` - Test `previs_builder.py` (64%) and `PyGeneratePrevisibines.py` (0%)
+   - `test_settings.py` - Test `PrevisLib/config/settings.py` (66%)
+   - Expand `test_builder.py` - Focus on error handling in `PrevisLib/core/builder.py` (67%)
 
-2. **Medium Impact (Tool integration)**:
-   - xEdit automation tests
-   - Archive operation tests
-   - CKPE configuration tests
+2. **Medium Impact (Polish and Edge Cases)**:
+   - Expand `test_tools.py` - Cover remaining `pywinauto` mocking for `xedit.py` (72%)
+   - Expand `test_file_system.py` - Cover remaining branches (74%)
 
-3. **Low Impact (CLI/UI)**:
-   - Main CLI interface tests
-   - Settings validation tests
-   - Progress display tests
+3. **Low Impact (Clean-up)**:
+   - Final review of any remaining low-coverage lines.
 
 ### Testing Commands to Verify Progress
 ```bash
@@ -130,61 +127,42 @@ poetry run pytest -k "test_builder"               # Run specific test groups
 
 ## Current Test Coverage Analysis
 
-### Current Coverage Status (40%)
-- **Total Coverage**: 39.70% (760/1329 lines missed)
-- **Test Files**: 9 test files covering 139 test cases
+### Current Coverage Status (77%)
+- **Total Coverage**: 77%
 - **Target**: 85% coverage required
-
-### Current Test File Structure
-
-The existing test files are:
-- `test_cli.py` - Command line parsing (87 tests)
-- `test_config.py` - Configuration management (7 tests)  
-- `test_data_classes.py` - Data models (9 tests)
-- `test_file_system.py` - File operations (13 tests)
-- `test_file_system_extended.py` - Extended file operations (21 tests)
-- `test_process.py` - Process execution (24 tests)
-- `test_tools.py` - Tool wrappers (15 tests)
-- `test_utils.py` - Utility functions (12 tests)
-- `test_validation.py` - Validation logic (29 tests)
 
 ### Main Codebase Modules Needing Coverage
 
-**Critical Low Coverage Modules (10-24% coverage):**
-1. **`PrevisLib/core/builder.py`** (10% coverage) - Main orchestration logic
-2. **`PrevisLib/core/build_steps.py`** (10% coverage) - Build step implementations
-3. **`PrevisLib/tools/xedit.py`** (10% coverage) - xEdit automation
-4. **`PrevisLib/tools/archive.py`** (11% coverage) - Archive operations
-5. **`PrevisLib/tools/ckpe.py`** (16% coverage) - CKPE configuration handling
-6. **`PrevisLib/config/registry.py`** (17% coverage) - Windows registry operations
-7. **`previs_builder.py`** (24% coverage) - Main CLI entry point
-8. **`PrevisLib/config/settings.py`** (33% coverage) - Settings management
+**Modules to Target for 85% Goal (<80% coverage):**
+1. **`PyGeneratePrevisibines.py`** (0% coverage) - Main entry point
+2. **`previs_builder.py`** (64% coverage) - Main CLI application
+3. **`PrevisLib/config/settings.py`** (66% coverage) - Settings management
+4. **`PrevisLib/core/builder.py`** (67% coverage) - Core orchestration logic
+5. **`PrevisLib/tools/xedit.py`** (72% coverage) - xEdit automation
+6. **`PrevisLib/utils/file_system.py`** (74% coverage) - File system utilities
 
-**Well-Tested Modules (>84% coverage):**
-- `PrevisLib/tools/creation_kit.py` (84%)
+**High Coverage Modules (>80% coverage):**
+- `PrevisLib/utils/process.py` (80%)
+- `PrevisLib/core/build_steps.py` (80%)
+- `PrevisLib/utils/validation.py` (81%)
+- `PrevisLib/tools/creation_kit.py` (83%)
+- `PrevisLib/config/registry.py` (92%)
 - `PrevisLib/utils/logging.py` (94%)
-- `PrevisLib/models/data_classes.py` (95%)
-- `PrevisLib/utils/file_system.py` (99%)
-- `PrevisLib/utils/validation.py` (100%)
+- `PrevisLib/tools/archive.py` (95%)
+- `PrevisLib/models/data_classes.py` (96%)
+- `PrevisLib/tools/ckpe.py` (100%)
 
 ### Coverage Gaps Identified
 
-#### 1. Core Builder Logic (PrevisLib/core/)
-- **builder.py**: Missing tests for all build step methods, error handling, resume functionality
-- **build_steps.py**: Missing tests for validation methods, file preparation, compatibility checks
+#### 1. Main Application & CLI
+- **`previs_builder.py` / `PyGeneratePrevisibines.py`**: The highest priority. Needs integration tests for argument parsing, user interaction, and various build modes.
 
-#### 2. Tool Integration (PrevisLib/tools/)
-- **xedit.py**: Missing tests for window automation, log parsing, error detection
-- **archive.py**: Missing tests for Archive2/BSArch operations, file list handling
-- **ckpe.py**: Missing tests for TOML/INI parsing, config generation
+#### 2. Configuration Management
+- **`settings.py`**: Key logic for settings validation, loading, and default fallbacks remains untested.
 
-#### 3. Configuration Management (PrevisLib/config/)
-- **registry.py**: Missing comprehensive Windows registry tests
-- **settings.py**: Missing tests for validation, CLI args parsing
-
-#### 4. Main Application Logic
-- **previs_builder.py**: Missing tests for CLI interface, interactive prompts, progress display
-- **PyGeneratePrevisibines.py**: Minimal wrapper, needs integration tests
+#### 3. Core Builder & Tooling
+- **`builder.py`**: Error handling, recovery paths, and specific command execution methods are not fully covered.
+- **`xedit.py`**: Window automation logic (`pywinauto`) and log parsing still have significant gaps.
 
 ### Platform-Specific Testing Challenges
 
@@ -209,55 +187,41 @@ The existing test files are:
 - Mock `subprocess` and `pywinauto` for tool execution
 - Create fixtures for common Windows paths and registry structures
 
-## Recommendations for Expanding Test Coverage
+## Recommendations for Final Push to 85%
 
-### Phase 1: Core Builder Tests (Target: +15% coverage)
-**New Test Files Needed:**
-- `test_builder.py` - Test `PrevisBuilder` class
-- `test_build_steps.py` - Test `BuildStepExecutor` class
+### Priority 1: Main Application & Configuration Tests
+**New or Expanded Test Files:**
+- `test_main_cli.py` - Test `previs_builder.py` CLI and application flow.
+- `test_settings.py` - Test `Settings` class validation and configuration loading.
 
 **Key Test Areas:**
-- Build process orchestration and step execution
-- Error handling and recovery mechanisms
-- Resume functionality from failed steps
-- File validation and cleanup operations
+- Full end-to-end runs with mocked tools.
+- CLI argument parsing (`--clean`, `--filter`, etc.).
+- Settings validation, loading from files, and default value handling.
 
-### Phase 2: Tool Integration Tests (Target: +20% coverage)
+### Priority 2: Core Logic and Tooling Polish
 **Expand Existing Files:**
-- `test_tools.py` - Add comprehensive tool wrapper tests
+- `test_builder.py` - Focus on error and recovery paths.
+- `test_tools.py` - Mock `pywinauto` to test `xedit.py` window control.
 
 **Key Test Areas:**
-- xEdit automation with mocked `pywinauto`
-- Archive creation/extraction operations
-- CKPE configuration parsing and generation
-- Error detection in tool logs
+- Test specific build step failures and the resume process.
+- Mock xEdit window interactions and test log parsing for error detection.
 
-### Phase 3: Configuration & CLI Tests (Target: +10% coverage)
-**New Test Files:**
-- `test_settings.py` - Test Settings class validation
-- `test_main_cli.py` - Test main CLI interface
-
-**Key Test Areas:**
-- Settings validation and loading
-- Interactive prompts and user input
-- CLI argument parsing edge cases
-- Progress display and error reporting
+### Priority 3: Fill Remaining Gaps
+**Focus on files just under the wire:**
+- `test_file_system.py` - Add tests for remaining conditional branches.
+- `test_process.py` - Cover the last few untested lines in process execution.
 
 ### Implementation Strategy
 
-1. **Create Mock Infrastructure**:
-   - Windows environment simulation
-   - Tool execution mocking
-   - File system fixtures
+1. **Prioritize High-Impact CLI Tests**:
+   - Start with `test_main_cli.py` as it will cover the most ground and touch many parts of the application.
 
-2. **Prioritize High-Impact Tests**:
-   - Focus on core builder logic first
-   - Add comprehensive error handling tests
-   - Test platform-specific code paths
+2. **Complete Configuration Tests**:
+   - Build out `test_settings.py` to ensure all configuration paths are stable.
 
-3. **Incremental Coverage Goals**:
-   - Phase 1: 40% → 55%
-   - Phase 2: 55% → 75% 
-   - Phase 3: 75% → 85%
+3. **Incremental Coverage Gains**:
+   - Target remaining functions and branches in `builder.py`, `xedit.py`, and `file_system.py` to push the total coverage over the 85% goal.
 
 This checklist prioritizes the modules with lowest current coverage that have the highest impact on overall functionality, focusing on core builder logic first, then tool integration, and finally CLI/configuration components.
