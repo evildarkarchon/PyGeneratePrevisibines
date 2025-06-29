@@ -18,7 +18,7 @@ class TestCommandLineParsing:
         plugin, mode, bsarch = parse_command_line([])
 
         assert plugin is None
-        assert mode == BuildMode.CLEAN
+        assert mode is None
         assert bsarch is False
 
     def test_plugin_only(self):

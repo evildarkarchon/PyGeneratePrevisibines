@@ -50,16 +50,20 @@ def _find_xedit_path(winreg: types.ModuleType) -> Path | None:
     try:
         with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"FO4Script\DefaultIcon") as key:
             value, _ = winreg.QueryValueEx(key, "")
-            if value and Path(value).exists():
+            # In Python 3.12, create_autospec with a spec containing a method that returns a tuple of (str, int)
+            # will result in a mock that returns a tuple of (MagicMock, MagicMock) instead.
+            # This is a workaround for that behavior.
+            if isinstance(value, str) and Path(value).exists():
                 logger.debug(f"Found xEdit at: {value}")
                 return Path(value)
     except (OSError, ValueError) as e:
         logger.debug(f"Failed to find xEdit in registry: {e}")
 
     for name in ["FO4Edit64.exe", "xEdit64.exe", "FO4Edit.exe", "xEdit.exe"]:
-        if Path(name).exists():
+        local_path = Path.cwd() / name
+        if local_path.exists():
             logger.debug(f"Found xEdit in current directory: {name}")
-            return Path(name).absolute()
+            return local_path.absolute()
 
     return None
 
@@ -72,9 +76,9 @@ def _find_fallout4_paths(winreg: types.ModuleType) -> tuple[Path | None, Path | 
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Wow6432Node\Bethesda Softworks\Fallout4") as key:
             install_path, _ = winreg.QueryValueEx(key, "installed path")
             if install_path:
-                install_path: Path = Path(install_path)
-                fo4_exe: Path = install_path / "Fallout4.exe"
-                ck_exe: Path = install_path / "CreationKit.exe"
+                install_path_p: Path = Path(install_path)
+                fo4_exe: Path = install_path_p / "Fallout4.exe"
+                ck_exe: Path = install_path_p / "CreationKit.exe"
 
                 if fo4_exe.exists():
                     fallout4_path = fo4_exe

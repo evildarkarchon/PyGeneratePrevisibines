@@ -5,33 +5,96 @@ from unittest.mock import patch
 import pytest
 
 from PrevisLib.config.registry import find_tool_paths
-from PrevisLib.models.data_classes import CKPEConfig
+from PrevisLib.models.data_classes import CKPEConfig, ToolPaths
 
 
-class TestRegistryReader:
-    """Test Windows registry reading functionality."""
-
-    @patch("PrevisLib.config.registry.sys.platform", "linux")
-    def test_linux_compatibility(self):
-        """Test that registry reader works on Linux (returns empty ToolPaths)."""
-        tool_paths = find_tool_paths()
-
-        assert tool_paths.creation_kit is None
-        assert tool_paths.xedit is None
-        assert tool_paths.fallout4 is None
-        assert tool_paths.archive2 is None
+class TestRegistryReaderNonWindows:
+    """Test registry reading on non-Windows platforms."""
 
     @patch("PrevisLib.config.registry.sys.platform", "linux")
-    def test_find_tool_paths_basic(self):
-        """Test basic tool path finding functionality on Linux."""
+    def test_linux_compatibility(self, caplog):
+        """Test that registry reader warns and returns empty ToolPaths on Linux."""
+        tool_paths = find_tool_paths()
+        assert "Registry reading is only available on Windows" in caplog.text
+        assert tool_paths == ToolPaths()
+
+
+@pytest.mark.usefixtures("mock_winreg")
+class TestRegistryReaderWindows:
+    """Test Windows registry reading functionality with a mocked registry."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, mock_winreg, tmp_path):
+        """Setup for each test."""
+        self.mock_winreg = mock_winreg
+        self.tmp_path = tmp_path
+        self.mock_winreg.Clear()
+
+        # Common paths
+        self.fallout4_dir = self.tmp_path / "Fallout 4"
+        self.fallout4_dir.mkdir()
+        self.fo4_exe = self.fallout4_dir / "Fallout4.exe"
+        self.fo4_exe.touch()
+        self.ck_exe = self.fallout4_dir / "CreationKit.exe"
+        self.ck_exe.touch()
+
+        self.xedit_dir = self.tmp_path / "xEdit"
+        self.xedit_dir.mkdir()
+        self.xedit_exe = self.xedit_dir / "xEdit.exe"
+        self.xedit_exe.touch()
+
+    @patch("PrevisLib.config.registry.sys.platform", "win32")
+    def test_find_all_tools_from_registry(self):
+        """Test finding all tools via registry keys."""
+        # Set up registry
+        self.mock_winreg.SetValue(
+            self.mock_winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\Wow6432Node\Bethesda Softworks\Fallout4",
+            "installed path",
+            str(self.fallout4_dir),
+        )
+        self.mock_winreg.SetValue(self.mock_winreg.HKEY_CLASSES_ROOT, r"FO4Script\DefaultIcon", "", str(self.xedit_exe))
+
+        # Set up additional tools that depend on game/xedit paths
+        (self.fallout4_dir / "Tools" / "Archive2").mkdir(parents=True)
+        archive2_exe = self.fallout4_dir / "Tools" / "Archive2" / "Archive2.exe"
+        archive2_exe.touch()
+        bsarch_exe = self.xedit_dir / "BSArch.exe"
+        bsarch_exe.touch()
+
         tool_paths = find_tool_paths()
 
-        # Should return a ToolPaths object
-        assert tool_paths is not None
-        # On Linux, all paths should be None
-        assert tool_paths.creation_kit is None
-        assert tool_paths.xedit is None
-        assert tool_paths.fallout4 is None
+        assert tool_paths.fallout4 == self.fo4_exe
+        assert tool_paths.creation_kit == self.ck_exe
+        assert tool_paths.xedit == self.xedit_exe
+        assert tool_paths.archive2 == archive2_exe
+        assert tool_paths.bsarch == bsarch_exe
+
+    @patch("PrevisLib.config.registry.sys.platform", "win32")
+    def test_find_xedit_in_local_path_as_fallback(self):
+        """Test finding xEdit via fallback when registry key is missing."""
+        with patch("pathlib.Path.cwd", return_value=self.xedit_dir):
+            tool_paths = find_tool_paths()
+            assert tool_paths.xedit == self.xedit_exe
+
+    @patch("PrevisLib.config.registry.sys.platform", "win32")
+    def test_registry_read_failure(self, caplog):
+        """Test graceful failure when registry keys do not exist."""
+        # No registry keys are set
+        tool_paths = find_tool_paths()
+
+        assert tool_paths == ToolPaths(xedit=None, fallout4=None, creation_kit=None, archive2=None, bsarch=None)
+        assert "Failed to find xEdit in registry" in caplog.text
+        assert "Failed to find Fallout 4 in registry" in caplog.text
+        assert "GOG installation detection" not in caplog.text
+
+    @patch("PrevisLib.config.registry.sys.platform", "win32")
+    def test_import_error_for_winreg(self, caplog):
+        """Test handling of ImportError for the winreg module."""
+        with patch.dict("sys.modules", {"winreg": None}):
+            tool_paths = find_tool_paths()
+            assert "winreg module not available" in caplog.text
+            assert tool_paths == ToolPaths()
 
 
 class TestCKPEConfig:

@@ -43,10 +43,10 @@ class TestRunProcess:
     """Test run_process function."""
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    @patch("PrevisLib.utils.process.time.time")
-    def test_successful_execution(self, mock_time, mock_run):
+    @patch("PrevisLib.utils.process.time.perf_counter")
+    def test_successful_execution(self, mock_perf_counter, mock_run):
         """Test successful process execution."""
-        mock_time.side_effect = [0.0, 1.5]  # start and end times
+        mock_perf_counter.side_effect = [0.0, 1.5]  # start and end times
 
         mock_result = Mock()
         mock_result.returncode = 0
@@ -63,10 +63,10 @@ class TestRunProcess:
         assert result.success is True
 
     @patch("PrevisLib.utils.process.subprocess.run")
-    @patch("PrevisLib.utils.process.time.time")
-    def test_failed_execution(self, mock_time, mock_run):
+    @patch("PrevisLib.utils.process.time.perf_counter")
+    def test_failed_execution(self, mock_perf_counter, mock_run):
         """Test failed process execution."""
-        mock_time.side_effect = [0.0, 2.0]
+        mock_perf_counter.side_effect = [0.0, 2.0]
 
         mock_result = Mock()
         mock_result.returncode = 1

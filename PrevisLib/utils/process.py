@@ -51,7 +51,7 @@ def run_process(  # noqa: PLR0913
     if cwd:
         logger.debug(f"Working directory: {cwd}")
 
-    start_time: float = time.time()
+    start_time: float = time.perf_counter()
 
     try:
         if capture_output:
@@ -78,7 +78,7 @@ def run_process(  # noqa: PLR0913
             result.stdout = ""
             result.stderr = ""
 
-        elapsed_time = time.time() - start_time
+        elapsed_time = time.perf_counter() - start_time
 
         process_result: ProcessResult = ProcessResult(
             returncode=result.returncode,
@@ -95,7 +95,7 @@ def run_process(  # noqa: PLR0913
                 logger.error(f"Error output: {result.stderr}")
 
     except subprocess.TimeoutExpired:
-        elapsed_time: float = time.time() - start_time
+        elapsed_time: float = time.perf_counter() - start_time
         logger.error(f"Command timed out after {elapsed_time:.2f}s")
         return ProcessResult(
             returncode=-1,
@@ -104,7 +104,7 @@ def run_process(  # noqa: PLR0913
             elapsed_time=elapsed_time,
         )
     except (OSError, ValueError) as e:
-        elapsed_time = time.time() - start_time
+        elapsed_time = time.perf_counter() - start_time
         logger.error(f"Failed to run command: {e}")
         return ProcessResult(
             returncode=-1,

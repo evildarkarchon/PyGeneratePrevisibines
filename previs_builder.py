@@ -36,7 +36,7 @@ BANNER = """
 """
 
 
-def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode, bool]:
+def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode | None, bool]:
     """Parse command line arguments in the style of the original batch file.
 
     Args:
@@ -45,9 +45,16 @@ def parse_command_line(args: list[str]) -> tuple[str | None, BuildMode, bool]:
     Returns:
         Tuple of (plugin_name, build_mode, use_bsarch)
     """
+    if not args:
+        return None, None, False
+
     plugin_name: str | None = None
-    build_mode: BuildMode = BuildMode.CLEAN
+    build_mode: BuildMode | None = None
     use_bsarch: bool = False
+
+    # Default to CLEAN if a plugin is provided without flags
+    if len(args) == 1 and not args[0].startswith("-"):
+        return args[0], BuildMode.CLEAN, False
 
     for arg in args:
         if arg.startswith("-"):
@@ -86,53 +93,48 @@ def prompt_for_plugin(settings: Settings | None = None) -> str:
     console.print("[dim]Press Ctrl+C to exit.[/dim]")
 
     while True:
-        try:
-            plugin_name: str = Prompt.ask("\nPlugin name", default="")
+        plugin_name: str = Prompt.ask("\nPlugin name", default="")
 
-            if not plugin_name:
-                console.print("[red]Plugin name cannot be empty. Please enter a valid plugin name.[/red]")
-                continue
+        if not plugin_name:
+            console.print("[red]Plugin name cannot be empty. Please enter a valid plugin name.[/red]")
+            continue
 
-            # Validate plugin name
-            validation_result: tuple[bool, str] = validate_plugin_name(plugin_name)
-            is_valid, message = validation_result
-            if not is_valid:
-                console.print(f"\n[red]Error:[/red] {message}")
-                continue
+        # Validate plugin name
+        validation_result: tuple[bool, str] = validate_plugin_name(plugin_name)
+        is_valid, message = validation_result
+        if not is_valid:
+            console.print(f"\n[red]Error:[/red] {message}")
+            continue
 
-            # Check for reserved names that should be blocked
-            reserved_build_names = {"previs", "combinedobjects", "xprevispatch"}
-            plugin_base = Path(plugin_name).stem.lower()
-            if plugin_base in reserved_build_names:
-                console.print(f"\n[red]Error:[/red] Plugin name '{plugin_base}' is reserved for internal use. Please choose another.")
-                continue
+        # Check for reserved names that should be blocked
+        reserved_build_names = {"previs", "combinedobjects", "xprevispatch"}
+        plugin_base = Path(plugin_name).stem.lower()
+        if plugin_base in reserved_build_names:
+            console.print(f"\n[red]Error:[/red] Plugin name '{plugin_base}' is reserved for internal use. Please choose another.")
+            continue
 
-            # Check if plugin exists (if we have tool paths available)
-            if settings and settings.tool_paths.fallout4:
-                data_path = settings.tool_paths.fallout4 / "Data"
-                plugin_path = data_path / plugin_name
+        # Check if plugin exists (if we have tool paths available)
+        if settings and settings.tool_paths.fallout4:
+            data_path = settings.tool_paths.fallout4 / "Data"
+            plugin_path = data_path / plugin_name
 
-                if not plugin_path.exists():
-                    # Plugin doesn't exist - offer to create from template
-                    console.print(f"\n[yellow]Plugin {plugin_name} does not exist.[/yellow]")
+            if not plugin_path.exists():
+                # Plugin doesn't exist - offer to create from template
+                console.print(f"\n[yellow]Plugin {plugin_name} does not exist.[/yellow]")
 
-                    if Confirm.ask("Create it from xPrevisPatch.esp?", default=True):
-                        success, template_message = create_plugin_from_template(data_path, plugin_name)
+                if Confirm.ask("Create it from xPrevisPatch.esp?", default=True):
+                    success, template_message = create_plugin_from_template(data_path, plugin_name)
 
-                        if success:
-                            console.print(f"\n[green]✓[/green] {template_message}")
-                            return plugin_name
-                        console.print(f"\n[red]Error:[/red] {template_message}")
-                        continue
-                    # User declined to create template, ask for different name
-                    console.print("[dim]Please enter a different plugin name or create the plugin manually.[/dim]")
+                    if success:
+                        console.print(f"\n[green]✓[/green] {template_message}")
+                        return plugin_name
+                    console.print(f"\n[red]Error:[/red] {template_message}")
                     continue
+                # User declined to create template, ask for different name
+                console.print("[dim]Please enter a different plugin name or create the plugin manually.[/dim]")
+                continue
 
-            return plugin_name
-
-        except KeyboardInterrupt:
-            # Re-raise KeyboardInterrupt to be handled by the caller
-            raise
+        return plugin_name
 
 
 def prompt_for_build_mode() -> BuildMode:
@@ -255,14 +257,14 @@ def show_build_summary(settings: Settings) -> None:
     console.print(table)
 
 
-def run_build(settings: Settings) -> bool:
+def run_build(settings: Settings) -> bool | None:
     """Execute the build process.
 
     Args:
         settings: Build settings
 
     Returns:
-        True if successful, False otherwise
+        True if successful, False if failed, None if cancelled.
     """
     builder = PrevisBuilder(settings)
 
@@ -275,7 +277,8 @@ def run_build(settings: Settings) -> bool:
     show_build_summary(settings)
 
     if not Confirm.ask("\nProceed with build?", default=True):
-        return False
+        console.print("\n[yellow]Build cancelled.[/yellow]")
+        return None
 
     # Run build with progress display
     console.print("\n[bold cyan]Starting build process...[/bold cyan]\n")
@@ -323,11 +326,11 @@ def run_build(settings: Settings) -> bool:
             else:
                 console.print("[yellow]⚠ Some working files could not be removed[/yellow]")
 
-    else:
-        console.print(f"\n[bold red]✗ Build failed at step: {builder.failed_step}[/bold red]")
-        console.print("[yellow]You can resume from this step next time.[/yellow]")
+        return True
 
-    return success
+    console.print(f"\n[bold red]✗ Build failed at step: {builder.failed_step}[/bold red]")
+    console.print("[yellow]You can resume from this step next time.[/yellow]")
+    return False
 
 
 def prompt_for_cleanup(settings: Settings) -> bool:
@@ -385,7 +388,7 @@ def prompt_for_cleanup(settings: Settings) -> bool:
     help="Archive tool to use: archive2 (default) or bsarch",
 )
 @click.option("--plugin", help="Plugin name to process (alternative to positional argument)")
-def main(
+def main(  # noqa: PLR0913
     args: tuple[str, ...],
     verbose: bool,
     fallout4_path: Path | None,
@@ -445,14 +448,15 @@ def main(
             xedit_path=xedit_path,
         )
 
-        # Validate tools
-        errors: list[str] = settings.tool_paths.validate()
-        if errors:
-            console.print("\n[bold red]⚠ Tool Configuration Issues:[/bold red]")
-            for error in errors:
-                console.print(f"  • {error}")
-            console.print("\n[red]Cannot proceed without required tools. Please fix the configuration and try again.[/red]")
-            sys.exit(1)
+        # Validate tools only on Windows, as they are platform-specific
+        if sys.platform == "win32":
+            errors: list[str] = settings.tool_paths.validate()
+            if errors:
+                console.print("\n[bold red]⚠ Tool Configuration Issues:[/bold red]")
+                for error in errors:
+                    console.print(f"  • {error}")
+                console.print("\n[red]Cannot proceed without required tools. Please fix the configuration and try again.[/red]")
+                sys.exit(1)
 
         # Show tool versions (like the original batch file)
         show_tool_versions(settings)
@@ -475,10 +479,13 @@ def main(
                 settings.build_mode = prompt_for_build_mode()
 
         # Run the build
-        success: bool = run_build(settings)
+        result: bool | None = run_build(settings)
 
-        # Exit with appropriate code
-        sys.exit(0 if success else 1)
+        # Handle exit codes: None is cancellation (OK), True is success (OK), False is failure
+        if result is None:
+            sys.exit(0)
+
+        sys.exit(0 if result else 1)
 
     except KeyboardInterrupt:
         console.print("\n\n[yellow]Build cancelled by user.[/yellow]")

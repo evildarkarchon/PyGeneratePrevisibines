@@ -8,6 +8,7 @@ import pytest
 
 from PrevisLib.models.data_classes import BuildMode, CKPEConfig
 from PrevisLib.tools.archive import ArchiveTool, ArchiveWrapper
+from PrevisLib.tools.ckpe import CKPEConfigHandler
 from PrevisLib.tools.creation_kit import CreationKitWrapper
 from PrevisLib.tools.xedit import XEditWrapper
 
@@ -546,13 +547,53 @@ class TestXEdit:
         data_path = tmp_path / "Data"
         script_path = tmp_path / "TestScript.pas"
 
-        # Force use of ProcessRunner instead of automation to avoid platform issues
         with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False):
             with patch.object(wrapper, "_check_xedit_log", return_value=True):
                 result = wrapper.merge_combined_objects(data_path, script_path)
 
         assert result is True
         mock_runner.execute.assert_called_once()
+
+    @patch("PrevisLib.tools.xedit.ProcessRunner")
+    def test_merge_combined_objects_process_runner_failure(self, mock_runner_class, wrapper, tmp_path) -> None:
+        """Test combined objects merge failure using ProcessRunner."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = False
+        mock_runner_class.return_value = mock_runner
+        wrapper.process_runner = mock_runner
+
+        data_path = tmp_path / "Data"
+        script_path = tmp_path / "TestScript.pas"
+
+        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False):
+            result = wrapper.merge_combined_objects(data_path, script_path)
+
+        assert result is False
+
+    @patch("PrevisLib.tools.xedit.XEditWrapper._run_with_automation", return_value=True)
+    def test_merge_combined_objects_with_automation_success(self, mock_run_auto, wrapper, tmp_path) -> None:
+        """Test successful combined objects merge with pywinauto."""
+        data_path = tmp_path / "Data"
+        script_path = tmp_path / "TestScript.pas"
+
+        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True):
+            with patch.object(wrapper, "_check_xedit_log", return_value=True):
+                result = wrapper.merge_combined_objects(data_path, script_path)
+
+        assert result is True
+        mock_run_auto.assert_called_once()
+
+    @patch("PrevisLib.tools.xedit.XEditWrapper._run_with_automation", return_value=False)
+    def test_merge_combined_objects_with_automation_failure(self, mock_run_auto, wrapper, tmp_path) -> None:
+        """Test failing combined objects merge with pywinauto."""
+        data_path = tmp_path / "Data"
+        script_path = tmp_path / "TestScript.pas"
+
+        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True):
+            result = wrapper.merge_combined_objects(data_path, script_path)
+
+        assert result is False
+        mock_run_auto.assert_called_once()
 
     @patch("PrevisLib.tools.xedit.ProcessRunner")
     def test_merge_previs_success(self, mock_runner_class, wrapper, tmp_path) -> None:
@@ -565,12 +606,105 @@ class TestXEdit:
         data_path = tmp_path / "Data"
         script_path = tmp_path / "TestScript.pas"
 
-        # Force use of ProcessRunner instead of automation to avoid platform issues
         with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", False):
             with patch.object(wrapper, "_check_xedit_log", return_value=True):
                 result = wrapper.merge_previs(data_path, script_path)
 
         assert result is True
+        mock_runner.execute.assert_called_once()
+
+    def test_check_xedit_log_no_log_found(self, wrapper) -> None:
+        """Test xEdit log check when no log file is found."""
+        with patch.object(Path, "exists", return_value=False):
+            # Should return True with a warning
+            result = wrapper._check_xedit_log("test operation")
+        assert result is True
+
+    def test_check_xedit_log_read_error(self, wrapper, tmp_path) -> None:
+        """Test xEdit log check when reading the log file fails."""
+        log_path = tmp_path / "UnattendedScript.log"
+        log_path.touch()
+
+        with patch("os.environ.get", return_value=str(tmp_path)):
+            with patch("PrevisLib.tools.xedit.Path.open", side_effect=OSError("Read error")):
+                # Should warn and assume success
+                result = wrapper._check_xedit_log("test operation")
+        assert result is True
+
+    def test_check_xedit_log_no_completion_indicator(self, wrapper, tmp_path) -> None:
+        """Test xEdit log check when log exists but lacks a completion indicator."""
+        unattended_log = tmp_path / "UnattendedScript.log"
+        unattended_log.write_text("Some random content without completion marker.")
+
+        with patch("os.environ.get", return_value=str(tmp_path)):
+            result = wrapper._check_xedit_log("test operation")
+        assert result is False
+
+    @patch("subprocess.Popen")
+    def test_run_with_automation_success(self, mock_popen, wrapper) -> None:
+        """Test the happy path for _run_with_automation."""
+        mock_process = Mock()
+        mock_process.pid = 1234
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
+
+        mock_app = Mock()
+        mock_main_window = Mock()
+        mock_main_window.exists.return_value = True
+        mock_main_window.descendants.return_value = []
+        mock_app.window.return_value = mock_main_window
+
+        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True):
+            with patch("PrevisLib.tools.xedit.Application") as mock_pywin_app:
+                mock_pywin_app.return_value.connect.return_value = mock_app
+                with patch.object(wrapper, "_is_xedit_busy", return_value=False):
+                    result = wrapper._run_with_automation([], "test op")
+
+        assert result is True
+        mock_popen.assert_called_once()
+        mock_main_window.close.assert_called_once()
+
+    @patch("subprocess.Popen")
+    def test_run_with_automation_error_dialog(self, mock_popen, wrapper) -> None:
+        """Test _run_with_automation when an error dialog appears."""
+        mock_process = Mock()
+        mock_process.pid = 1234
+        mock_popen.return_value = mock_process
+
+        mock_app = Mock()
+        mock_main_window = Mock()
+        mock_main_window.exists.return_value = True
+        mock_error_dialog = Mock()
+        mock_error_dialog.window_text.return_value = "An error occurred"
+        mock_main_window.descendants.return_value = [mock_error_dialog]
+        mock_app.window.return_value = mock_main_window
+
+        with patch("PrevisLib.tools.xedit.PYWINAUTO_AVAILABLE", True):
+            with patch("PrevisLib.tools.xedit.Application") as mock_pywin_app:
+                mock_pywin_app.return_value.connect.return_value = mock_app
+                result = wrapper._run_with_automation([], "test op")
+
+        assert result is False
+        mock_error_dialog.close.assert_called_once()
+
+    def test_is_xedit_busy(self, wrapper) -> None:
+        """Test the _is_xedit_busy helper function."""
+        mock_window = Mock()
+        mock_status_bar = Mock()
+        mock_status_bar.exists.return_value = True
+        mock_window.child_window.return_value = mock_status_bar
+
+        # Test when busy
+        mock_status_bar.window_text.return_value = "Processing... please wait."
+        assert wrapper._is_xedit_busy(mock_window) is True
+
+        # Test when not busy
+        mock_status_bar.window_text.return_value = "Ready."
+        assert wrapper._is_xedit_busy(mock_window) is False
+
+        # Test when status bar doesn't exist
+        mock_status_bar.exists.return_value = False
+        assert wrapper._is_xedit_busy(mock_window) is False
 
     def test_check_xedit_log_enhanced_patterns(self, tmp_path) -> None:
         """Test enhanced xEdit log checking with patterns from batch file."""
@@ -605,6 +739,112 @@ class TestXEdit:
                 unattended_log.write_text("Some content\nNo completion indicator\nMore content")
                 result = wrapper._check_xedit_log("test operation")
                 assert result is False
+
+
+class TestCKPEConfigHandler:
+    """Test CKPE configuration handler."""
+
+    @pytest.fixture
+    def handler(self, tmp_path) -> CKPEConfigHandler:
+        """Create a CKPEConfigHandler for testing."""
+        return CKPEConfigHandler(tmp_path)
+
+    def test_load_config_no_files(self, handler, tmp_path) -> None:
+        """Test loading config when no config files exist."""
+        (tmp_path / "Data").mkdir()
+        result = handler.load_config("TestPlugin")
+        assert result is None
+
+    @patch("PrevisLib.tools.ckpe.CKPEConfig")
+    def test_load_toml_config_success(self, mock_ckpe_config, handler, tmp_path) -> None:
+        """Test loading a valid TOML config file."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+        toml_path = data_path / "TestPlugin_CKPEConfig.toml"
+        toml_path.touch()
+
+        mock_config = Mock(spec=CKPEConfig)
+        mock_ckpe_config.from_toml.return_value = mock_config
+
+        result = handler.load_config("TestPlugin")
+
+        assert result == mock_config
+        mock_ckpe_config.from_toml.assert_called_once_with(toml_path)
+
+    @patch("PrevisLib.tools.ckpe.CKPEConfig")
+    def test_load_ini_config_success(self, mock_ckpe_config, handler, tmp_path) -> None:
+        """Test loading a valid INI config file when TOML is absent."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+        ini_path = data_path / "TestPlugin_CKPEConfig.ini"
+        ini_path.touch()
+
+        mock_config = Mock(spec=CKPEConfig)
+        mock_ckpe_config.from_ini.return_value = mock_config
+
+        result = handler.load_config("TestPlugin")
+
+        assert result == mock_config
+        mock_ckpe_config.from_ini.assert_called_once_with(ini_path)
+        mock_ckpe_config.from_toml.assert_not_called()
+
+    @patch("PrevisLib.tools.ckpe.CKPEConfig")
+    def test_load_prefers_toml_over_ini(self, mock_ckpe_config, handler, tmp_path) -> None:
+        """Test that TOML config is preferred when both TOML and INI exist."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+        toml_path = data_path / "TestPlugin_CKPEConfig.toml"
+        toml_path.touch()
+        ini_path = data_path / "TestPlugin_CKPEConfig.ini"
+        ini_path.touch()
+
+        mock_toml_config = Mock(spec=CKPEConfig)
+        mock_ckpe_config.from_toml.return_value = mock_toml_config
+
+        result = handler.load_config("TestPlugin")
+
+        assert result == mock_toml_config
+        mock_ckpe_config.from_toml.assert_called_once_with(toml_path)
+        mock_ckpe_config.from_ini.assert_not_called()
+
+    @patch("PrevisLib.tools.ckpe.CKPEConfig")
+    def test_load_falls_back_to_ini_on_toml_error(self, mock_ckpe_config, handler, tmp_path) -> None:
+        """Test fallback to INI when TOML loading fails."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+        toml_path = data_path / "TestPlugin_CKPEConfig.toml"
+        toml_path.touch()
+        ini_path = data_path / "TestPlugin_CKPEConfig.ini"
+        ini_path.touch()
+
+        mock_ckpe_config.from_toml.side_effect = ValueError("Invalid TOML")
+        mock_ini_config = Mock(spec=CKPEConfig)
+        mock_ckpe_config.from_ini.return_value = mock_ini_config
+
+        result = handler.load_config("TestPlugin")
+
+        assert result == mock_ini_config
+        mock_ckpe_config.from_toml.assert_called_once_with(toml_path)
+        mock_ckpe_config.from_ini.assert_called_once_with(ini_path)
+
+    @patch("PrevisLib.tools.ckpe.CKPEConfig")
+    def test_load_returns_none_on_all_errors(self, mock_ckpe_config, handler, tmp_path) -> None:
+        """Test that None is returned if both TOML and INI loading fail."""
+        data_path = tmp_path / "Data"
+        data_path.mkdir()
+        toml_path = data_path / "TestPlugin_CKPEConfig.toml"
+        toml_path.touch()
+        ini_path = data_path / "TestPlugin_CKPEConfig.ini"
+        ini_path.touch()
+
+        mock_ckpe_config.from_toml.side_effect = ValueError("Invalid TOML")
+        mock_ckpe_config.from_ini.side_effect = ValueError("Invalid INI")
+
+        result = handler.load_config("TestPlugin")
+
+        assert result is None
+        mock_ckpe_config.from_toml.assert_called_once_with(toml_path)
+        mock_ckpe_config.from_ini.assert_called_once_with(ini_path)
 
 
 class TestArchiveWrapper:
@@ -871,6 +1111,143 @@ class TestArchiveWrapper:
 
         result = archive2_wrapper.create_archive(archive_path, source_dir, compress=True)
 
+        assert result is False
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_create_archive2_creation_fails_despite_process_success(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+        """Test archive creation failure when file not found after supposedly successful process run."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+
+        # Mock archive file not being created
+        with patch.object(Path, "exists", return_value=False):
+            result = archive2_wrapper.create_archive(archive_path, source_dir, compress=True)
+
+        assert result is False
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_create_bsarch_creation_fails_despite_process_success(self, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
+        """Test BSArch creation failure when file not found after supposedly successful process run."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        bsarch_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+
+        # Mock archive file not being created
+        with patch.object(Path, "exists", return_value=False):
+            result = bsarch_wrapper.create_archive(archive_path, source_dir, compress=True)
+
+        assert result is False
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    @patch("PrevisLib.tools.archive.shutil")
+    def test_create_bsarch_with_file_list(self, mock_shutil, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
+        """Test BSArch archive creation with a specific file list."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = True
+        mock_runner_class.return_value = mock_runner
+        bsarch_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        source_dir = tmp_path / "source"
+        source_dir.mkdir()
+        (source_dir / "file1.nif").touch()
+        (source_dir / "file2.nif").touch()
+
+        file_list = ["file1.nif", "file2.nif"]
+
+        with patch.object(Path, "exists", return_value=True):
+            result = bsarch_wrapper.create_archive(archive_path, source_dir, file_list=file_list, compress=True)
+
+        assert result is True
+        mock_runner.execute.assert_called_once()
+        # Ensure temp directory was created for file list
+        assert mock_shutil.rmtree.call_count == 1
+
+    @patch("PrevisLib.tools.archive.shutil")
+    def test_add_to_archive_extraction_fails(self, mock_shutil, archive2_wrapper, tmp_path) -> None:
+        """Test add_to_archive when the initial extraction fails."""
+        archive_path = tmp_path / "test.ba2"
+        files_to_add = [tmp_path / "file1.txt"]
+        base_dir = tmp_path
+
+        # Ensure the temp directory exists so cleanup can be tested
+        temp_dir = archive_path.parent / f"{archive_path.stem}_temp"
+        temp_dir.mkdir()
+
+        with patch.object(archive2_wrapper, "extract_archive", return_value=False):
+            result = archive2_wrapper.add_to_archive(archive_path, files_to_add, base_dir)
+
+        assert result is False
+        mock_shutil.rmtree.assert_called_once()  # Ensure cleanup is still called
+
+    @patch("PrevisLib.tools.archive.shutil")
+    def test_add_to_archive_recreation_fails(self, mock_shutil, archive2_wrapper, tmp_path) -> None:
+        """Test add_to_archive when the final recreation fails."""
+        archive_path = tmp_path / "test.ba2"
+        file_to_add = tmp_path / "file1.txt"
+        file_to_add.touch()
+        base_dir = tmp_path
+
+        with patch.object(archive2_wrapper, "extract_archive", return_value=True):
+            with patch.object(archive2_wrapper, "create_archive", return_value=False):
+                result = archive2_wrapper.add_to_archive(archive_path, [file_to_add], base_dir)
+
+        assert result is False
+        mock_shutil.rmtree.assert_called_once()  # Ensure cleanup is still called
+
+    @patch("PrevisLib.tools.archive.shutil")
+    def test_add_to_archive_with_nonexistent_source_file(self, mock_shutil, archive2_wrapper, tmp_path) -> None:
+        """Test add_to_archive when a file to add does not exist."""
+        archive_path = tmp_path / "test.ba2"
+        non_existent_file = tmp_path / "nonexistent.txt"
+        base_dir = tmp_path
+
+        with patch.object(archive2_wrapper, "extract_archive", return_value=True):
+            with patch.object(archive2_wrapper, "create_archive", return_value=True):
+                result = archive2_wrapper.add_to_archive(archive_path, [non_existent_file], base_dir)
+
+        assert result is True  # Should still succeed
+        mock_shutil.copy2.assert_not_called()  # But should not copy the file
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_extract_archive2_process_failure(self, mock_runner_class, archive2_wrapper, tmp_path) -> None:
+        """Test Archive2 extraction when the process fails."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = False
+        mock_runner_class.return_value = mock_runner
+        archive2_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        archive_path.touch()
+        output_dir = tmp_path / "output"
+
+        result = archive2_wrapper.extract_archive(archive_path, output_dir)
+        assert result is False
+
+    @patch("PrevisLib.tools.archive.ProcessRunner")
+    def test_extract_bsarch_process_failure(self, mock_runner_class, bsarch_wrapper, tmp_path) -> None:
+        """Test BSArch extraction when the process fails."""
+        mock_runner = Mock()
+        mock_runner.execute.return_value = False
+        mock_runner_class.return_value = mock_runner
+        bsarch_wrapper.process_runner = mock_runner
+
+        archive_path = tmp_path / "test.ba2"
+        archive_path.touch()
+        output_dir = tmp_path / "output"
+
+        result = bsarch_wrapper.extract_archive(archive_path, output_dir)
         assert result is False
 
     def test_build_mode_inheritance(self, tmp_path) -> None:
