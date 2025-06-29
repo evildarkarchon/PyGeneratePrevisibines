@@ -89,7 +89,7 @@ This document outlines the implementation plan for creating a PySide6-based grap
 
 ### Phase 7: Settings and Configuration
 - [ ] Create `SettingsDialog` class
-  - [ ] Tool paths configuration (Creation Kit, xEdit, Archive tools)
+  - [ ] Tool paths configuration (Fallout 4 and xEdit, everything else is derived from these)
   - [ ] Build settings (timeout values, thread counts)
   - [ ] UI preferences (theme, font size)
 - [ ] Integrate with existing `SettingsManager`

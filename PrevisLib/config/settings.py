@@ -90,7 +90,7 @@ class Settings(BaseModel):
         return self
 
     @classmethod
-    def from_cli_args(
+    def from_cli_args(  # noqa: PLR0913
         cls,
         plugin_name: str | None = None,
         build_mode: str | None = None,
@@ -123,13 +123,13 @@ class Settings(BaseModel):
         # Apply CLI path overrides
         if fallout4_path:
             # Override Fallout 4 installation path and derive related paths
-            fallout4_exe = fallout4_path / "Fallout4.exe"
+            fallout4_exe: Path = fallout4_path / "Fallout4.exe"
             if fallout4_exe.exists():
                 settings.tool_paths.fallout4 = fallout4_exe
                 logger.debug(f"Using CLI-specified Fallout 4 path: {fallout4_exe}")
 
                 # Derive Creation Kit path from Fallout 4 installation
-                ck_exe = fallout4_path / "CreationKit.exe"
+                ck_exe: Path = fallout4_path / "CreationKit.exe"
                 if ck_exe.exists():
                     settings.tool_paths.creation_kit = ck_exe
                     logger.debug(f"Found Creation Kit at Fallout 4 installation: {ck_exe}")
@@ -137,7 +137,7 @@ class Settings(BaseModel):
                     logger.warning(f"CreationKit.exe not found in Fallout 4 installation: {fallout4_path}")
 
                 # Update archive tool paths based on new installation path
-                archive_path = fallout4_path / "Tools" / "Archive2" / "Archive2.exe"
+                archive_path: Path = fallout4_path / "Tools" / "Archive2" / "Archive2.exe"
                 if archive_path.exists():
                     settings.tool_paths.archive2 = archive_path
                     logger.debug(f"Found Archive2 at Fallout 4 installation: {archive_path}")
@@ -149,19 +149,20 @@ class Settings(BaseModel):
             logger.debug(f"Using CLI-specified xEdit path: {xedit_path}")
 
             # Look for BSArch in the same directory as xEdit
-            bsarch_path = xedit_path.parent / "BSArch.exe"
+            bsarch_path: Path = xedit_path.parent / "BSArch.exe"
             if bsarch_path.exists():
                 settings.tool_paths.bsarch = bsarch_path
                 logger.debug(f"Found BSArch near xEdit: {bsarch_path}")
 
         # Look for CKPE config files
-        ckpe_toml: Path = settings.working_directory / "CreationKitPlatformExtended.toml"
-        ckpe_ini: Path = settings.working_directory / "CreationKitPlatformExtended.ini"
+        if settings.tool_paths.creation_kit is not None:
+            ckpe_toml: Path = settings.tool_paths.creation_kit.parent / "CreationKitPlatformExtended.toml"
+            ckpe_ini: Path = settings.tool_paths.creation_kit.parent / "CreationKitPlatformExtended.ini"
 
-        if ckpe_toml.exists():
-            settings.ckpe_config_path = ckpe_toml
-        elif ckpe_ini.exists():
-            settings.ckpe_config_path = ckpe_ini
+            if ckpe_toml.exists():
+                settings.ckpe_config_path = ckpe_toml
+            elif ckpe_ini.exists():
+                settings.ckpe_config_path = ckpe_ini
 
         return settings
 
