@@ -3,27 +3,27 @@
 ## Phase 1: Project Setup & Infrastructure
 
 ### Dependencies & Configuration
-- [ ] Add PyQt6 to `pyproject.toml` dependencies
+- [x] Add PyQt6 to `pyproject.toml` dependencies
   ```toml
   [tool.poetry.dependencies]
-  PyQt6 = "^6.6.0"
+  PyQt6 = ">=6.9.1"
   ```
-- [ ] Update poetry.lock with `poetry lock`
-- [ ] Install new dependencies with `poetry install`
-- [ ] Add GUI entry point to `pyproject.toml`
+- [x] Update poetry.lock with `poetry lock`
+- [x] Install new dependencies with `poetry install`
+- [x] Add GUI entry point to `pyproject.toml`
   ```toml
   [tool.poetry.scripts]
   previs-gui = "previs_gui:main"
   ```
 
 ### Directory Structure
-- [ ] Create `PrevisLib/gui/` directory
-- [ ] Create `PrevisLib/gui/__init__.py`
-- [ ] Create `PrevisLib/gui/widgets/` directory
-- [ ] Create `PrevisLib/gui/widgets/__init__.py`
-- [ ] Create `PrevisLib/gui/styles/` directory
-- [ ] Create `PrevisLib/gui/styles/__init__.py`
-- [ ] Create `previs_gui.py` in project root
+- [x] Create `PrevisLib/gui/` directory
+- [x] Create `PrevisLib/gui/__init__.py`
+- [x] Create `PrevisLib/gui/widgets/` directory
+- [x] Create `PrevisLib/gui/widgets/__init__.py`
+- [x] Create `PrevisLib/gui/styles/` directory
+- [x] Create `PrevisLib/gui/styles/__init__.py`
+- [x] Create `previs_gui.py` in project root
 
 ## Phase 2: Core GUI Components
 
