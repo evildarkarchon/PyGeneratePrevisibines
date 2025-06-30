@@ -1,0 +1,226 @@
+# PyQt6 GUI Implementation Checklist for PyGeneratePrevisibines
+
+## Phase 1: Project Setup & Infrastructure
+
+### Dependencies & Configuration
+- [ ] Add PyQt6 to `pyproject.toml` dependencies
+  ```toml
+  [tool.poetry.dependencies]
+  PyQt6 = "^6.6.0"
+  ```
+- [ ] Update poetry.lock with `poetry lock`
+- [ ] Install new dependencies with `poetry install`
+- [ ] Add GUI entry point to `pyproject.toml`
+  ```toml
+  [tool.poetry.scripts]
+  previs-gui = "previs_gui:main"
+  ```
+
+### Directory Structure
+- [ ] Create `PrevisLib/gui/` directory
+- [ ] Create `PrevisLib/gui/__init__.py`
+- [ ] Create `PrevisLib/gui/widgets/` directory
+- [ ] Create `PrevisLib/gui/widgets/__init__.py`
+- [ ] Create `PrevisLib/gui/styles/` directory
+- [ ] Create `PrevisLib/gui/styles/__init__.py`
+- [ ] Create `previs_gui.py` in project root
+
+## Phase 2: Core GUI Components
+
+### Main Window (`PrevisLib/gui/main_window.py`)
+- [ ] Create `MainWindow` class inheriting from `QMainWindow`
+- [ ] Set window title and default size (800x600)
+- [ ] Create central widget and main layout
+- [ ] Implement menu bar with File and Settings menus
+- [ ] Add status bar for general messages
+- [ ] Implement window state persistence (size, position)
+
+### Dark Theme (`PrevisLib/gui/styles/dark_theme.py`)
+- [ ] Create `DarkTheme` class with static methods
+- [ ] Define color palette constants
+  - [ ] Background: #1e1e1e
+  - [ ] Surface: #2d2d2d
+  - [ ] Text: #e0e0e0
+  - [ ] Accent: #007acc
+  - [ ] Success: #4caf50
+  - [ ] Error: #f44336
+  - [ ] Warning: #ff9800
+- [ ] Create `apply_theme()` method for QApplication
+- [ ] Style all standard Qt widgets
+- [ ] Force dark mode regardless of system settings
+
+### Plugin Input Widget (`PrevisLib/gui/widgets/plugin_input.py`)
+- [ ] Create `PluginInputWidget` class inheriting from `QWidget`
+- [ ] Add QLineEdit for plugin name
+- [ ] Implement auto-extension logic (.esp appending)
+- [ ] Add validation indicator (QLabel with icon)
+- [ ] Connect to existing plugin validator
+- [ ] Emit signal when validation state changes
+- [ ] Check if plugin exists in game data directory
+- [ ] Style with proper margins and spacing
+
+### Build Controls Widget (`PrevisLib/gui/widgets/build_controls.py`)
+- [ ] Create `BuildControlsWidget` class
+- [ ] Add build mode QComboBox (Clean/Filtered/Xbox)
+- [ ] Add build step QComboBox (all 8 steps)
+- [ ] Implement step selector enable/disable logic
+- [ ] Add Start/Stop QPushButton
+- [ ] Implement button state management
+- [ ] Connect signals for user interactions
+- [ ] Add tooltips for each control
+
+### Progress Display Widget (`PrevisLib/gui/widgets/progress_display.py`)
+- [ ] Create `ProgressDisplayWidget` class
+- [ ] Add current step label (large, prominent)
+- [ ] Add step counter (e.g., "Step 3 of 8")
+- [ ] Create step list with status icons
+- [ ] Implement status icon updates (pending/running/success/failed)
+- [ ] Add time elapsed display
+- [ ] Include cancel confirmation dialog
+
+## Phase 3: Settings & Configuration
+
+### Settings Dialog (`PrevisLib/gui/settings_dialog.py`)
+- [ ] Create `SettingsDialog` class inheriting from `QDialog`
+- [ ] Add tool paths section
+  - [ ] Game executable path input with browse button
+  - [ ] xEdit executable path input with browse button
+  - [ ] BSArch executable path input with browse button
+  - [ ] Path validation indicators for each
+- [ ] Add archive tool selection (QRadioButton group)
+- [ ] Implement browse dialogs with appropriate filters
+- [ ] Add OK/Cancel buttons
+- [ ] Validate all paths before allowing OK
+- [ ] Save settings to persistent storage
+
+### BSArch CLI Enhancement
+- [ ] Add `--bsarch-path` argument to CLI parser
+- [ ] Update `Settings` class to accept BSArch path
+- [ ] Modify `ToolPaths` validation logic
+- [ ] Update registry discovery to respect manual BSArch path
+- [ ] Add BSArch path to configuration file schema
+- [ ] Write tests for new BSArch path functionality
+
+## Phase 4: Build Process Integration
+
+### Build Thread (`PrevisLib/gui/build_thread.py`)
+- [ ] Create `BuildThread` class inheriting from `QThread`
+- [ ] Define Qt signals for:
+  - [ ] Step started
+  - [ ] Step progress
+  - [ ] Step completed
+  - [ ] Build completed
+  - [ ] Build failed
+  - [ ] Log message
+- [ ] Implement run() method to execute PrevisBuilder
+- [ ] Add cancellation support with proper cleanup
+- [ ] Handle exceptions and emit error signals
+
+### Progress Callback System
+- [ ] Modify `PrevisBuilder` to accept progress callback
+- [ ] Add callback invocations in each build step method
+- [ ] Create callback data structure with:
+  - [ ] Current step
+  - [ ] Step status
+  - [ ] Progress message
+  - [ ] Timestamp
+- [ ] Ensure thread-safe callback execution
+
+### Build State Management
+- [ ] Track current build state in MainWindow
+- [ ] Implement UI updates based on build state
+- [ ] Disable controls during build
+- [ ] Enable stop button during build
+- [ ] Show completion dialog on success
+- [ ] Show error dialog on failure with details
+
+## Phase 5: Advanced Features
+
+### Log Viewer
+- [ ] Create collapsible log panel
+- [ ] Implement log level filtering (DEBUG/INFO/WARNING/ERROR)
+- [ ] Add log search functionality
+- [ ] Include timestamp display
+- [ ] Add copy-to-clipboard for log entries
+- [ ] Implement log auto-scroll with toggle
+
+### State Persistence
+- [ ] Create settings file in user config directory
+- [ ] Save/load window geometry
+- [ ] Save/load tool paths
+- [ ] Save/load last used plugin name
+- [ ] Save/load archive tool preference
+- [ ] Save/load log viewer preferences
+
+### Error Handling
+- [ ] Create custom exception dialog
+- [ ] Include stack trace in debug mode
+- [ ] Add "Report Issue" button with GitHub link
+- [ ] Implement recovery suggestions
+- [ ] Log all errors to file
+
+## Phase 6: Testing & Polish
+
+### Unit Tests
+- [ ] Test plugin name normalization
+- [ ] Test validation logic
+- [ ] Test settings persistence
+- [ ] Test build thread signals
+- [ ] Test cancellation handling
+- [ ] Test error scenarios
+
+### Integration Tests
+- [ ] Test full build process via GUI
+- [ ] Test settings dialog functionality
+- [ ] Test build interruption
+- [ ] Test invalid plugin handling
+- [ ] Test missing tool handling
+
+### UI Polish
+- [ ] Add application icon
+- [ ] Create custom icons for build steps
+- [ ] Add keyboard shortcuts
+- [ ] Implement drag-and-drop for plugin files
+- [ ] Add "Recent Plugins" menu
+- [ ] Create about dialog
+
+### Documentation
+- [ ] Update README with GUI instructions
+- [ ] Create GUI user guide
+- [ ] Document keyboard shortcuts
+- [ ] Add screenshots to documentation
+- [ ] Update CLAUDE.md with GUI architecture
+
+## Phase 7: Packaging & Distribution
+
+### PyInstaller Setup
+- [ ] Create PyInstaller spec file
+- [ ] Include all Qt dependencies
+- [ ] Bundle dark theme resources
+- [ ] Test on clean Windows system
+- [ ] Create installer with NSIS/Inno Setup
+
+### Release Preparation
+- [ ] Version bump in pyproject.toml
+- [ ] Update changelog
+- [ ] Create GitHub release
+- [ ] Upload compiled executables
+- [ ] Update installation instructions
+
+## Implementation Order
+
+1. **Week 1**: Phase 1 & 2 (Setup and Core Components)
+2. **Week 2**: Phase 3 (Settings and Configuration)
+3. **Week 3**: Phase 4 (Build Process Integration)
+4. **Week 4**: Phase 5 (Advanced Features)
+5. **Week 5**: Phase 6 (Testing and Polish)
+6. **Week 6**: Phase 7 (Packaging and Distribution)
+
+## Notes
+
+- Prioritize core functionality over advanced features
+- Ensure CLI remains fully functional throughout development
+- Test on multiple Windows versions (10, 11)
+- Consider accessibility features (screen readers, high contrast)
+- Keep GUI responsive during long operations
+- Maintain consistent error handling patterns
