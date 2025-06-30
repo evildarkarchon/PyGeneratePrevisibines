@@ -62,7 +62,7 @@
 ### Build Controls Widget (`PrevisLib/gui/widgets/build_controls.py`)
 - [ ] Create `BuildControlsWidget` class
 - [ ] Add build mode QComboBox (Clean/Filtered/Xbox)
-- [ ] Add build step QComboBox (all 8 steps)
+- [ ] Add build step QComboBox (all 8 steps, CompressPSG and BuildCDX are only available in Clean mode)
 - [ ] Implement step selector enable/disable logic
 - [ ] Add Start/Stop QPushButton
 - [ ] Implement button state management
@@ -107,7 +107,7 @@
 - [ ] Create `BuildThread` class inheriting from `QThread`
 - [ ] Define Qt signals for:
   - [ ] Step started
-  - [ ] Step progress
+  - [ ] Step progress (for xEdit steps, if information is available, for example, a log file.)
   - [ ] Step completed
   - [ ] Build completed
   - [ ] Build failed
