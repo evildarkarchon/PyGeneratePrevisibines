@@ -513,7 +513,7 @@ class PrevisBuilder:
                     if not fs.safe_delete(file_path):
                         logger.error(f"Failed to delete: {file_path.name}")
                         success = False
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     logger.error(f"Failed to delete {file_path.name}: {e}")
                     success = False
 

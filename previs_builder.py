@@ -36,8 +36,7 @@ BANNER = """
 """
 
 
-
-def prompt_for_plugin(settings: Settings | None = None) -> str | None:
+def prompt_for_plugin(settings: Settings | None = None) -> str:
     """
     Prompts the user to enter a plugin name for previs generation. If the plugin
     name doesn't exist, it offers the option to create it from a template.
@@ -363,7 +362,7 @@ def prompt_for_cleanup(settings: Settings) -> bool:
 
     try:
         with console.status("Cleaning up files..."):
-            success: bool = builder.cleanup()
+            success = builder.cleanup()
     except Exception as e:  # noqa: BLE001
         logger.error(f"Cleanup failed: {e}")
         success = False
@@ -446,11 +445,11 @@ def main(  # noqa: PLR0913
                 if not arg.startswith("-"):
                     final_plugin = arg
                     break
-        
+
         # Process build mode and archive tool
         final_build_mode = build_mode
         final_use_bsarch = (archive_tool == "bsarch") if archive_tool else False
-        
+
         # Handle legacy flags for backward compatibility
         for arg in args:
             if arg.startswith("-"):

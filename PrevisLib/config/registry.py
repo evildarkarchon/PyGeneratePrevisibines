@@ -84,11 +84,11 @@ def _find_xedit_path(winreg: types.ModuleType) -> Path | None:
 
 
 def _find_fallout4_paths(winreg: types.ModuleType) -> tuple[Path | None, Path | None]:
-    """
+    r"""
     Finds the paths of Fallout 4 and Creation Kit executables by querying the Windows registry.
 
     This function attempts to locate the installation directory for Fallout 4 by querying
-    the registry key under r"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Bethesda Softworks\Fallout4".
+    the registry key under "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Bethesda Softworks\Fallout4".
     It specifically checks for the "installed path" value, and if found, verifies the existence
     of the executables for Fallout 4 and Creation Kit within that directory.
 
