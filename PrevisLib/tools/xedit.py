@@ -61,14 +61,19 @@ class XEditWrapper:
         # File system operations will use module functions directly
 
     def merge_combined_objects(self, data_path: Path, script_path: Path) -> bool:
-        """Merge combined objects using xEdit script.
+        """
+        Merges combined objects using xEdit. This function executes xEdit
+        with specified arguments and automates the merge process. It checks
+        the xEdit logs for errors after the process and returns whether the
+        merge operation was successful.
 
-        Args:
-            data_path: Path to Fallout 4 Data directory
-            script_path: Path to the merge script
-
-        Returns:
-            True if successful, False otherwise
+        :param data_path: Path to the data directory where the relevant files are located.
+        :type data_path: Path
+        :param script_path: Path to the script file to be executed by xEdit.
+        :type script_path: Path
+        :return: True if the combined objects merge completed successfully,
+            False otherwise.
+        :rtype: bool
         """
         logger.info("Starting combined objects merge with xEdit")
 
@@ -102,14 +107,20 @@ class XEditWrapper:
         return success
 
     def merge_previs(self, data_path: Path, script_path: Path) -> bool:
-        """Merge previs data using xEdit script.
+        """
+        Merge previs data using xEdit, running the process either with automation or
+        through the process runner depending on the availability of Pywinauto. This
+        method will orchestrate the merge process, run the required script, and
+        validate the xEdit log for successful completion of the merge operation.
 
-        Args:
-            data_path: Path to Fallout 4 Data directory
-            script_path: Path to the merge script
-
-        Returns:
-            True if successful, False otherwise
+        :param data_path: The file system path to the data directory used for the
+            previs merging process.
+        :type data_path: Path
+        :param script_path: The file system path to the script required for the
+            previs merging operation, specified as a Path object.
+        :type script_path: Path
+        :return: True if the previs merge was successful, otherwise False.
+        :rtype: bool
         """
         logger.info("Starting previs data merge with xEdit")
 
@@ -141,14 +152,21 @@ class XEditWrapper:
         return success
 
     def _run_with_automation(self, args: list[str], operation_name: str) -> bool:
-        """Run xEdit with window automation for better control.
+        """
+        Executes an operation using automation with xEdit if available; otherwise, falls back
+        to standard execution. The process includes starting xEdit, monitoring for completion,
+        and handling any issues such as errors or timeouts that may occur during the execution.
 
-        Args:
-            args: Command line arguments
-            operation_name: Name of the operation for logging
-
-        Returns:
-            True if successful, False otherwise
+        :param args: List of command-line arguments for executing the operation
+            with xEdit.
+        :type args: list[str]
+        :param operation_name: The name of the operation being performed, for
+            logging and identification purposes.
+        :type operation_name: str
+        :return: A boolean indicating whether the operation was successfully
+            completed. Returns True if the operation was successful, and False
+            otherwise.
+        :rtype: bool
         """
         if not PYWINAUTO_AVAILABLE:
             logger.warning("pywinauto not available, falling back to standard execution")
@@ -214,13 +232,15 @@ class XEditWrapper:
             return return_code == 0
 
     def _is_xedit_busy(self, window) -> bool:  # noqa: ANN001
-        """Check if xEdit is still processing.
+        """
+        Determine whether the XEdit application window is busy based on the status bar
+        text. If the status bar indicates "processing" or "running", the method returns
+        True. If an exception occurs or no such indication is found, it returns False.
 
-        Args:
-            window: xEdit main window
-
-        Returns:
-            True if busy, False if idle
+        :param window: The application window object to evaluate.
+        :type window: WindowStub
+        :return: True if the application is busy as per the status bar, False otherwise.
+        :rtype: bool
         """
         try:
             # Check status bar or other indicators
@@ -235,13 +255,18 @@ class XEditWrapper:
         return False
 
     def _check_xedit_log(self, operation: str) -> bool:
-        """Check xEdit log for successful completion.
+        """
+        Checks xEdit logs to determine the success or failure of an operation, following specific
+        patterns defined in the batch file logic. This method reviews logs from various possible
+        locations and examines their contents to identify error patterns or completion indicators.
 
-        Args:
-            operation: Name of the operation
-
-        Returns:
-            True if successful, False if errors found
+        :param operation: The operation identifier or description being checked in the xEdit logs.
+        :type operation: str
+        :return: Boolean indicating whether the operation was successful. Returns True if successful
+                 or no errors are found, False otherwise.
+        :rtype: bool
+        :raises OSError: If there is an issue reading log files from disk.
+        :raises UnicodeDecodeError: If the log files contain non-UTF-8 decodable content.
         """
         # Enhanced to match the batch file patterns exactly
         # Look for the unattended log file that xEdit creates

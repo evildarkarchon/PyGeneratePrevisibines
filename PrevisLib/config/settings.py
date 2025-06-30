@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 logger: Logger = get_logger(__name__)
 
 
+# noinspection PyNestedDecorators
 class Settings(BaseModel):
     plugin_name: str = ""
     build_mode: BuildMode = BuildMode.CLEAN
@@ -34,6 +35,18 @@ class Settings(BaseModel):
     @field_validator("plugin_name")
     @classmethod
     def validate_plugin_name(cls, v: str) -> str:
+        """
+        Validates the provided plugin name to ensure it adheres to specific naming rules and
+        does not conflict with reserved names. The function also verifies if the plugin name has
+        an appropriate file extension and appends a default `.esp` extension if necessary.
+
+        :param v: The plugin name string to validate.
+        :type v: str
+        :return: The validated and appropriately formatted plugin name.
+        :rtype: str
+        :raises ValueError: If the plugin name contains spaces, is a reserved name, or has an
+            invalid file extension.
+        """
         if not v:
             return v
 
@@ -69,6 +82,18 @@ class Settings(BaseModel):
     @field_validator("working_directory")
     @classmethod
     def validate_working_directory(cls, v: Any) -> Path:
+        """
+        Validates the 'working_directory' field to ensure it represents an existing
+        path. Converts the value to a `Path` object if it is provided as a string,
+        and raises a `ValueError` if the path does not exist.
+
+        :param v: The value to validate, either as a string representing a path or
+                  already as a `Path` object.
+        :type v: Any
+        :return: A `Path` object representing the validated working directory.
+        :rtype: Path
+        :raises ValueError: If the `working_directory` does not exist.
+        """
         if isinstance(v, str):
             v = Path(v)
         if not v.exists():
@@ -77,6 +102,17 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def load_ckpe_config(self) -> Settings:
+        """
+        Validates and loads the CKPE configuration file. The method is triggered after the model validation phase.
+        It checks the existence of the provided configuration file path, determines the file type based on its
+        extension, and loads the contents using the appropriate parser. If the file does not exist or loading fails,
+        the configuration is set to None. This method ensures the model's settings include appropriate CKPE config.
+
+        :raises OSError: When there is an issue accessing the file system for CKPE config.
+        :raises ValueError: When the CKPE config content is invalid or cannot be parsed for the given file type.
+        :return: Current instance with the loaded CKPE configuration or set to None.
+        :rtype: Settings
+        """
         if self.ckpe_config_path and self.ckpe_config_path.exists():
             try:
                 if self.ckpe_config_path.suffix == ".toml":
@@ -100,6 +136,28 @@ class Settings(BaseModel):
         fallout4_path: Path | None = None,
         xedit_path: Path | None = None,
     ) -> Settings:
+        """
+        Creates and initializes a Settings instance based on the provided command-line
+        arguments. This method configures the instance with paths and options tailored
+        to the user's input and system environment. It also includes logic for automatic
+        tool discovery for Windows platforms and ensures specified paths from the
+        arguments are validated and applied.
+
+        :param plugin_name: The name of the plugin to be used. If provided, disables
+            interactive prompts unless overridden.
+        :param build_mode: Specifies the mode for building plugins. Possible values
+            are platform-dependent and case-insensitive.
+        :param use_bsarch: If True, sets the archive tool preference to BSArch.
+        :param no_prompt: If True, disables any interactive prompts.
+        :param verbose: If True, enables verbose logging for debugging and detailed
+            operation information.
+        :param fallout4_path: Path to the installation folder of Fallout 4, which is
+            used to configure related tools and paths automatically.
+        :param xedit_path: Path to the xEdit executable, which identifies the location
+            of xEdit tools and related utilities.
+        :return: A configured Settings instance based on the provided values and system
+            environment.
+        """
         settings = cls()
 
         if plugin_name:

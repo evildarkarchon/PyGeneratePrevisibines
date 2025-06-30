@@ -72,13 +72,15 @@ class PrevisBuilder:
         self.temp_path = self.data_path / "Temp"
 
     def _get_plugin_base_name(self) -> str:
-        """Extract base name from plugin, validating extension.
+        """
+        Extracts and returns the base name of a plugin, excluding its file extension. The method
+        validates that the extension is among the permitted types (".esp", ".esm", ".esl"). If the
+        plugin's extension does not match any of these, it raises a ValueError. The base name is
+        obtained using the stem of the file path.
 
-        Returns:
-            Base name without extension
-
-        Raises:
-            ValueError: If plugin has invalid extension
+        :param self: Reference to the current instance of the class.
+        :return: The base name of the plugin as a string.
+        :raises ValueError: If the plugin's extension is not one of the valid extensions.
         """
         valid_extensions: set[str] = {".esp", ".esm", ".esl"}
 
@@ -92,13 +94,17 @@ class PrevisBuilder:
         return plugin_path.stem
 
     def build(self, start_from_step: BuildStep | None = None) -> bool:
-        """Execute the full build process.
+        """
+        Executes the build process for the plugin by running a series of predefined steps.
+        The method starts by initializing configurations, determining the steps to execute,
+        and iterates over them, executing each one. Each step's outcome is logged, and the
+        process halts if a step fails. A successful build is logged upon completion.
 
-        Args:
-            start_from_step: Optional step to resume from
-
-        Returns:
-            True if successful, False otherwise
+        :param start_from_step: The build step from which to start execution. If None, execution
+            begins from the first step.
+        :type start_from_step: BuildStep | None
+        :return: True if all steps completed successfully, False if any step failed.
+        :rtype: bool
         """
         logger.info(f"Starting previs build for {self.plugin_name}")
         logger.info(f"Build mode: {self.build_mode.value}")
@@ -142,13 +148,17 @@ class PrevisBuilder:
         return True
 
     def _get_steps_to_run(self, start_from: BuildStep | None) -> list[BuildStep]:
-        """Get the list of steps to run based on start point.
+        """
+        Determines and returns the list of build steps to be executed starting from a
+        specific step. If no starting step is specified, all steps are returned. If the
+        specified starting step is invalid, a warning is logged, and all steps are
+        returned.
 
-        Args:
-            start_from: Optional step to start from
-
-        Returns:
-            List of steps to execute
+        :param start_from: The starting build step from which to execute the steps.
+            If None, all steps are executed.
+        :type start_from: BuildStep | None
+        :return: A list of build steps to be executed starting from the specified step.
+        :rtype: list[BuildStep]
         """
         all_steps: list[BuildStep] = list(BuildStep)
 
@@ -163,13 +173,16 @@ class PrevisBuilder:
             return all_steps
 
     def _execute_step(self, step: BuildStep) -> bool:
-        """Execute a single build step.
+        """
+        Executes the function associated with the given build step. Maps a build step
+        to its corresponding method and calls the method to execute the step logic.
+        If no corresponding method is implemented for the given step, logs an error
+        and returns False.
 
-        Args:
-            step: The build step to execute
-
-        Returns:
-            True if successful, False otherwise
+        :param step: The build step to be executed.
+        :type step: BuildStep
+        :return: True if the execution of the step was successful, otherwise False.
+        :rtype: bool
         """
         step_map: dict[BuildStep, Callable[[], bool]] = {
             BuildStep.GENERATE_PRECOMBINED: self._step_generate_precombined,
@@ -189,7 +202,18 @@ class PrevisBuilder:
         return False
 
     def _step_generate_precombined(self) -> bool:
-        """Step 1: Generate precombined meshes."""
+        """
+        Generates precombined meshes using the Creation Kit. This process involves cleaning
+        the output directory, running the Creation Kit to generate the meshes, and verifying
+        the successful generation of both the mesh files and the CombinedObjects.esp file.
+
+        :raises FileNotFoundError: If CombinedObjects.esp is not created within the specified
+            timeout during the verification phase.
+
+        :return: Boolean indicating whether the precombined meshes were successfully
+            generated.
+        :rtype: bool
+        """
         logger.info("Step 1: Generating precombined meshes")
 
         # Clean output directory
@@ -216,7 +240,15 @@ class PrevisBuilder:
         return success
 
     def _step_merge_combined_objects(self) -> bool:
-        """Step 2: Merge combined objects using xEdit."""
+        """
+        Merges combined objects using the specified xEdit script. This function logs
+        progress, locates the necessary script for merging combined objects, and
+        executes the merge process through the xEdit wrapper. If the script cannot
+        be found, the process is halted, and the failure is logged.
+
+        :return: True if the merge process is successful, False otherwise
+        :rtype: bool
+        """
         logger.info("Step 2: Merging combined objects")
 
         # Find the merge script
@@ -229,7 +261,17 @@ class PrevisBuilder:
         return self.xedit_wrapper.merge_combined_objects(self.data_path, script_path)
 
     def _step_archive_meshes(self) -> bool:
-        """Step 3: Archive precombined meshes."""
+        """
+        Archives precombined meshes into a BA2 archive file and cleans up loose files
+        upon successful archiving. This is part of the workflow for managing and packaging
+        game asset files.
+
+        :raises RuntimeError: If an error occurs during the archiving process within
+            the `archive_wrapper` implementation.
+
+        :rtype: bool
+        :return: A boolean indicating whether the archiving process was successful.
+        """
         logger.info("Step 3: Archiving precombined meshes")
 
         archive_path: Path = self.data_path / f"{self.plugin_base_name} - Main.ba2"
@@ -245,19 +287,52 @@ class PrevisBuilder:
         return success
 
     def _step_compress_psg(self) -> bool:
-        """Step 4: Compress PSG files."""
+        """
+        Compresses PSG files using the configured CK wrapper.
+
+        This method is part of a multi-step process for handling PSG files. It
+        invokes the `compress_psg` function provided by the `ck_wrapper` while
+        utilizing the specified `data_path`. Logging is performed to indicate the
+        step in progress.
+
+        :return: A boolean indicating whether the compression was successful.
+        :rtype: bool
+        """
         logger.info("Step 4: Compressing PSG files")
 
         return self.ck_wrapper.compress_psg(self.data_path)
 
     def _step_build_cdx(self) -> bool:
-        """Step 5: Build CDX files."""
+        """
+        Builds CDX files as part of a specific processing step.
+
+        This method logs the initiation of Step 5, which involves constructing
+        CDX files through the `build_cdx` method of the `ck_wrapper` object,
+        using the specified `data_path`. The method returns a boolean value
+        indicating the success or failure of this operation.
+
+        :return: A boolean value indicating whether the CDX files were
+            successfully built.
+        :rtype: bool
+        """
         logger.info("Step 5: Building CDX files")
 
         return self.ck_wrapper.build_cdx(self.data_path)
 
     def _step_generate_previs(self) -> bool:
-        """Step 6: Generate visibility data."""
+        """
+        Generates visibility data using the Creation Kit and processes the generated data.
+
+        This method orchestrates the process of generating visibility data by cleaning the
+        temporary directory, invoking the Creation Kit, and validating the output files.
+        It ensures that the visibility data files and the `Previs.esp` file are successfully
+        created and cleans up the temporary output directory before processing.
+
+        :raises FileNotFoundError: If `Previs.esp` file is not generated within the timeout period.
+
+        :return: Indicates whether the visibility data generation was successful.
+        :rtype: bool
+        """
         logger.info("Step 6: Generating visibility data")
 
         # Clean temp directory for previs output
@@ -284,7 +359,16 @@ class PrevisBuilder:
         return success
 
     def _step_merge_previs(self) -> bool:
-        """Step 7: Merge previs data using xEdit."""
+        """
+        Merges previs data during step 7 of the process.
+
+        This method locates the appropriate xEdit script for merging previs data,
+        logs the process, and attempts to execute the merge using the `xedit_wrapper`.
+
+        :return: True if the merge operation succeeds, False if the script could not
+            be found or the merge fails.
+        :rtype: bool
+        """
         logger.info("Step 7: Merging previs data")
 
         # Find the merge script
@@ -297,7 +381,15 @@ class PrevisBuilder:
         return self.xedit_wrapper.merge_previs(self.data_path, script_path)
 
     def _step_final_packaging(self) -> bool:
-        """Step 8: Final packaging and cleanup."""
+        """
+        Handles the final packaging step for the plugin. This involves verifying the
+        existence of the main archive, optionally adding visibility data to it if
+        available, and performing clean-up operations as necessary. The method
+        returns a boolean indicating the success or failure of the operation.
+
+        :return: True if the process completes successfully, False otherwise
+        :rtype: bool
+        """
         logger.info("Step 8: Final packaging")
 
         main_archive_path: Path = self.data_path / f"{self.plugin_base_name} - Main.ba2"
@@ -332,13 +424,19 @@ class PrevisBuilder:
         return True
 
     def _find_xedit_script(self, script_name: str) -> Path | None:
-        """Find an xEdit script by name.
+        """
+        Finds the xEdit script path based on the given script name.
 
-        Args:
-            script_name: Name of the script to find
+        This method searches for a script with the given name in multiple common
+        locations under the "Edit Scripts" directory. It also checks for different
+        file extensions such as `.pas`, `.psc`, and `.txt`. If the script is found, it
+        returns the path to the script; otherwise, it returns `None`.
 
-        Returns:
-            Path to the script if found, None otherwise
+        :param script_name: The name of the script to locate (without extension).
+        :type script_name: str
+        :return: The path to the script, if it exists; otherwise, `None`.
+        :rtype: Path | None
+        :raises ValueError: If the xEdit path is not configured in the settings.
         """
         if self.settings.tool_paths.xedit is None:
             raise ValueError("xEdit path is required but not configured")
@@ -361,10 +459,14 @@ class PrevisBuilder:
         return None
 
     def get_resume_options(self) -> list[BuildStep]:
-        """Get list of steps that can be resumed from.
+        """
+        Provides functionality to retrieve a list of build steps from which the
+        process can be resumed. If a step has failed, this method allows resuming
+        from the point of failure or any subsequent step. Otherwise, it enables
+        starting from any step.
 
-        Returns:
-            List of valid resume steps
+        :returns: A list of build steps from which the process can be resumed.
+        :rtype: list[BuildStep]
         """
         if self.failed_step:
             # Can resume from the failed step or any step after
@@ -375,10 +477,18 @@ class PrevisBuilder:
         return list(BuildStep)
 
     def cleanup(self) -> bool:
-        """Clean up all generated files and directories.
+        """
+        Cleans up previs files by deleting specific files and cleaning specified
+        directories. The files to delete and directories to clean are determined
+        by the `data_path`, `plugin_base_name`, `output_path`, and `temp_path`.
+        The method ensures safe deletion and logs the status of each operation.
 
-        Returns:
-            True if successful, False otherwise
+        :param self: Instance of the containing class.
+        :return: True if all operations succeed, False if any fail.
+        :rtype: bool
+
+        :raises Exception: Logs an error if a file deletion fails due to an unexpected
+            exception.
         """
         logger.info("Cleaning up previs files")
 
@@ -416,10 +526,16 @@ class PrevisBuilder:
         return success
 
     def cleanup_working_files(self) -> bool:
-        """Clean up working files after successful build (matches original batch file behavior).
+        """
+        Cleans up the working files generated during previous operations.
 
-        Returns:
-            True if successful, False otherwise
+        The method attempts to delete a predefined list of working files from the file
+        system. It iterates through the list of file paths and tries to remove each
+        file. If a file cannot be deleted, an error is logged, and the overall success
+        flag is updated to indicate failure.
+
+        :return: A boolean indicating whether all files were successfully deleted.
+        :rtype: bool
         """
         logger.info("Cleaning up working files")
 

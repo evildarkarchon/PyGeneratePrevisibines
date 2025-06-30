@@ -41,6 +41,18 @@ class ToolPaths:
     fallout4: Path | None = None
 
     def validate(self) -> list[str]:
+        """
+        Validates the configuration for required tools and files. Checks for the existence
+        of necessary components such as Creation Kit, xEdit, Fallout 4, and archive tools.
+        Additionally, validates xEdit scripts if xEdit is available. The method accumulates
+        and returns a list of validation errors encountered during the process.
+
+        :raises IOError: Raised internally during file validity checks in associated tools.
+
+        :return: A list of error messages as strings describing each issue detected during the
+            validation.
+        :rtype: list[str]
+        """
         from PrevisLib.utils.validation import validate_xedit_scripts
 
         errors: list[Any] = []
@@ -74,6 +86,20 @@ class CKPEConfig:
 
     @classmethod
     def from_toml(cls, config_path: Path) -> CKPEConfig:
+        """
+        Creates an instance of the CKPEConfig class from a TOML configuration file.
+
+        This class method reads the specified TOML configuration file, extracts the settings
+        defined within, and initializes a CKPEConfig instance with these settings. It utilizes
+        the `tomli` module to parse the TOML file. The method assumes the TOML structure includes
+        sections such as 'CreationKit' and 'Log' with specific keys.
+
+        :param config_path: The Path object representing the path to the TOML file.
+        :type config_path: Path
+        :return: A new instance of CKPEConfig configured with parameters extracted from the TOML
+            file.
+        :rtype: CKPEConfig
+        """
         import tomli
 
         with config_path.open("rb") as f:
@@ -91,6 +117,21 @@ class CKPEConfig:
 
     @classmethod
     def from_ini(cls, config_path: Path) -> CKPEConfig:
+        """
+        Creates an instance of CKPEConfig from an INI configuration file.
+
+        This class method reads the specified INI file, parses its sections
+        and keys, and initializes a CKPEConfig object with the parsed
+        configuration values. The method ensures compatibility by checking
+        for specific sections ('CreationKit' and 'Log') and retrieves only
+        the necessary settings for initializing the instance.
+
+        :param config_path: Path to the INI configuration file to be read.
+        :type config_path: Path
+        :return: An initialized CKPEConfig object with settings loaded from
+                 the provided configuration file.
+        :rtype: CKPEConfig
+        """
         import configparser
 
         parser: ConfigParser = configparser.ConfigParser()

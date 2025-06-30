@@ -22,13 +22,18 @@ class CreationKitWrapper:
         self.graphics_dlls = ["d3d11.dll", "d3d10.dll", "d3d9.dll", "dxgi.dll", "enbimgui.dll", "d3dcompiler_46e.dll"]
 
     def generate_precombined(self, data_path: Path) -> bool:
-        """Generate precombined meshes using Creation Kit.
+        """
+        Generates precombined meshes using the Creation Kit (CK) for the specified data
+        path. The function disables graphics DLLs temporarily to ensure compatibility
+        with CK, constructs appropriate command-line arguments based on the build mode,
+        and executes the CK process. Upon completion, it restores the graphics DLLs and
+        logs the result of the operation.
 
-        Args:
-            data_path: Path to Fallout 4 Data directory
-
-        Returns:
-            True if successful, False otherwise
+        :param data_path: Path to the directory containing the data required for the
+            precombined mesh generation.
+        :type data_path: Path
+        :return: True if precombined meshes are generated successfully, False otherwise.
+        :rtype: bool
         """
         logger.info("Starting precombined mesh generation")
 
@@ -64,13 +69,19 @@ class CreationKitWrapper:
             self._restore_graphics_dlls()
 
     def compress_psg(self, data_path: Path) -> bool:
-        """Compress PSG files using Creation Kit.
+        """
+        Compresses a PSG file using the Creation Kit (CK) tool.
 
-        Args:
-            data_path: Path to Fallout 4 Data directory
+        This method invokes the Creation Kit with specific arguments to perform PSG
+        file compression for a given plugin. The process includes disabling graphics
+        DLLs before the operation and ensures they are restored afterward. If the
+        compression succeeds, it additionally checks for errors reported by the CK.
+        The method logs progress, success, and error events during the operation.
 
-        Returns:
-            True if successful, False otherwise
+        :param data_path: The file system path to the PSG data for processing.
+        :type data_path: Path
+        :return: True if the compression succeeds without errors; otherwise, False.
+        :rtype: bool
         """
         logger.info("Starting PSG file compression")
 
@@ -100,13 +111,18 @@ class CreationKitWrapper:
             self._restore_graphics_dlls()
 
     def build_cdx(self, data_path: Path) -> bool:
-        """Build CDX files using Creation Kit.
+        """
+        Generates a CDX file using the Creation Kit (CK) by executing a process with
+        specific arguments, managing graphics DLLs, and checking for errors in the process.
+        This method wraps the functionality surrounding CDX file generation, including
+        error handling and resource cleanup.
 
-        Args:
-            data_path: Path to Fallout 4 Data directory
-
-        Returns:
-            True if successful, False otherwise
+        :param data_path: Represents the path where the CDX process will check for errors
+            or related working files.
+        :type data_path: Path
+        :return: True if the CDX building process was successful and no errors were
+            reported by the Creation Kit, otherwise False.
+        :rtype: bool
         """
         logger.info("Starting CDX file generation")
 
@@ -136,13 +152,20 @@ class CreationKitWrapper:
             self._restore_graphics_dlls()
 
     def generate_previs_data(self, data_path: Path) -> bool:
-        """Generate visibility data using Creation Kit.
+        """
+        Generates precomputed visibility (PreVis) data using the Creation Kit (CK) for the
+        specified data path. This process ensures that the scene data is optimized for rendering
+        by defining visibility for objects and environments. The method disables specific graphics
+        DLLs during the operation and ensures their restoration afterward, even in the case of
+        failures. It performs several validation checks, including detecting errors or incomplete
+        operations reported by the Creation Kit.
 
-        Args:
-            data_path: Path to Fallout 4 Data directory
-
-        Returns:
-            True if successful, False otherwise
+        :param data_path: The path to the data directory for which the PreVis data generation
+            will be performed.
+        :type data_path: Path
+        :return: Returns ``True`` if the PreVis data generation succeeded without errors and
+            completed properly. Returns ``False`` if the process failed or errors were detected.
+        :rtype: bool
         """
         logger.info("Starting previs data generation")
 
@@ -176,10 +199,20 @@ class CreationKitWrapper:
             self._restore_graphics_dlls()
 
     def _disable_graphics_dlls(self) -> None:
-        """Disable graphics DLLs by renaming them to prevent CK graphics issues.
+        """
+        Disables specific graphics DLL files to prevent issues with CK graphics. For each
+        DLL in the `graphics_dlls` list, it renames the file by appending `-PJMdisabled`
+        to the filename. This prevents specific graphics-related DLLs from being loaded.
 
-        This matches the batch file behavior of renaming DLLs to .dll-PJMdisabled
-        to prevent Creation Kit graphics problems.
+        The method checks whether the DLL exists in the specified `ck_directory` and
+        ensures that a disabled version of the file does not already exist before attempting
+        to rename it. If renaming fails due to operating system errors or file permissions,
+        a warning is logged.
+
+        :raises OSError: If an operating system-related error occurs during renaming.
+        :raises PermissionError: If file permissions prevent renaming the DLL.
+
+        :return: None
         """
         logger.debug("Disabling graphics DLLs to prevent CK graphics issues")
 
@@ -195,9 +228,21 @@ class CreationKitWrapper:
                     logger.warning(f"Could not disable {dll_name}: {e}")
 
     def _restore_graphics_dlls(self) -> None:
-        """Restore graphics DLLs by renaming them back from .dll-PJMdisabled.
+        """
+        Restores disabled graphics DLLs in the specified directory by renaming them
+        back to their original filenames. This process is intended to re-enable the
+        use of graphics libraries that were previously disabled.
 
-        This matches the batch file behavior of restoring DLLs after CK operations.
+        The method iterates through a list of graphics DLL names, checking for
+        disabled versions of these files in the directory. If a disabled version
+        exists and its original version does not, the file is renamed back to its
+        original name. Logs are generated to indicate the success or failure of
+        restoration attempts.
+
+        :raises OSError: Raised if there is an error while renaming a disabled file.
+        :raises PermissionError: Raised if the proper permissions are lacking to
+            execute the renaming operation logged during restoration attempts.
+        :return: None
         """
         logger.debug("Restoring graphics DLLs")
 
@@ -213,13 +258,20 @@ class CreationKitWrapper:
                     logger.warning(f"Could not restore {dll_name}: {e}")
 
     def _check_ck_errors(self, data_path: Path) -> bool:
-        """Check Creation Kit log files for errors.
+        """
+        Check for errors in the CKPE log file by scanning its contents for specific error patterns.
 
-        Args:
-            data_path: Path to Fallout 4 Data directory
+        This function evaluates error patterns within the log file specified by the CKPE
+        configuration. If the log file is located using a relative path, it resolves the path
+        relative to the provided data directory. The log file is read, and specific error patterns
+        are searched for in the file's content. If any error patterns are detected, the function
+        logs the detection and returns `True`. If no errors are found, it returns `False`.
 
-        Returns:
-            True if errors found, False otherwise
+        :param data_path: The path to the directory containing data. Used to resolve a relative
+            log file path if the CKPE configuration specifies one.
+        :type data_path: Path
+        :return: True if any error pattern is found in the log file; otherwise, False.
+        :rtype: bool
         """
         # Skip log checking if no CKPE config or no log file configured
         if not self.ckpe_config or not self.ckpe_config.log_output_file:
@@ -258,13 +310,18 @@ class CreationKitWrapper:
         return False
 
     def _check_previs_completion(self, data_path: Path) -> bool:
-        """Check if previs generation completed successfully.
+        """
+        Checks the completion status of previs generation based on log file analysis. This method evaluates the content
+        of the log file associated with the CKPE configuration for patterns indicating failure. If the log file exists
+        and contains any of the predefined failure patterns, the function returns False. If the log file is missing or
+        does not contain failure patterns, the function either returns True or logs appropriate warnings.
 
-        Args:
-            data_path: Path to Fallout 4 Data directory
-
-        Returns:
-            True if completed successfully, False otherwise
+        :param data_path: The path to the directory containing relevant data files, used as a base path to resolve
+            the log file if specified as a relative path.
+        :type data_path: Path
+        :return: True if no failure patterns are found in the log file or the log file is not configured or does not
+            exist, otherwise False.
+        :rtype: bool
         """
         # Skip log checking if no CKPE config or no log file configured
         if not self.ckpe_config or not self.ckpe_config.log_output_file:

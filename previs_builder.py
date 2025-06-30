@@ -37,17 +37,19 @@ BANNER = """
 
 
 
-def prompt_for_plugin(settings: Settings | None = None) -> str:
-    """Prompt user for plugin name with validation and template creation.
+def prompt_for_plugin(settings: Settings | None = None) -> str | None:
+    """
+    Prompts the user to enter a plugin name for previs generation. If the plugin
+    name doesn't exist, it offers the option to create it from a template.
+    This function handles input validation, ensures non-reserved plugin names,
+    and checks for the plugin's existence in the Fallout 4 Data directory if
+    tool paths are provided in the settings.
 
-    Args:
-        settings: Optional settings object with tool paths for template creation
+    :param settings: Optional settings containing tool paths for validation and
+        plugin creation. The Settings object should provide access to the Fallout 4
+        Data directory for checking if plugins exist.
 
-    Returns:
-        Valid plugin name
-
-    Raises:
-        KeyboardInterrupt: If user cancels with Ctrl+C
+    :return: The validated and potentially created plugin name as a string.
     """
     console.print("\n[cyan]Enter the plugin name for previs generation.[/cyan]")
     console.print("[dim]Example: MyMod.esp[/dim]")
@@ -100,10 +102,20 @@ def prompt_for_plugin(settings: Settings | None = None) -> str:
 
 
 def prompt_for_build_mode() -> BuildMode:
-    """Prompt user to select build mode.
+    """
+    Prompts the user to select a build mode for the application from the given options.
 
-    Returns:
-        Selected build mode
+    The function presents multiple build modes to the user in a visually formatted table
+    and allows selection from a list of choices using a prompt. Each mode is associated
+    with a unique number and description. Based on the user's input, the corresponding
+    build mode is returned. This approach ensures clarity in selection and adaptability
+    for future additions of build modes.
+
+    :raises ValueError: if an invalid choice is made multiple times (handled implicitly by
+        the console prompt and retry mechanism).
+
+    :return: The selected build mode as an instance of the ``BuildMode`` enum.
+    :rtype: BuildMode
     """
     console.print("\n[cyan]Select build mode:[/cyan]")
 
@@ -128,13 +140,14 @@ def prompt_for_build_mode() -> BuildMode:
 
 
 def prompt_for_resume(builder: PrevisBuilder) -> BuildStep | None:
-    """Prompt user to select step to resume from.
+    """
+    Prompt the user to select an option to resume a previously interrupted build or start fresh.
 
-    Args:
-        builder: PrevisBuilder instance with resume options
-
-    Returns:
-        Selected step or None to start fresh
+    :param builder: An instance of the PrevisBuilder providing the options to resume
+        the interrupted build.
+    :type builder: PrevisBuilder
+    :return: The selected build step to resume from, or None if the user chooses to start fresh.
+    :rtype: BuildStep | None
     """
     resume_options: list[BuildStep] = builder.get_resume_options()
 
@@ -157,10 +170,18 @@ def prompt_for_resume(builder: PrevisBuilder) -> BuildStep | None:
 
 
 def show_tool_versions(settings: Settings) -> None:
-    """Display tool versions like the original batch file.
+    """Displays the versions of the specified tools used in the given settings configuration.
 
-    Args:
-        settings: Build settings containing tool paths
+    The function analyzes the paths of tools stored in the provided settings and attempts to
+    determine their versions. If a valid tool path exists, it retrieves its version, providing
+    appropriate feedback depending on the success or failure of the version check. Additionally,
+    it checks for the presence of CKPE by verifying a specific DLL in the Fallout 4 directory.
+
+    :param settings: A configuration object containing paths to various tools used in the
+        application workflow.
+    :type settings: Settings
+    :return: This function does not return any value; it displays tool versions to the console.
+    :rtype: None
     """
     console.print("\n[bold cyan]Tool Versions:[/bold cyan]")
 
@@ -192,10 +213,19 @@ def show_tool_versions(settings: Settings) -> None:
 
 
 def show_build_summary(settings: Settings) -> None:
-    """Display build configuration summary.
+    """
+    Displays a summary of the build configuration using a console table output.
 
-    Args:
-        settings: Build settings
+    This function renders a formatted summary of the given build settings,
+    highlighting the relevant configuration options. It uses a styled table to
+    dynamically list configuration values such as the plugin name, build mode,
+    and archive tool. Additional context, like the CKPE configuration status,
+    is also included if available in the settings.
+
+    :param settings: An instance of the Settings class containing the build
+        configuration values.
+    :type settings: Settings
+    :return: None
     """
     console.print("\n[bold green]Build Configuration:[/bold green]")
 
@@ -214,13 +244,22 @@ def show_build_summary(settings: Settings) -> None:
 
 
 def run_build(settings: Settings) -> bool | None:
-    """Execute the build process.
+    """
+    Run the build process based on provided settings.
 
-    Args:
-        settings: Build settings
+    The function initiates a build process with configurable steps. It provides an
+    interactive prompt to resume a potentially failed build, displays a summary of
+    the build configuration, and verifies user confirmation before proceeding. A
+    progress bar is shown during the build, detailing the status and completion of
+    each step. Upon successful build completion, generated output files are listed,
+    and a post-build cleanup prompt is displayed. The function handles both
+    successful and failed build scenarios with corresponding messages.
 
-    Returns:
-        True if successful, False if failed, None if cancelled.
+    :param settings: The settings configuration for the build process.
+    :type settings: Settings
+    :return: A boolean indicating build success or failure, or None if the build
+        was cancelled.
+    :rtype: bool | None
     """
     builder = PrevisBuilder(settings)
 
@@ -251,6 +290,7 @@ def run_build(settings: Settings) -> bool | None:
         task: TaskID = progress.add_task("Building previs...", total=total_steps)
 
         # Custom progress callback
+        # noinspection PyUnusedLocal
         def update_progress(step: BuildStep, completed: bool) -> None:
             if completed:
                 progress.update(task, advance=1)
@@ -294,13 +334,15 @@ def run_build(settings: Settings) -> bool | None:
 
 
 def prompt_for_cleanup(settings: Settings) -> bool:
-    """Prompt user to clean up existing previs files.
+    """
+    Prompts the user for confirmation to execute cleanup operations for existing previs files.
+    Displays a summary of the files and directories that will be deleted and performs the
+    cleanup if the user confirms. Reports the success or failure of the operation.
 
-    Args:
-        settings: Build settings
-
-    Returns:
-        True if cleanup was performed
+    :param settings: Configuration settings for the cleanup operation.
+    :type settings: Settings
+    :return: Indicates whether the cleanup was successful.
+    :rtype: bool
     """
     plugin_base: str = Path(settings.plugin_name).stem
 
@@ -316,6 +358,8 @@ def prompt_for_cleanup(settings: Settings) -> bool:
         return False
 
     builder = PrevisBuilder(settings)
+
+    success: bool = False
 
     try:
         with console.status("Cleaning up files..."):

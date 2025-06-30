@@ -35,6 +35,17 @@ REQUIRED_XEDIT_SCRIPTS: dict[str, str] = {
 
 
 def validate_plugin_name(plugin_name: str) -> tuple[bool, str]:
+    """
+    Validates the provided plugin name based on several criteria such as non-emptiness, absence
+    of spaces, valid extension, and it not being a reserved name. Returns a tuple indicating
+    whether the validation was successful and an error message if it was not.
+
+    :param plugin_name: The name of the plugin to validate.
+    :type plugin_name: str
+    :return: A tuple where the first element is a boolean indicating whether the validation
+        passed, and the second element is the error message if validation failed.
+    :rtype: tuple[bool, str]
+    """
     if not plugin_name:
         return False, "Plugin name cannot be empty"
 
@@ -53,16 +64,21 @@ def validate_plugin_name(plugin_name: str) -> tuple[bool, str]:
 
 
 def validate_xedit_scripts(xedit_path: Path) -> tuple[bool, str]:
-    """Validate that required xEdit scripts exist with correct versions.
+    """
+    Validates that the required xEdit scripts are present and have the correct versions.
 
-    This function replicates the behavior of the CheckScripts function from the
-    original GeneratePrevisibines.bat file.
+    This function checks the existence of xEdit scripts and verifies their versions
+    against predefined values. It scans the "Edit Scripts" directory located in the
+    same directory as the provided xEdit executable and validates the scripts based
+    on the requirements specified in `REQUIRED_XEDIT_SCRIPTS`. Any missing or
+    outdated scripts are logged and reported in the returned tuple.
 
-    Args:
-        xedit_path: Path to xEdit/FO4Edit executable
-
-    Returns:
-        Tuple of (success, message)
+    :param xedit_path: Path to the xEdit executable file.
+    :type xedit_path: Path
+    :return: A tuple containing a boolean indicating validation success and a
+        message describing the result. If validation fails, the message includes
+        details about which scripts are missing or have version mismatches.
+    :rtype: tuple[bool, str]
     """
     if not xedit_path or not xedit_path.exists():
         return False, "xEdit path not found"
@@ -118,14 +134,20 @@ def validate_xedit_scripts(xedit_path: Path) -> tuple[bool, str]:
 
 
 def create_plugin_from_template(data_path: Path, target_plugin_name: str) -> tuple[bool, str]:
-    """Create a new plugin by copying xPrevisPatch.esp template.
+    """
+    Creates a plugin file in the specified data directory from a predefined template. The method
+    ensures that the plugin file follows specific requirements, such as uniqueness and required file
+    formats, and performs various validation checks. It also handles cases where Mod Organizer 2
+    (MO2) is used, ensuring proper file copying and availability.
 
-    Args:
-        data_path: Path to Fallout 4 Data directory
-        target_plugin_name: Name of the plugin to create (will auto-append .esp if no extension)
-
-    Returns:
-        Tuple of (success, message)
+    :param data_path: The path to the directory containing the template and managing plugins.
+    :type data_path: Path
+    :param target_plugin_name: The desired name of the new plugin file. If no extension is
+                               provided, '.esp' will automatically be appended.
+    :type target_plugin_name: str
+    :return: A tuple where the first element is a boolean indicating success or failure, and
+             the second element is a message providing details of the result.
+    :rtype: tuple[bool, str]
     """
     from PrevisLib.utils.file_system import mo2_aware_copy, wait_for_output_file
 
@@ -171,6 +193,20 @@ def create_plugin_from_template(data_path: Path, target_plugin_name: str) -> tup
 
 
 def validate_tool_path(tool_path: Path | None, tool_name: str) -> tuple[bool, str]:
+    """
+    Validates the given path to ensure it points to an executable file for a specified
+    tool. This function verifies multiple conditions including the existence of the
+    path, whether it is a file, and whether it has the correct `.exe` extension.
+
+    :param tool_path: The path to the tool to be validated. It should point to a file
+        with the `.exe` extension. Accepts None when the tool path is not specified.
+    :type tool_path: Path | None
+    :param tool_name: The name of the tool for which the path is being validated.
+    :type tool_name: str
+    :return: A tuple containing a boolean to indicate if the validation succeeded
+        and a string providing the validation result or an error message.
+    :rtype: tuple[bool, str]
+    """
     if not tool_path:
         return False, f"{tool_name} path not specified"
 
@@ -190,6 +226,20 @@ def validate_tool_path(tool_path: Path | None, tool_name: str) -> tuple[bool, st
 
 
 def validate_directory(directory: Path, name: str, must_exist: bool = True) -> tuple[bool, str]:
+    """
+    Validates whether a given directory exists and is a valid directory path based
+    on the provided parameters. This function ensures that if a directory is
+    required to exist, it does exist and is indeed a directory.
+
+    :param directory: A Path object representing the directory to validate.
+    :param name: A string representing the name of the directory for identification
+        purposes in error messages.
+    :param must_exist: A boolean flag indicating whether the directory is required
+        to exist. Defaults to True.
+    :return: A tuple where the first element is a boolean indicating the validation
+        result, and the second element is a string message detailing validation
+        errors or an empty string if validation succeeds.
+    """
     if must_exist and not directory.exists():
         return False, f"{name} directory does not exist: {directory}"
 
@@ -200,14 +250,20 @@ def validate_directory(directory: Path, name: str, must_exist: bool = True) -> t
 
 
 def check_tool_version(tool_path: Path, expected_version: str | None = None) -> tuple[bool, str]:
-    """Check the version of a Windows executable tool.
+    """
+    Checks the specified executable file for version information and compares it
+    with the expected version, if provided. The function is designed to handle
+    Windows PE (Portable Executable) files and utilizes the `pefile` library
+    to extract version details embedded in the file. If the `pefile` library
+    is not available, the check is skipped unless an expected version is
+    specified. For non-Windows executables, a note is returned indicating
+    that the version check was skipped.
 
-    Args:
-        tool_path: Path to the executable
-        expected_version: Expected version string (optional)
-
-    Returns:
-        Tuple of (success, message/version)
+    :param tool_path: Path to the executable file to check.
+    :param expected_version: The version string to compare against, or None if no
+       comparison is needed.
+    :return: A tuple containing a boolean indicating success or failure, and a
+       string message describing the outcome.
     """
     if not tool_path.exists():
         return False, "Tool not found"
@@ -253,6 +309,18 @@ def check_tool_version(tool_path: Path, expected_version: str | None = None) -> 
 
 
 def validate_ckpe_config(config_path: Path) -> tuple[bool, str]:
+    """
+    Validates the CKPE configuration file provided in the specified path. The function ensures
+    the file exists, verifies the file extension to be `.toml` or `.ini`, and attempts
+    to parse the configuration using the appropriate format. Returns a boolean to indicate
+    the validation result and an optional error message in case validation fails.
+
+    :param config_path: Path to the CKPE configuration file to validate.
+    :type config_path: Path
+    :return: A tuple where the first value is a boolean indicating success or failure,
+             and the second value is a string containing error details if validation fails.
+    :rtype: tuple[bool, str]
+    """
     if not config_path.exists():
         return False, f"CKPE config not found: {config_path}"
 
@@ -277,6 +345,17 @@ def validate_ckpe_config(config_path: Path) -> tuple[bool, str]:
 
 
 def validate_archive_format(archive_path: Path) -> tuple[bool, str]:
+    """
+    Validates the format of a specified archive file to ensure it meets the expected
+    criteria of existence and proper file extension.
+
+    :param archive_path: The path to the archive file to validate
+    :type archive_path: Path
+    :return: A tuple containing a boolean indicating whether the archive is
+        valid, and a string message providing additional information or the
+        reason for failure
+    :rtype: tuple[bool, str]
+    """
     if not archive_path.exists():
         return False, f"Archive not found: {archive_path}"
 

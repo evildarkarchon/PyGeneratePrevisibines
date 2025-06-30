@@ -20,17 +20,18 @@ class BuildStepExecutor:
         self.data_path = fo4_path / "Data"
         self.build_mode = build_mode
 
-    def _get_plugin_base_name(self, plugin_name: str) -> str:
-        """Extract base name from plugin, validating extension.
+    @staticmethod
+    def _get_plugin_base_name(plugin_name: str) -> str:
+        """
+        Gets the base name of a plugin file by removing its extension. It ensures the plugin has
+        a valid extension from the set of `.esp`, `.esm`, or `.esl`. Raises a `ValueError` if
+        the plugin does not have a valid extension.
 
-        Args:
-            plugin_name: Full plugin name with extension
-
-        Returns:
-            Base name without extension
-
-        Raises:
-            ValueError: If plugin has invalid extension
+        :param plugin_name: The full name of the plugin file, including its extension.
+        :type plugin_name: str
+        :raises ValueError: If the plugin extension is not one of `.esp`, `.esm`, or `.esl`.
+        :return: The base name of the plugin file without its extension.
+        :rtype: str
         """
         valid_extensions: set[str] = {".esp", ".esm", ".esl"}
 
@@ -43,14 +44,17 @@ class BuildStepExecutor:
 
         return plugin_path.stem
 
-    def validate_precombined_output(self, output_path: Path) -> dict[str, Any]:
-        """Validate precombined mesh generation output.
+    @staticmethod
+    def validate_precombined_output(output_path: Path) -> dict[str, Any]:
+        """
+        Validates the output of precombined meshes by checking for the presence of files,
+        their total size, and potential error patterns in the file names.
 
-        Args:
-            output_path: Path containing generated meshes
-
-        Returns:
-            Validation results dictionary
+        :param output_path: Path to the directory containing the precombined outputs
+        :type output_path: Path
+        :return: A dictionary containing validation results, including whether the validation
+            was successful, the count of mesh files, the total size of the files, and any errors found
+        :rtype: dict[str, Any]
         """
         results: dict[str, Any] = {"valid": True, "mesh_count": 0, "total_size": 0, "errors": []}
 
@@ -82,13 +86,18 @@ class BuildStepExecutor:
         return results
 
     def prepare_for_archiving(self, source_path: Path) -> bool:
-        """Prepare files for archiving by organizing structure.
+        """
+        Ensures that the source directory has the proper structure required for archiving,
+        specifically for BA2 format. Mesh files are reorganized into the appropriate
+        directory structure under "meshes/precombined/[plugin_base]". If necessary,
+        it moves `.nif` files to the expected location and logs the number of files
+        processed. Returns `True` if the operation completes successfully, otherwise
+        logs an error and returns `False`.
 
-        Args:
-            source_path: Path containing files to archive
-
-        Returns:
-            True if successful, False otherwise
+        :param source_path: Path to the source directory containing mesh files
+        :type source_path: Path
+        :return: Indicates whether the preparation for archiving was successful
+        :rtype: bool
         """
         try:
             # Ensure proper directory structure for BA2
@@ -115,14 +124,22 @@ class BuildStepExecutor:
         else:
             return True
 
-    def validate_visibility_output(self, output_path: Path) -> dict[str, Any]:
-        """Validate visibility data generation output.
+    @staticmethod
+    def validate_visibility_output(output_path: Path) -> dict[str, Any]:
+        """
+        Validates the visibility output by analyzing the files in the given directory.
+        The function checks for the presence of UVD files, calculates their total size,
+        and reports if their size is suspiciously small. Results include whether the output
+        is valid, the count of UVD files, the total size of these files, and any errors encountered.
 
-        Args:
-            output_path: Path containing generated visibility data
-
-        Returns:
-            Validation results dictionary
+        :param output_path: Directory path where visibility output files are stored.
+        :type output_path: Path
+        :return: A dictionary containing the validation results with the following keys:
+                 - "valid" (bool): Whether the visibility output is considered valid.
+                 - "uvd_count" (int): The number of UVD files found.
+                 - "total_size" (int): The total size of all UVD files in bytes.
+                 - "errors" (list): A list of error messages if the output is invalid.
+        :rtype: dict[str, Any]
         """
         results: dict[str, Any] = {"valid": True, "uvd_count": 0, "total_size": 0, "errors": []}
 
@@ -149,10 +166,16 @@ class BuildStepExecutor:
         return results
 
     def check_plugin_compatibility(self) -> list[str]:
-        """Check for potential plugin compatibility issues.
+        """
+        Checks the compatibility of a specific plugin file with the system by performing various
+        validations. Verifies the existence of the plugin file, checks its size to detect potential
+        issues with unusually large files, and examines if certain related files that may conflict
+        or be overwritten by this plugin already exist in the target directory.
 
-        Returns:
-            List of warnings/issues found
+        :param self: The instance of the class calling this method.
+        :return: A list of warning messages indicating potential compatibility or conflict issues
+            with the plugin.
+        :rtype: list[str]
         """
         warnings: list[str] = []
 
@@ -180,14 +203,18 @@ class BuildStepExecutor:
 
         return warnings
 
-    def create_backup(self, file_path: Path) -> Path | None:
-        """Create a backup of a file before modification.
+    @staticmethod
+    def create_backup(file_path: Path) -> Path | None:
+        """
+        Create a backup file by copying the specified file and appending a
+        `.backup` suffix to its name. If the specified file does not exist,
+        return None. Logs information about the backup creation process or
+        errors encountered.
 
-        Args:
-            file_path: Path to file to backup
+        :param file_path: The path to the file to back up.
 
-        Returns:
-            Path to backup file if created, None otherwise
+        :return: The path to the created backup file if successful,
+                 otherwise None.
         """
         if not file_path.exists():
             return None
@@ -203,14 +230,19 @@ class BuildStepExecutor:
         else:
             return backup_path
 
-    def restore_backup(self, backup_path: Path) -> bool:
-        """Restore a file from backup.
+    @staticmethod
+    def restore_backup(backup_path: Path) -> bool:
+        """
+        Restores a file from its backup. This method attempts to locate the backup file
+        specified by the path provided and restore the original file by copying the backup
+        to the original location. If the process is successful, the original file will be
+        restored from the backup. If the backup file does not exist, or if there is any
+        failure during the restoration process, the method will return a failure status.
 
-        Args:
-            backup_path: Path to backup file
-
-        Returns:
-            True if successful, False otherwise
+        :param backup_path: The path to the backup file that needs to be restored.
+        :type backup_path: Path
+        :return: A boolean indicating whether the restoration process was successful.
+        :rtype: bool
         """
         if not backup_path.exists():
             logger.error(f"Backup file not found: {backup_path}")

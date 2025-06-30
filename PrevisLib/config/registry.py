@@ -17,6 +17,21 @@ logger: Logger = get_logger(__name__)
 
 
 def find_tool_paths() -> ToolPaths:
+    """
+    Find and return paths to various tools based on system configuration.
+
+    This function attempts to locate paths for specific tools required by the application,
+    such as xEdit, Fallout4, Creation Kit, Archive2, and BSArch. On Windows platforms,
+    it retrieves the paths using the Windows Registry. If the platform is not Windows or
+    the required tools cannot be found, it returns an instance of `ToolPaths` with default
+    (empty) attributes.
+
+    The method will log warnings or errors if the platform is not supported, the `winreg`
+    module cannot be imported, or if certain tools are not found.
+
+    :return: An instance of `ToolPaths` containing located paths for the tools.
+    :rtype: ToolPaths
+    """
     from PrevisLib.models.data_classes import ToolPaths
 
     paths: ToolPaths = ToolPaths()
@@ -69,6 +84,21 @@ def _find_xedit_path(winreg: types.ModuleType) -> Path | None:
 
 
 def _find_fallout4_paths(winreg: types.ModuleType) -> tuple[Path | None, Path | None]:
+    """
+    Finds the paths of Fallout 4 and Creation Kit executables by querying the Windows registry.
+
+    This function attempts to locate the installation directory for Fallout 4 by querying
+    the registry key under r"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Bethesda Softworks\Fallout4".
+    It specifically checks for the "installed path" value, and if found, verifies the existence
+    of the executables for Fallout 4 and Creation Kit within that directory.
+
+    :param winreg: The Windows Registry module used to interact with system registry entries.
+    :type winreg: types.ModuleType
+    :return: A tuple containing the `Path` of the Fallout 4 executable and the `Path` of the
+        Creation Kit executable. If either is not found, the corresponding value in the tuple
+        will be `None`.
+    :rtype: tuple[Path | None, Path | None]
+    """
     fallout4_path: Path | None = None
     ck_path: Path | None = None
 

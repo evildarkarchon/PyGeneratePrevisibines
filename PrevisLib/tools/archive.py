@@ -20,16 +20,25 @@ class ArchiveWrapper:
         # File system operations will use module functions directly
 
     def create_archive(self, archive_path: Path, source_dir: Path, file_list: list[str] | None = None, compress: bool = True) -> bool:
-        """Create a new BA2 archive.
+        """
+        Creates an archive file from the specified files and directory.
 
-        Args:
-            archive_path: Path for the output archive
-            source_dir: Directory containing files to archive
-            file_list: Optional list of specific files to include
-            compress: Whether to compress the archive
+        This function creates an archive file using the specified tool, either by
+        calling the `_create_archive2` method or the `_create_bsarch` method,
+        depending on the selected tool. The archive can include specific files
+        from the directory and can be compressed if desired.
 
-        Returns:
-            True if successful, False otherwise
+        :param archive_path: The path of the archive file to create.
+        :type archive_path: Path
+        :param source_dir: The directory containing the files to be archived.
+        :type source_dir: Path
+        :param file_list: A list of files to include in the archive. If None, the entire
+            source directory will be archived.
+        :type file_list: list[str] | None
+        :param compress: If True, the archive will be compressed. Defaults to True.
+        :type compress: bool
+        :return: True if the archive was successfully created, False otherwise.
+        :rtype: bool
         """
         logger.info(f"Creating archive {archive_path.name} using {self.tool.value}")
 
@@ -38,14 +47,15 @@ class ArchiveWrapper:
         return self._create_bsarch(archive_path, source_dir, file_list, compress)
 
     def extract_archive(self, archive_path: Path, output_dir: Path) -> bool:
-        """Extract a BA2 archive.
+        """
+        Extracts a given archive file to the specified output directory using the selected
+        archive tool. Ensures the archive exists and the output directory is created prior
+        to extraction. Returns whether the extraction was successful.
 
-        Args:
-            archive_path: Path to the archive to extract
-            output_dir: Directory to extract files to
-
-        Returns:
-            True if successful, False otherwise
+        :param archive_path: Path to the archive file to be extracted.
+        :param output_dir: Path to the directory where the archive contents should
+            be extracted.
+        :return: A boolean value indicating whether the extraction was successful.
         """
         logger.info(f"Extracting archive {archive_path.name} using {self.tool.value}")
 
@@ -61,15 +71,22 @@ class ArchiveWrapper:
         return self._extract_bsarch(archive_path, output_dir)
 
     def add_to_archive(self, archive_path: Path, files_to_add: list[Path], base_dir: Path | None = None) -> bool:
-        """Add files to an existing archive.
+        """
+        Add a list of files to an existing archive, extracting the archive first, then updating
+        its contents, and finally recreating it. If the archive does not already exist, an empty
+        archive is created and the files are added. Temporary directories are used during the
+        process and are cleaned up upon completion.
 
-        Args:
-            archive_path: Path to the archive
-            files_to_add: List of files to add
-            base_dir: Base directory for relative paths
-
-        Returns:
-            True if successful, False otherwise
+        :param archive_path: The path to the archive file to which files should be added.
+        :type archive_path: Path
+        :param files_to_add: A list of file paths that need to be added to the archive.
+        :type files_to_add: list[Path]
+        :param base_dir: An optional base directory from which relative paths of files
+            to be added will be determined. If None, files are added with their original
+            names in the archive's root.
+        :type base_dir: Path | None
+        :return: True if the operation completes successfully, otherwise False.
+        :rtype: bool
         """
         logger.info(f"Adding {len(files_to_add)} files to {archive_path.name}")
 
@@ -106,7 +123,19 @@ class ArchiveWrapper:
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
     def _create_archive2(self, archive_path: Path, source_dir: Path, file_list: list[str] | None, compress: bool) -> bool:
-        """Create archive using Archive2.exe."""
+        """
+        Creates an archive using the Archive2 tool with the specified options. This method
+        can handle both directory-based sources and file lists. Additionally, it supports
+        configuration for compression modes based on the build mode and cleans up temporary
+        files after execution.
+
+        :param archive_path: The file path for the archive to be created.
+        :param source_dir: The root directory path of the source files or directories.
+        :param file_list: A list of source file paths to be added to the archive. Default is None.
+        :param compress: A boolean flag indicating whether the archive should be compressed.
+        :return: A boolean value indicating whether the archive creation process was successful.
+
+        """
         # Archive2 expects files/folders as positional args, then options
         args: list[str] = [str(self.tool_path)]
         list_file: Path | None = None
@@ -149,7 +178,17 @@ class ArchiveWrapper:
         return False
 
     def _create_bsarch(self, archive_path: Path, source_dir: Path, file_list: list[str] | None, compress: bool) -> bool:
-        """Create archive using BSArch.exe."""
+        """
+        Creates an archive using the BSArch tool. This method can handle optional file lists by creating a temporary directory
+        to store only the specified files to include in the archive. Compression can be enabled or disabled, and the method
+        always uses Fallout 4 format for the archive creation.
+
+        :param archive_path: The path to the output archive to be created.
+        :param source_dir: The source directory containing the files to archive.
+        :param file_list: A list of filenames to include in the archive, or None to include all files from the source directory.
+        :param compress: A boolean flag indicating whether compression should be enabled (True) or disabled (False).
+        :return: True if the archive was created successfully; otherwise, False.
+        """
         args: list[str] = [str(self.tool_path), "pack", str(source_dir), str(archive_path)]
 
         if compress:
@@ -191,7 +230,18 @@ class ArchiveWrapper:
         return False
 
     def _extract_archive2(self, archive_path: Path, output_dir: Path) -> bool:
-        """Extract archive using Archive2.exe."""
+        """
+        Extracts a given archive to a specified output directory using the Archive2 tool.
+
+        This method utilizes the process runner to execute the Archive2 tool with the
+        appropriate arguments to perform the extraction. The extraction process is
+        monitored for success, and a log message is recorded accordingly.
+
+        :param archive_path: Path to the archive file to be extracted.
+        :param output_dir: Directory where the extracted contents will be stored.
+        :return: True if the archive was successfully extracted, False otherwise.
+        :rtype: bool
+        """
         args: list[str] = [str(self.tool_path), str(archive_path), f"-extract={output_dir}"]
 
         success: bool = self.process_runner.execute(args, timeout=300)
@@ -203,7 +253,20 @@ class ArchiveWrapper:
         return False
 
     def _extract_bsarch(self, archive_path: Path, output_dir: Path) -> bool:
-        """Extract archive using BSArch.exe."""
+        """
+        Extracts the contents of an archive using the BSArch tool.
+
+        This method invokes the BSArch tool with the provided archive path and
+        output directory using the process_runner. It returns a boolean indicating
+        the success of the extraction operation. In case of a success, the archive
+        contents are extracted to the specified output directory. Otherwise, an
+        error message is logged.
+
+        :param archive_path: The path to the archive file that needs to be extracted.
+        :param output_dir: The directory where the extracted contents will be placed.
+        :return: True if the extraction succeeds, False otherwise.
+        :rtype: bool
+        """
         args: list[str] = [str(self.tool_path), "unpack", str(archive_path), str(output_dir)]
 
         success: bool = self.process_runner.execute(args, timeout=300)

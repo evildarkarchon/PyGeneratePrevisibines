@@ -39,6 +39,36 @@ def run_process(  # noqa: PLR0913
     shell: bool = False,
     env: dict[str, str] | None = None,
 ) -> ProcessResult:
+    """
+    Executes a shell command or a list of commands as a subprocess with customizable options such as
+    working directory, timeout, output capturing, and environment variables.
+
+    The function monitors the execution time and logs detailed debugging information, including
+    input commands, execution time, and any output or errors from the process. It ensures robust
+    error handling for timeouts and unexpected issues during the subprocess execution.
+
+    :param command: The command to execute. Can be a single string or a list of strings
+        representing the command and its arguments.
+    :type command: list[str] | str
+    :param cwd: The working directory to run the command in. If None, uses the current working
+        directory.
+    :type cwd: Path | None
+    :param timeout: The maximum execution time allowed for the command in seconds. If the command
+        exceeds this time, it will be terminated. If None, no timeout is applied.
+    :type timeout: float | None
+    :param capture_output: If True, captures the standard output and standard error of the
+        command. Otherwise, no output is captured.
+    :type capture_output: bool
+    :param shell: If True, the command string will be executed through the shell. Use with caution
+        as this may introduce security risks.
+    :type shell: bool
+    :param env: A dictionary of environment variables to use for the command execution. If None,
+        the parent process's environment variables are used.
+    :type env: dict[str, str] | None
+    :return: A ProcessResult object containing the result of the command execution. Includes the
+        return code, standard output, standard error, and elapsed execution time.
+    :rtype: ProcessResult
+    """
     command_str: str | list[str]
     if isinstance(command, str):
         command_str = command
@@ -120,16 +150,20 @@ class ProcessRunner:
     """Wrapper class for process execution utilities."""
 
     def execute(self, command: list[str] | str, timeout: float | None = None, show_output: bool = False, cwd: Path | None = None) -> bool:
-        """Execute a process and return success status.
+        """
+        Executes a system command using the specified parameters and returns the success
+        status of the process. The function provides control over the command execution
+        with options for timeout, output display, and working directory.
 
-        Args:
-            command: Command to run
-            timeout: Timeout in seconds
-            show_output: Whether to show output to console
-            cwd: Working directory
-
-        Returns:
-            True if successful, False otherwise
+        :param command: Command to execute on the system. Can be a list of command arguments
+                        or a single command string.
+        :param timeout: Maximum time, in seconds, to wait for the process to complete.
+                        If None, it will wait indefinitely.
+        :param show_output: Whether to display the command's output to the console.
+                            If False, the output will be captured silently.
+        :param cwd: The working directory in which the command should be executed.
+                    If None, it defaults to the current directory.
+        :return: True if the process executed successfully, otherwise False.
         """
         result: ProcessResult = run_process(command=command, cwd=cwd, timeout=timeout, capture_output=not show_output, shell=False)
         return result.success
@@ -153,6 +187,17 @@ def check_process_running(process_name: str) -> bool:
 
 
 def kill_process(process_name: str) -> bool:
+    """
+    Kills a running process with the specified name. This function iterates through all
+    running processes and checks if their name matches or contains the given process name.
+    If a match is found, the process is terminated.
+
+    :param process_name: The name of the process to be terminated.
+    :type process_name: str
+
+    :return: True if at least one process was successfully killed, False otherwise.
+    :rtype: bool
+    """
     try:
         import psutil
 
@@ -179,6 +224,21 @@ def run_with_window_automation(
     cwd: Path | None = None,
     timeout: float = 300.0,
 ) -> ProcessResult:
+    """
+    Runs a command with window automation on Windows using `pywinauto` if available. This function starts
+    a specified process, waits for the associated window to become ready, applies an optional automation
+    function, and waits until the window no longer exists or the timeout is reached.
+
+    :param command: The command to execute, either as a list of strings (for argument separation) or a single string.
+    :param window_title: The title (or part of the title) of the window to interact with.
+    :param automation_func: An optional callable to apply additional automation to the window. The callable
+        should accept a `Window` object or equivalent for interaction.
+    :param cwd: An optional `Path` object specifying the working directory in which to run the command.
+    :param timeout: The maximum time, in seconds, to wait for the window to close after automation operations.
+        Defaults to 300 seconds.
+    :return: A `ProcessResult` object containing process return code, stdout, stderr,
+        and elapsed time of the automation task.
+    """
     if sys.platform != "win32":
         logger.error("Window automation is only supported on Windows")
         return ProcessResult(
