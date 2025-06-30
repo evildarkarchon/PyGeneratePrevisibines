@@ -1,8 +1,90 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.grazie.pro.style.in.ai.assistant&quot;
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="566578e5-237d-42c6-bdea-ed7d73e270b3" name="Changes" comment="Remove outdated .idea settings, enhance validations, and add detailed docstrings  &#10;&#10;- Deleted unnecessary .idea directory files, including redundant `.gitignore` entries and `workspace.xml`.  &#10;- Refactored `Settings`, `PrevisBuilder`, and related classes to include comprehensive docstrings, detailing method functionality and parameter definitions for improved code clarity.  &#10;- Converted multiple instance methods to static methods for better design consistency.  &#10;- Enhanced validation logic for plugin names, directories, and tool paths to ensure stricter error-checking and reporting.  &#10;&#10;These updates improve project cleanliness, readability, and robustness." />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "evildarkarchon"
   }
-}</component>
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/evildarkarchon/PyGeneratePrevisibines.git",
+    "accountId": "dfa9d8f7-df0d-4e05-87ff-220b60a36d1b"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0
+}]]></component>
+  <component name="ProjectId" id="2zCoyEQ2pxTNZaXZfrc87K0vHdH" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-b26f3e71634d-JavaScript-PY-251.26094.141" />
+        <option value="bundled-python-sdk-9f8e2b94138c-36ea0e71a18c-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.26094.141" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="566578e5-237d-42c6-bdea-ed7d73e270b3" name="Changes" comment="" />
+      <created>1751244667329</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1751244667329</updated>
+      <workItem from="1751244668441" duration="1838000" />
+    </task>
+    <task id="LOCAL-00001" summary="Remove outdated .idea settings, enhance validations, and add detailed docstrings  &#10;&#10;- Deleted unnecessary .idea directory files, including redundant `.gitignore` entries and `workspace.xml`.  &#10;- Refactored `Settings`, `PrevisBuilder`, and related classes to include comprehensive docstrings, detailing method functionality and parameter definitions for improved code clarity.  &#10;- Converted multiple instance methods to static methods for better design consistency.  &#10;- Enhanced validation logic for plugin names, directories, and tool paths to ensure stricter error-checking and reporting.  &#10;&#10;These updates improve project cleanliness, readability, and robustness.">
+      <option name="closed" value="true" />
+      <created>1751246490455</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1751246490455</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Remove unused `.idea` files, enhance docstrings, and refactor static methods&#10;&#10;- Deleted unnecessary `.idea` project files to declutter the repository.&#10;- Added comprehensive docstrings to improve method and class documentation.&#10;- Refactored several methods in `PrevisBuilder` to be static where instance access was unnecessary.&#10;- Improved validation methods in the `Settings` and `CKPEConfig` classes with updated error handling and enhanced clarity through detailed comments.&#10;&#10;These updates enhance maintainability, repository cleanliness, and code clarity." />
+    <MESSAGE value="Remove outdated .idea settings, enhance validations, and add detailed docstrings  &#10;&#10;- Deleted unnecessary .idea directory files, including redundant `.gitignore` entries and `workspace.xml`.  &#10;- Refactored `Settings`, `PrevisBuilder`, and related classes to include comprehensive docstrings, detailing method functionality and parameter definitions for improved code clarity.  &#10;- Converted multiple instance methods to static methods for better design consistency.  &#10;- Enhanced validation logic for plugin names, directories, and tool paths to ensure stricter error-checking and reporting.  &#10;&#10;These updates improve project cleanliness, readability, and robustness." />
+    <option name="LAST_COMMIT_MESSAGE" value="Remove outdated .idea settings, enhance validations, and add detailed docstrings  &#10;&#10;- Deleted unnecessary .idea directory files, including redundant `.gitignore` entries and `workspace.xml`.  &#10;- Refactored `Settings`, `PrevisBuilder`, and related classes to include comprehensive docstrings, detailing method functionality and parameter definitions for improved code clarity.  &#10;- Converted multiple instance methods to static methods for better design consistency.  &#10;- Enhanced validation logic for plugin names, directories, and tool paths to ensure stricter error-checking and reporting.  &#10;&#10;These updates improve project cleanliness, readability, and robustness." />
+  </component>
 </project>
