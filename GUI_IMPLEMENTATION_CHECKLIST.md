@@ -70,13 +70,13 @@
 - [x] Add tooltips for each control
 
 ### Progress Display Widget (`PrevisLib/gui/widgets/progress_display.py`)
-- [ ] Create `ProgressDisplayWidget` class
-- [ ] Add current step label (large, prominent)
-- [ ] Add step counter (e.g., "Step 3 of 8")
-- [ ] Create step list with status icons
-- [ ] Implement status icon updates (pending/running/success/failed)
-- [ ] Add time elapsed display
-- [ ] Include cancel confirmation dialog
+- [x] Create `ProgressDisplayWidget` class
+- [x] Add current step label (large, prominent)
+- [x] Add step counter (e.g., "Step 3 of 8")
+- [x] Create step list with status icons
+- [x] Implement status icon updates (pending/running/success/failed)
+- [x] Add time elapsed display
+- [x] Include cancel confirmation dialog
 
 ## Phase 3: Settings & Configuration
 

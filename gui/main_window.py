@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
 
 from gui.widgets.build_controls import BuildControlsWidget
 from gui.widgets.plugin_input import PluginInputWidget
+from gui.widgets.progress_display import ProgressDisplayWidget
 
 
 class MainWindow(QMainWindow):
@@ -69,6 +70,11 @@ class MainWindow(QMainWindow):
         
         # Disable build controls until a valid plugin is entered
         self.build_controls.setEnabled(False)
+        
+        # Add progress display widget
+        self.progress_display = ProgressDisplayWidget()
+        self.progress_display.cancelConfirmed.connect(self._on_build_stopped)
+        self.main_layout.addWidget(self.progress_display)
         
         # Add stretch to push everything to the top
         self.main_layout.addStretch()
@@ -165,11 +171,25 @@ class MainWindow(QMainWindow):
             step: Starting build step
         """
         self.status_bar.showMessage(f"Build started: {mode.value} mode from {step}")
+        
+        # Update build controls state
+        self.build_controls.set_building_state(True)
+        
+        # Start progress display
+        self.progress_display.start_build(step)
+        
         # TODO: Start actual build process
     
     def _on_build_stopped(self) -> None:
         """Handle build stop signal."""
         self.status_bar.showMessage("Build stopped by user", 3000)
+        
+        # Update build controls state
+        self.build_controls.set_building_state(False)
+        
+        # Reset progress display
+        self.progress_display.reset()
+        
         # TODO: Stop actual build process
     
     def closeEvent(self, event: QCloseEvent) -> None:
