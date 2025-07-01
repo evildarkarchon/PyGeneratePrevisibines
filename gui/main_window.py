@@ -14,6 +14,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from gui.widgets.plugin_input import PluginInputWidget
+
 
 class MainWindow(QMainWindow):
     """Main application window for PyGeneratePrevisibines GUI."""
@@ -52,6 +54,14 @@ class MainWindow(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Ready")
+        
+        # Add plugin input widget
+        self.plugin_input = PluginInputWidget()
+        self.plugin_input.validationStateChanged.connect(self._on_plugin_validation_changed)
+        self.main_layout.addWidget(self.plugin_input)
+        
+        # Add stretch to push everything to the top
+        self.main_layout.addStretch()
         
     def _create_menu_bar(self) -> None:
         """Create the application menu bar."""
@@ -120,6 +130,19 @@ class MainWindow(QMainWindow):
             "<p>This tool automates the generation of precombined meshes and previs data "
             "for Fallout 4 mods, which are essential for game performance optimization.</p>"
         )
+    
+    def _on_plugin_validation_changed(self, is_valid: bool, message: str) -> None:
+        """Handle plugin validation state changes.
+        
+        Args:
+            is_valid: Whether the plugin name is valid
+            message: Validation message
+        """
+        if message and not is_valid:
+            # Show error in status bar for invalid plugins
+            self.status_bar.showMessage(f"Plugin validation: {message}", 5000)
+        else:
+            self.status_bar.clearMessage()
     
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event."""

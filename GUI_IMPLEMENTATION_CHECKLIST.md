@@ -50,14 +50,14 @@
 - [x] Force dark mode regardless of system settings
 
 ### Plugin Input Widget (`PrevisLib/gui/widgets/plugin_input.py`)
-- [ ] Create `PluginInputWidget` class inheriting from `QWidget`
-- [ ] Add QLineEdit for plugin name
-- [ ] Implement auto-extension logic (.esp appending)
-- [ ] Add validation indicator (QLabel with icon)
-- [ ] Connect to existing plugin validator
-- [ ] Emit signal when validation state changes
-- [ ] Check if plugin exists in game data directory
-- [ ] Style with proper margins and spacing
+- [x] Create `PluginInputWidget` class inheriting from `QWidget`
+- [x] Add QLineEdit for plugin name
+- [x] Implement auto-extension logic (.esp appending)
+- [x] Add validation indicator (QLabel with icon)
+- [x] Connect to existing plugin validator
+- [x] Emit signal when validation state changes
+- [x] Check if plugin exists in game data directory
+- [x] Style with proper margins and spacing
 
 ### Build Controls Widget (`PrevisLib/gui/widgets/build_controls.py`)
 - [ ] Create `BuildControlsWidget` class
