@@ -1,9 +1,11 @@
 """GUI entry point for PyGeneratePrevisibines."""
 
 import sys
+
 from PyQt6.QtWidgets import QApplication
-from gui.main_window import MainWindow
-from gui.styles.dark_theme import DarkTheme
+
+from PrevisLib.gui.main_window import MainWindow
+from PrevisLib.gui.styles.dark_theme import DarkTheme
 
 
 def main() -> None:
