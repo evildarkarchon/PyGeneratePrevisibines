@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QDialogButtonBox, QMessageBox
 
 from PrevisLib.gui.settings_dialog import SettingsDialog
@@ -25,9 +26,19 @@ class TestSettingsDialog:
         return QApplication([])
 
     @pytest.fixture
-    def dialog(self, app: QApplication) -> SettingsDialog:
+    def dialog(self, app: QApplication) -> Generator[SettingsDialog, None, None]:
         """Create SettingsDialog instance for testing."""
-        return SettingsDialog()
+        dialog = SettingsDialog()
+
+        # Ensure dialog cleanup after test
+        yield dialog
+
+        # Cleanup: Close dialog if it's still open
+        if dialog.isVisible():
+            dialog.close()
+
+        # Process any pending events to ensure cleanup
+        app.processEvents()
 
     @pytest.fixture
     def mock_paths(self, tmp_path: Path) -> dict[str, Path]:
@@ -239,6 +250,7 @@ class TestSettingsDialog:
         dialog.fallout4_path_edit.setText("")  # Required but empty
         dialog.xedit_path_edit.setText("")  # Required but empty
 
+        # Ensure the dialog doesn't actually show by mocking the warning
         dialog._accept()
 
         # Should show warning dialog
@@ -253,6 +265,7 @@ class TestSettingsDialog:
         dialog.fallout4_path_edit.setText(str(mock_paths["fallout4"]))
         dialog.xedit_path_edit.setText(str(mock_paths["xedit"]))
 
+        # Mock the accept method to prevent the dialog from actually closing during test
         with patch.object(dialog, "accept") as mock_accept:
             dialog._accept()
             mock_accept.assert_called_once()
@@ -311,3 +324,12 @@ class TestSettingsDialog:
 
             # Text should remain unchanged
             assert dialog.fallout4_path_edit.text() == original_text
+
+    def test_dialog_cleanup_after_creation(self, dialog: SettingsDialog) -> None:
+        """Test that dialog is properly cleaned up after creation."""
+        # Dialog should not be visible by default
+        assert not dialog.isVisible()
+
+        # Dialog should be properly initialized
+        assert dialog.isModal()
+        assert dialog.windowTitle() == "Settings"

@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import QApplication, QWidget
 
 from PrevisLib.config.settings import Settings
 from PrevisLib.gui.widgets.plugin_input import PluginInputWidget
-from PrevisLib.models.data_classes import ToolPaths
 
 
 @pytest.fixture
@@ -160,7 +159,7 @@ class TestPluginInputWidget:
         # Mock plugin file exists
         assert widget_with_settings.settings is not None
         settings = widget_with_settings.settings
-        plugin_path = settings.tool_paths.fallout4 / "Data" / "TestMod.esp"  # type: ignore[operator]
+        plugin_path = settings.tool_paths.fallout4 / "Data" / "TestMod.esp"  # type: ignore[operator]  # noqa: F841
 
         # Use patch on pathlib.Path.exists instead
         with patch("pathlib.Path.exists") as mock_exists:
@@ -183,17 +182,15 @@ class TestPluginInputWidget:
         # Mock plugin doesn't exist but archive does
         assert widget_with_settings.settings is not None
         settings = widget_with_settings.settings
-        plugin_path = settings.tool_paths.fallout4 / "Data" / "TestMod.esp"  # type: ignore[operator]
-        archive_path = settings.tool_paths.fallout4 / "Data" / "TestMod - Main.ba2"  # type: ignore[operator]
+        plugin_path = settings.tool_paths.fallout4 / "Data" / "TestMod.esp"  # type: ignore[operator]  # noqa: F841
+        settings.tool_paths.fallout4 / "Data" / "TestMod - Main.ba2"  # type: ignore[operator]
 
-        def mock_exists(self) -> bool:
+        def mock_exists(self) -> bool:  # noqa: ANN001
             """Mock exists method that returns False for plugin, True for archive."""
             path_str = str(self)
             if path_str.endswith("TestMod.esp"):
                 return False
-            elif path_str.endswith("TestMod - Main.ba2"):
-                return True
-            return False
+            return bool(path_str.endswith("TestMod - Main.ba2"))
 
         with patch("pathlib.Path.exists", mock_exists):
             widget_with_settings.line_edit.setText("TestMod")
