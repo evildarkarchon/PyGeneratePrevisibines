@@ -1,13 +1,16 @@
-"""Tests for PrevisBuilder core orchestration."""
+"""Consolidated tests for PrevisBuilder core orchestration, edge cases, and build steps."""
 
+from enum import Enum
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
+import time
 
 import pytest
 
 from PrevisLib.config.settings import Settings
 from PrevisLib.core.builder import PrevisBuilder
-from PrevisLib.models.data_classes import BuildMode, BuildStep, ToolPaths
+from PrevisLib.core.build_steps import BuildStepExecutor
+from PrevisLib.models.data_classes import ArchiveTool, BuildMode, BuildStep, ToolPaths
 
 
 class TestPrevisBuilder:
@@ -267,46 +270,6 @@ class TestPrevisBuilder:
         assert options == expected_options
 
     @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    @patch("PrevisLib.core.builder.fs")
-    def test_step_generate_precombined_success(self, mock_fs: MagicMock, mock_validate_scripts: MagicMock, mock_settings: Settings) -> None:
-        """Test successful precombined generation step."""
-        mock_validate_scripts.return_value = (True, "Scripts validated")
-        builder = PrevisBuilder(mock_settings)
-        builder.ck_wrapper = Mock()
-        builder.ck_wrapper.generate_precombined.return_value = True
-        builder.output_path = Path("/fake/output")
-        builder.data_path = Path("/fake/data")
-
-        mock_fs.count_files.return_value = 5
-        mock_fs.wait_for_output_file.return_value = True
-
-        with patch("PrevisLib.core.builder.logger"):
-            result = builder._step_generate_precombined()
-
-        assert result is True
-        mock_fs.clean_directory.assert_called_once_with(builder.output_path)
-        builder.ck_wrapper.generate_precombined.assert_called_once_with(builder.data_path)
-
-    @patch("PrevisLib.core.builder.validate_xedit_scripts")
-    @patch("PrevisLib.core.builder.fs")
-    def test_step_generate_precombined_no_meshes(
-        self, mock_fs: MagicMock, mock_validate_scripts: MagicMock, mock_settings: Settings
-    ) -> None:
-        """Test precombined generation step when no meshes generated."""
-        mock_validate_scripts.return_value = (True, "Scripts validated")
-        builder = PrevisBuilder(mock_settings)
-        builder.ck_wrapper = Mock()
-        builder.ck_wrapper.generate_precombined.return_value = True
-        builder.output_path = Path("/fake/output")
-
-        mock_fs.count_files.return_value = 0  # No meshes generated
-
-        with patch("PrevisLib.core.builder.logger"):
-            result = builder._step_generate_precombined()
-
-        assert result is False
-
-    @patch("PrevisLib.core.builder.validate_xedit_scripts")
     def test_find_xedit_script_found(self, mock_validate_scripts: MagicMock, mock_settings: Settings, tmp_path: Path) -> None:
         """Test finding xEdit script successfully."""
         mock_validate_scripts.return_value = (True, "Scripts validated")
@@ -332,6 +295,85 @@ class TestPrevisBuilder:
         result = builder._find_xedit_script("Nonexistent Script")
 
         assert result is None
+
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_get_resume_options_with_failed_step(self, mock_validate: MagicMock) -> None:
+        """Test get_resume_options when there's a failed step."""
+        mock_validate.return_value = (True, "OK")
+
+        settings = Settings(
+            plugin_name="test.esp",
+            build_mode=BuildMode.CLEAN,
+            tool_paths=ToolPaths(
+                creation_kit=Path("/fake/ck"), xedit=Path("/fake/xedit"), fallout4=Path("/fake/fo4"), archive2=Path("/fake/archive2")
+            ),
+        )
+
+        builder = PrevisBuilder(settings)
+        builder.failed_step = BuildStep.GENERATE_PREVIS
+
+        resume_options = builder.get_resume_options()
+
+        # Should offer to resume from failed step and all subsequent steps
+        assert BuildStep.GENERATE_PREVIS in resume_options
+        assert BuildStep.MERGE_PREVIS in resume_options
+        assert BuildStep.FINAL_PACKAGING in resume_options
+
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_init_with_bsarch_missing_path(self, mock_validate: MagicMock) -> None:
+        """Test initialization when BSArch is selected but path is missing."""
+        mock_validate.return_value = (True, "OK")
+
+        settings = Settings(
+            plugin_name="test.esp",
+            build_mode=BuildMode.CLEAN,
+            archive_tool=ArchiveTool.BSARCH,
+            tool_paths=ToolPaths(
+                creation_kit=Path("/fake/ck"),
+                xedit=Path("/fake/xedit"),
+                fallout4=Path("/fake/fo4"),
+                archive2=Path("/fake/archive2"),
+                bsarch=None,  # Missing BSArch path
+            ),
+        )
+
+        with pytest.raises(ValueError, match="BSArch path is required but not configured"):
+            PrevisBuilder(settings)
+
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_init_with_archive2_missing_path(self, mock_validate: MagicMock) -> None:
+        """Test initialization when Archive2 is selected but path is missing."""
+        mock_validate.return_value = (True, "OK")
+
+        settings = Settings(
+            plugin_name="test.esp",
+            build_mode=BuildMode.CLEAN,
+            archive_tool=ArchiveTool.ARCHIVE2,
+            tool_paths=ToolPaths(
+                creation_kit=Path("/fake/ck"),
+                xedit=Path("/fake/xedit"),
+                fallout4=Path("/fake/fo4"),
+                archive2=None,  # Missing Archive2 path
+                bsarch=Path("/fake/bsarch"),
+            ),
+        )
+
+        with pytest.raises(ValueError, match="Archive2 path is required but not configured"):
+            PrevisBuilder(settings)
+
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    def test_init_with_invalid_plugin_extension(self, mock_validate: MagicMock) -> None:
+        """Test initialization with invalid plugin extension."""
+        mock_validate.return_value = (True, "OK")
+
+        with pytest.raises(ValueError, match="Invalid plugin extension"):
+            Settings(
+                plugin_name="test.txt",  # Invalid extension
+                build_mode=BuildMode.CLEAN,
+                tool_paths=ToolPaths(
+                    creation_kit=Path("/fake/ck"), xedit=Path("/fake/xedit"), fallout4=Path("/fake/fo4"), archive2=Path("/fake/archive2")
+                ),
+            )
 
 
 class TestPrevisBuilderStepMethods:
@@ -374,6 +416,38 @@ class TestPrevisBuilderStepMethods:
         builder.temp_path = tmp_path / "Temp"
 
         return builder
+
+    @patch("PrevisLib.core.builder.fs")
+    def test_step_generate_precombined_success(self, mock_fs: MagicMock, builder_with_mocks: PrevisBuilder) -> None:
+        """Test successful precombined generation step."""
+        builder = builder_with_mocks
+        builder.ck_wrapper.generate_precombined.return_value = True
+        builder.output_path = Path("/fake/output")
+        builder.data_path = Path("/fake/data")
+
+        mock_fs.count_files.return_value = 5
+        mock_fs.wait_for_output_file.return_value = True
+
+        with patch("PrevisLib.core.builder.logger"):
+            result = builder._step_generate_precombined()
+
+        assert result is True
+        mock_fs.clean_directory.assert_called_once_with(builder.output_path)
+        builder.ck_wrapper.generate_precombined.assert_called_once_with(builder.data_path)
+
+    @patch("PrevisLib.core.builder.fs")
+    def test_step_generate_precombined_no_meshes(self, mock_fs: MagicMock, builder_with_mocks: PrevisBuilder) -> None:
+        """Test precombined generation step when no meshes generated."""
+        builder = builder_with_mocks
+        builder.ck_wrapper.generate_precombined.return_value = True
+        builder.output_path = Path("/fake/output")
+
+        mock_fs.count_files.return_value = 0  # No meshes generated
+
+        with patch("PrevisLib.core.builder.logger"):
+            result = builder._step_generate_precombined()
+
+        assert result is False
 
     @patch("PrevisLib.core.builder.fs")
     def test_step_merge_combined_objects_success(self, mock_fs: MagicMock, builder_with_mocks: PrevisBuilder) -> None:  # noqa: ARG002
@@ -471,3 +545,132 @@ class TestPrevisBuilderStepMethods:
         assert result is True
         # Should not call add_to_archive when temp is empty
         builder.archive_wrapper.add_to_archive.assert_not_called()  # type: ignore[reportAttributeAccessIssue]
+
+    @patch("PrevisLib.core.builder.validate_xedit_scripts")
+    @patch("PrevisLib.core.builder.fs.safe_delete", side_effect=OSError("Permission denied"))
+    def test_cleanup_with_error(self, mock_safe_delete: MagicMock, mock_validate: MagicMock, tmp_path: Path) -> None:
+        """Test cleanup when cleaner raises exception."""
+        mock_validate.return_value = (True, "OK")
+
+        fo4_path = tmp_path / "Fallout4"
+        data_path = fo4_path / "Data"
+        data_path.mkdir(parents=True)
+
+        settings = Settings(
+            plugin_name="test.esp",
+            build_mode=BuildMode.CLEAN,
+            tool_paths=ToolPaths(
+                creation_kit=Path("/fake/ck"), xedit=Path("/fake/xedit"), fallout4=fo4_path, archive2=Path("/fake/archive2")
+            ),
+        )
+
+        builder = PrevisBuilder(settings)
+        # Create a dummy file to be cleaned up to trigger the mock
+        (builder.data_path / "test - Main.ba2").touch()
+
+        # Should not raise, just return False
+        result = builder.cleanup()
+
+        assert result is False
+
+
+class TestBuildStepExecutor:
+    """Test BuildStepExecutor class."""
+
+    @pytest.fixture
+    def executor(self, tmp_path: Path) -> BuildStepExecutor:
+        """Create BuildStepExecutor for testing."""
+        fo4_path = tmp_path / "Fallout4"
+        fo4_path.mkdir()
+        (fo4_path / "Data").mkdir()
+
+        return BuildStepExecutor("TestMod.esp", fo4_path, BuildMode.CLEAN)
+
+    def test_initialization(self, executor: BuildStepExecutor, tmp_path: Path) -> None:
+        """Test BuildStepExecutor initialization."""
+        assert executor.plugin_name == "TestMod.esp"
+        assert executor.plugin_base == "TestMod"
+        assert executor.build_mode == BuildMode.CLEAN
+        assert executor.fo4_path == tmp_path / "Fallout4"
+        assert executor.data_path == tmp_path / "Fallout4" / "Data"
+
+    def test_get_plugin_base_name_valid_esp(self) -> None:
+        """Test plugin base name extraction for .esp file."""
+        executor = BuildStepExecutor("MyMod.esp", Path("/fake"), BuildMode.CLEAN)
+        assert executor.plugin_base == "MyMod"
+
+    def test_get_plugin_base_name_valid_esm(self) -> None:
+        """Test plugin base name extraction for .esm file."""
+        executor = BuildStepExecutor("MyMod.esm", Path("/fake"), BuildMode.CLEAN)
+        assert executor.plugin_base == "MyMod"
+
+    def test_get_plugin_base_name_valid_esl(self) -> None:
+        """Test plugin base name extraction for .esl file."""
+        executor = BuildStepExecutor("MyMod.esl", Path("/fake"), BuildMode.CLEAN)
+        assert executor.plugin_base == "MyMod"
+
+    def test_get_plugin_base_name_invalid_extension(self) -> None:
+        """Test plugin base name extraction with invalid extension."""
+        with pytest.raises(ValueError, match="Invalid plugin extension"):
+            BuildStepExecutor("MyMod.txt", Path("/fake"), BuildMode.CLEAN)
+
+    def test_get_plugin_base_name_no_extension(self) -> None:
+        """Test plugin base name extraction with no extension."""
+        with pytest.raises(ValueError, match="Invalid plugin extension"):
+            BuildStepExecutor("MyMod", Path("/fake"), BuildMode.CLEAN)
+
+    @patch("PrevisLib.core.build_steps.fs")
+    def test_validate_precombined_output_success(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
+        """Test successful precombined output validation."""
+        output_path = tmp_path / "output"
+        output_path.mkdir()
+
+        # Create fake mesh files
+        mesh_files = [output_path / "mesh1.nif", output_path / "mesh2.nif", output_path / "mesh3.nif"]
+
+        for mesh_file in mesh_files:
+            mesh_file.write_text("fake mesh data" * 100)  # Make it reasonably sized
+
+        mock_fs.find_files.return_value = mesh_files
+
+        with patch("PrevisLib.core.build_steps.logger"):
+            result = executor.validate_precombined_output(output_path)
+
+        assert result["valid"] is True
+        assert result["mesh_count"] == 3
+        assert result["total_size"] > 0
+        assert result["errors"] == []
+
+    @patch("PrevisLib.core.build_steps.fs")
+    def test_validate_precombined_output_no_meshes(self, mock_fs: MagicMock, executor: BuildStepExecutor, tmp_path: Path) -> None:
+        """Test precombined output validation with no meshes."""
+        output_path = tmp_path / "output"
+        output_path.mkdir()
+
+        mock_fs.find_files.return_value = []
+
+        result = executor.validate_precombined_output(output_path)
+
+        assert result["valid"] is False
+        assert result["mesh_count"] == 0
+        assert "No mesh files generated" in result["errors"]
+
+    def test_clean_mode(self, tmp_path: Path) -> None:
+        """Test executor with clean build mode."""
+        fo4_path = tmp_path / "Fallout4"
+        fo4_path.mkdir()
+        (fo4_path / "Data").mkdir()
+
+        executor = BuildStepExecutor("TestMod.esp", fo4_path, BuildMode.CLEAN)
+
+        assert executor.build_mode == BuildMode.CLEAN
+
+    def test_filtered_mode(self, tmp_path: Path) -> None:
+        """Test executor with filtered build mode."""
+        fo4_path = tmp_path / "Fallout4"
+        fo4_path.mkdir()
+        (fo4_path / "Data").mkdir()
+
+        executor = BuildStepExecutor("TestMod.esp", fo4_path, BuildMode.FILTERED)
+
+        assert executor.build_mode == BuildMode.FILTERED

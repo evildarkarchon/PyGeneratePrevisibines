@@ -28,12 +28,14 @@ class TestSettingsDialog:
     @pytest.fixture
     def dialog(self, app: QApplication) -> Generator[SettingsDialog, None, None]:
         """Create SettingsDialog instance for testing."""
-        dialog = SettingsDialog()
+        # Use context manager to patch at class level to avoid dialog showing
+        with patch("PyQt6.QtWidgets.QDialog.show"), patch("PyQt6.QtWidgets.QDialog.exec", return_value=0):
+            dialog = SettingsDialog()
 
-        # Ensure dialog cleanup after test
-        yield dialog
+            # Ensure dialog cleanup after test
+            yield dialog
 
-        # Cleanup: Close dialog if it's still open
+        # Final cleanup: Close dialog if it's still open
         if dialog.isVisible():
             dialog.close()
 

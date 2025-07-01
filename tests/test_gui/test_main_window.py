@@ -133,11 +133,16 @@ class TestMainWindow:
 
     def test_open_preferences(self, main_window: MainWindow) -> None:
         """Test opening preferences dialog."""
-        # Currently shows a placeholder message
-        main_window._open_preferences()
+        with patch("PrevisLib.gui.settings_dialog.SettingsDialog") as mock_dialog_class:
+            mock_dialog = MagicMock()
+            mock_dialog.exec.return_value = mock_dialog.DialogCode.Accepted
+            mock_dialog_class.return_value = mock_dialog
 
-        # Should not raise any errors
-        # TODO: Test actual preferences dialog when implemented
+            main_window._open_preferences()
+
+            # Verify dialog was created and executed
+            mock_dialog_class.assert_called_once_with(main_window)
+            mock_dialog.exec.assert_called_once()
 
     def test_show_about(self, main_window: MainWindow) -> None:
         """Test showing about dialog."""
