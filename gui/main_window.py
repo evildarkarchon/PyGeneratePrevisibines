@@ -1,13 +1,10 @@
 """Main window for PyGeneratePrevisibines GUI."""
 
-from typing import Any
-
-from PyQt6.QtCore import QSettings, Qt
+from PyQt6.QtCore import QSettings
 from PyQt6.QtGui import QAction, QCloseEvent
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QMenuBar,
     QMessageBox,
     QStatusBar,
     QVBoxLayout,
@@ -17,6 +14,7 @@ from PyQt6.QtWidgets import (
 from gui.widgets.build_controls import BuildControlsWidget
 from gui.widgets.plugin_input import PluginInputWidget
 from gui.widgets.progress_display import ProgressDisplayWidget
+from PrevisLib.models.data_classes import BuildMode, BuildStep
 
 
 class MainWindow(QMainWindow):
@@ -25,93 +23,101 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         """Initialize the main window."""
         super().__init__()
-        
+
         # Settings for window state persistence
         self.settings = QSettings("PyGeneratePrevisibines", "MainWindow")
-        
+
         # Initialize UI
         self._init_ui()
-        
+
         # Restore window state
         self._restore_window_state()
-    
+
     def _init_ui(self) -> None:
         """Initialize the user interface."""
         # Set window properties
         self.setWindowTitle("PyGeneratePrevisibines")
         self.setMinimumSize(800, 600)
-        
+
         # Create central widget and layout
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
-        
+
         self.main_layout = QVBoxLayout(self.central_widget)
         self.main_layout.setContentsMargins(10, 10, 10, 10)
         self.main_layout.setSpacing(10)
-        
+
         # Create menu bar
         self._create_menu_bar()
-        
+
         # Create status bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Ready")
-        
+
         # Add plugin input widget
         self.plugin_input = PluginInputWidget()
         self.plugin_input.validationStateChanged.connect(self._on_plugin_validation_changed)
         self.main_layout.addWidget(self.plugin_input)
-        
+
         # Add build controls widget
         self.build_controls = BuildControlsWidget()
         self.build_controls.buildStarted.connect(self._on_build_started)
         self.build_controls.buildStopped.connect(self._on_build_stopped)
         self.main_layout.addWidget(self.build_controls)
-        
+
         # Disable build controls until a valid plugin is entered
         self.build_controls.setEnabled(False)
-        
+
         # Add progress display widget
         self.progress_display = ProgressDisplayWidget()
         self.progress_display.cancelConfirmed.connect(self._on_build_stopped)
         self.main_layout.addWidget(self.progress_display)
-        
+
         # Add stretch to push everything to the top
         self.main_layout.addStretch()
-        
+
     def _create_menu_bar(self) -> None:
         """Create the application menu bar."""
         menu_bar = self.menuBar()
-        
+        if not menu_bar:
+            return
+
         # File menu
         file_menu = menu_bar.addMenu("&File")
-        
+        if not file_menu:
+            return
+
         # Exit action
         exit_action = QAction("E&xit", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.setStatusTip("Exit the application")
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
-        
+
         # Settings menu
         settings_menu = menu_bar.addMenu("&Settings")
-        
+        if not settings_menu:
+            return
+
         # Preferences action
         preferences_action = QAction("&Preferences...", self)
         preferences_action.setShortcut("Ctrl+,")
         preferences_action.setStatusTip("Open preferences dialog")
         preferences_action.triggered.connect(self._open_preferences)
         settings_menu.addAction(preferences_action)
-        
+
         # Help menu
         help_menu = menu_bar.addMenu("&Help")
-        
+        if not help_menu:
+            return
+
         # About action
         about_action = QAction("&About", self)
         about_action.setStatusTip("Show information about the application")
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
-    
+
     def _restore_window_state(self) -> None:
         """Restore window size and position from settings."""
         # Restore geometry
@@ -121,7 +127,7 @@ class MainWindow(QMainWindow):
         else:
             # Center window on screen
             self._center_window()
-    
+
     def _center_window(self) -> None:
         """Center the window on the primary screen."""
         screen = QApplication.primaryScreen()
@@ -130,12 +136,12 @@ class MainWindow(QMainWindow):
             window_geometry = self.frameGeometry()
             window_geometry.moveCenter(screen_geometry.center())
             self.move(window_geometry.topLeft())
-    
+
     def _open_preferences(self) -> None:
         """Open the preferences dialog."""
         # TODO: Implement settings dialog
         self.status_bar.showMessage("Settings dialog not yet implemented", 3000)
-    
+
     def _show_about(self) -> None:
         """Show the about dialog."""
         QMessageBox.about(
@@ -144,58 +150,59 @@ class MainWindow(QMainWindow):
             "<h3>PyGeneratePrevisibines</h3>"
             "<p>A Python port of PJM's GeneratePrevisibines batch file for Fallout 4.</p>"
             "<p>This tool automates the generation of precombined meshes and previs data "
-            "for Fallout 4 mods, which are essential for game performance optimization.</p>"
+            "for Fallout 4 mods, which are essential for game performance optimization.</p>",
         )
-    
+
     def _on_plugin_validation_changed(self, is_valid: bool, message: str) -> None:
         """Handle plugin validation state changes.
-        
+
         Args:
             is_valid: Whether the plugin name is valid
             message: Validation message
         """
         # Enable/disable build controls based on validation
         self.build_controls.setEnabled(is_valid)
-        
+
         if message and not is_valid:
             # Show error in status bar for invalid plugins
             self.status_bar.showMessage(f"Plugin validation: {message}", 5000)
         else:
             self.status_bar.clearMessage()
-    
-    def _on_build_started(self, mode, step) -> None:
+
+    def _on_build_started(self, mode: BuildMode, step: BuildStep) -> None:
         """Handle build start signal.
-        
+
         Args:
             mode: Build mode
             step: Starting build step
         """
         self.status_bar.showMessage(f"Build started: {mode.value} mode from {step}")
-        
+
         # Update build controls state
         self.build_controls.set_building_state(True)
-        
+
         # Start progress display
         self.progress_display.start_build(step)
-        
+
         # TODO: Start actual build process
-    
+
     def _on_build_stopped(self) -> None:
         """Handle build stop signal."""
         self.status_bar.showMessage("Build stopped by user", 3000)
-        
+
         # Update build controls state
         self.build_controls.set_building_state(False)
-        
+
         # Reset progress display
         self.progress_display.reset()
-        
+
         # TODO: Stop actual build process
-    
-    def closeEvent(self, event: QCloseEvent) -> None:
+
+    def closeEvent(self, a0: QCloseEvent | None) -> None:
         """Handle window close event."""
         # Save window state
         self.settings.setValue("geometry", self.saveGeometry())
-        
-        # Accept the close event
-        event.accept()
+
+        # Accept the close event if it exists
+        if a0:
+            a0.accept()
