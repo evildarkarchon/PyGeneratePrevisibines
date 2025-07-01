@@ -1,6 +1,5 @@
 """Build controls widget for PyGeneratePrevisibines GUI."""
 
-from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
@@ -14,8 +13,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from PrevisLib.models.data_classes import BuildMode, BuildStep
 from gui.styles.dark_theme import DarkTheme
+from PrevisLib.models.data_classes import BuildMode, BuildStep
 
 
 class BuildControlsWidget(QWidget):
@@ -240,7 +239,7 @@ class BuildControlsWidget(QWidget):
         self.mode_combo.setEnabled(not is_building)
         self.step_combo.setEnabled(not is_building)
     
-    def setEnabled(self, enabled: bool) -> None:
+    def setEnabled(self, enabled: bool) -> None:  # type: ignore[override]
         """Enable or disable the entire widget.
         
         Args:
