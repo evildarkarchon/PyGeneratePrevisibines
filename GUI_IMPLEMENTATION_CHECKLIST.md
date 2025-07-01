@@ -28,26 +28,26 @@
 ## Phase 2: Core GUI Components
 
 ### Main Window (`PrevisLib/gui/main_window.py`)
-- [ ] Create `MainWindow` class inheriting from `QMainWindow`
-- [ ] Set window title and default size (800x600)
-- [ ] Create central widget and main layout
-- [ ] Implement menu bar with File and Settings menus
-- [ ] Add status bar for general messages
-- [ ] Implement window state persistence (size, position)
+- [x] Create `MainWindow` class inheriting from `QMainWindow`
+- [x] Set window title and default size (800x600)
+- [x] Create central widget and main layout
+- [x] Implement menu bar with File and Settings menus
+- [x] Add status bar for general messages
+- [x] Implement window state persistence (size, position)
 
 ### Dark Theme (`PrevisLib/gui/styles/dark_theme.py`)
-- [ ] Create `DarkTheme` class with static methods
-- [ ] Define color palette constants
-  - [ ] Background: #1e1e1e
-  - [ ] Surface: #2d2d2d
-  - [ ] Text: #e0e0e0
-  - [ ] Accent: #007acc
-  - [ ] Success: #4caf50
-  - [ ] Error: #f44336
-  - [ ] Warning: #ff9800
-- [ ] Create `apply_theme()` method for QApplication
-- [ ] Style all standard Qt widgets
-- [ ] Force dark mode regardless of system settings
+- [x] Create `DarkTheme` class with static methods
+- [x] Define color palette constants
+  - [x] Background: #1e1e1e
+  - [x] Surface: #2d2d2d
+  - [x] Text: #e0e0e0
+  - [x] Accent: #007acc
+  - [x] Success: #4caf50
+  - [x] Error: #f44336
+  - [x] Warning: #ff9800
+- [x] Create `apply_theme()` method for QApplication
+- [x] Style all standard Qt widgets
+- [x] Force dark mode regardless of system settings
 
 ### Plugin Input Widget (`PrevisLib/gui/widgets/plugin_input.py`)
 - [ ] Create `PluginInputWidget` class inheriting from `QWidget`
