@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from gui.widgets.build_controls import BuildControlsWidget
 from gui.widgets.plugin_input import PluginInputWidget
 
 
@@ -59,6 +60,15 @@ class MainWindow(QMainWindow):
         self.plugin_input = PluginInputWidget()
         self.plugin_input.validationStateChanged.connect(self._on_plugin_validation_changed)
         self.main_layout.addWidget(self.plugin_input)
+        
+        # Add build controls widget
+        self.build_controls = BuildControlsWidget()
+        self.build_controls.buildStarted.connect(self._on_build_started)
+        self.build_controls.buildStopped.connect(self._on_build_stopped)
+        self.main_layout.addWidget(self.build_controls)
+        
+        # Disable build controls until a valid plugin is entered
+        self.build_controls.setEnabled(False)
         
         # Add stretch to push everything to the top
         self.main_layout.addStretch()
@@ -138,11 +148,29 @@ class MainWindow(QMainWindow):
             is_valid: Whether the plugin name is valid
             message: Validation message
         """
+        # Enable/disable build controls based on validation
+        self.build_controls.setEnabled(is_valid)
+        
         if message and not is_valid:
             # Show error in status bar for invalid plugins
             self.status_bar.showMessage(f"Plugin validation: {message}", 5000)
         else:
             self.status_bar.clearMessage()
+    
+    def _on_build_started(self, mode, step) -> None:
+        """Handle build start signal.
+        
+        Args:
+            mode: Build mode
+            step: Starting build step
+        """
+        self.status_bar.showMessage(f"Build started: {mode.value} mode from {step}")
+        # TODO: Start actual build process
+    
+    def _on_build_stopped(self) -> None:
+        """Handle build stop signal."""
+        self.status_bar.showMessage("Build stopped by user", 3000)
+        # TODO: Stop actual build process
     
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event."""

@@ -60,14 +60,14 @@
 - [x] Style with proper margins and spacing
 
 ### Build Controls Widget (`PrevisLib/gui/widgets/build_controls.py`)
-- [ ] Create `BuildControlsWidget` class
-- [ ] Add build mode QComboBox (Clean/Filtered/Xbox)
-- [ ] Add build step QComboBox (all 8 steps, CompressPSG and BuildCDX are only available in Clean mode)
-- [ ] Implement step selector enable/disable logic
-- [ ] Add Start/Stop QPushButton
-- [ ] Implement button state management
-- [ ] Connect signals for user interactions
-- [ ] Add tooltips for each control
+- [x] Create `BuildControlsWidget` class
+- [x] Add build mode QComboBox (Clean/Filtered/Xbox)
+- [x] Add build step QComboBox (all 8 steps, CompressPSG and BuildCDX are only available in Clean mode)
+- [x] Implement step selector enable/disable logic
+- [x] Add Start/Stop QPushButton
+- [x] Implement button state management
+- [x] Connect signals for user interactions
+- [x] Add tooltips for each control
 
 ### Progress Display Widget (`PrevisLib/gui/widgets/progress_display.py`)
 - [ ] Create `ProgressDisplayWidget` class
