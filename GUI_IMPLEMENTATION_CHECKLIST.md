@@ -81,25 +81,25 @@
 ## Phase 3: Settings & Configuration
 
 ### Settings Dialog (`PrevisLib/gui/settings_dialog.py`)
-- [ ] Create `SettingsDialog` class inheriting from `QDialog`
-- [ ] Add tool paths section
-  - [ ] Game executable path input with browse button
-  - [ ] xEdit executable path input with browse button
-  - [ ] BSArch executable path input with browse button
-  - [ ] Path validation indicators for each
-- [ ] Add archive tool selection (QRadioButton group)
-- [ ] Implement browse dialogs with appropriate filters
-- [ ] Add OK/Cancel buttons
-- [ ] Validate all paths before allowing OK
-- [ ] Save settings to persistent storage
+- [x] Create `SettingsDialog` class inheriting from `QDialog`
+- [x] Add tool paths section
+  - [x] Game executable path input with browse button
+  - [x] xEdit executable path input with browse button
+  - [x] BSArch executable path input with browse button
+  - [x] Path validation indicators for each
+- [x] Add archive tool selection (QRadioButton group)
+- [x] Implement browse dialogs with appropriate filters
+- [x] Add OK/Cancel buttons
+- [x] Validate all paths before allowing OK
+- [x] Save settings to persistent storage
 
 ### BSArch CLI Enhancement
-- [ ] Add `--bsarch-path` argument to CLI parser
-- [ ] Update `Settings` class to accept BSArch path
-- [ ] Modify `ToolPaths` validation logic
-- [ ] Update registry discovery to respect manual BSArch path
-- [ ] Add BSArch path to configuration file schema
-- [ ] Write tests for new BSArch path functionality
+- [x] Add `--bsarch-path` argument to CLI parser
+- [x] Update `Settings` class to accept BSArch path
+- [x] Modify `ToolPaths` validation logic
+- [x] Update registry discovery to respect manual BSArch path
+- [x] Add BSArch path to configuration file schema
+- [x] Write tests for new BSArch path functionality
 
 ## Phase 4: Build Process Integration
 

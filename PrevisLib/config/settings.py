@@ -135,6 +135,7 @@ class Settings(BaseModel):
         verbose: bool = False,
         fallout4_path: Path | None = None,
         xedit_path: Path | None = None,
+        bsarch_path: Path | None = None,
     ) -> Settings:
         """
         Creates and initializes a Settings instance based on the provided command-line
@@ -155,6 +156,7 @@ class Settings(BaseModel):
             used to configure related tools and paths automatically.
         :param xedit_path: Path to the xEdit executable, which identifies the location
             of xEdit tools and related utilities.
+        :param bsarch_path: Path to the BSArch executable, overrides automatic discovery.
         :return: A configured Settings instance based on the provided values and system
             environment.
         """
@@ -206,11 +208,17 @@ class Settings(BaseModel):
             settings.tool_paths.xedit = xedit_path
             logger.debug(f"Using CLI-specified xEdit path: {xedit_path}")
 
-            # Look for BSArch in the same directory as xEdit
-            bsarch_path: Path = xedit_path.parent / "BSArch.exe"
-            if bsarch_path.exists():
-                settings.tool_paths.bsarch = bsarch_path
-                logger.debug(f"Found BSArch near xEdit: {bsarch_path}")
+            # Look for BSArch in the same directory as xEdit (only if not explicitly provided)
+            if not bsarch_path:
+                auto_bsarch_path: Path = xedit_path.parent / "BSArch.exe"
+                if auto_bsarch_path.exists():
+                    settings.tool_paths.bsarch = auto_bsarch_path
+                    logger.debug(f"Found BSArch near xEdit: {auto_bsarch_path}")
+
+        # Handle CLI-specified BSArch path
+        if bsarch_path:
+            settings.tool_paths.bsarch = bsarch_path
+            logger.debug(f"Using CLI-specified BSArch path: {bsarch_path}")
 
         # Look for CKPE config files
         if settings.tool_paths.creation_kit is not None:

@@ -383,7 +383,12 @@ def prompt_for_cleanup(settings: Settings) -> bool:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
     help="Override Fallout 4 installation directory (contains Fallout4.exe)",
 )
-@click.option("--xedit-path", type=click.Path(exists=True, dir_okay=False, path_type=Path), help="Override xEdit/FO4Edit executable path")
+@click.option(
+    "--xedit-path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Override xEdit/FO4Edit executable path (supports FO4Edit.exe, xEdit.exe, FO4Edit64.exe, xEdit64.exe)",
+)
+@click.option("--bsarch-path", type=click.Path(exists=True, dir_okay=False, path_type=Path), help="Override BSArch executable path")
 @click.option(
     "--build-mode",
     type=click.Choice(["clean", "filtered", "xbox"], case_sensitive=False),
@@ -400,6 +405,7 @@ def main(  # noqa: PLR0913
     verbose: bool,
     fallout4_path: Path | None,
     xedit_path: Path | None,
+    bsarch_path: Path | None,
     build_mode: str | None,
     archive_tool: str | None,
     plugin: str | None,
@@ -422,6 +428,7 @@ def main(  # noqa: PLR0913
         previs_builder.py --build-mode filtered --plugin MyMod.esp
         previs_builder.py --archive-tool bsarch MyMod.esp
         previs_builder.py --fallout4-path "C:/Games/Fallout4" --xedit-path "C:/Tools/FO4Edit.exe" MyMod.esp
+        previs_builder.py --bsarch-path "C:/Tools/BSArch.exe" --archive-tool bsarch MyMod.esp
     """
     # Setup logging
     log_path = Path("PyGeneratePrevisibines.log")
@@ -471,6 +478,7 @@ def main(  # noqa: PLR0913
             verbose=verbose,
             fallout4_path=fallout4_path,
             xedit_path=xedit_path,
+            bsarch_path=bsarch_path,
         )
 
         # Validate tools only on Windows, as they are platform-specific

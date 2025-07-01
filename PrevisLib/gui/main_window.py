@@ -11,9 +11,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from gui.widgets.build_controls import BuildControlsWidget
-from gui.widgets.plugin_input import PluginInputWidget
-from gui.widgets.progress_display import ProgressDisplayWidget
+from PrevisLib.gui.widgets.build_controls import BuildControlsWidget
+from PrevisLib.gui.widgets.plugin_input import PluginInputWidget
+from PrevisLib.gui.widgets.progress_display import ProgressDisplayWidget
 from PrevisLib.models.data_classes import BuildMode, BuildStep
 
 
@@ -139,8 +139,14 @@ class MainWindow(QMainWindow):
 
     def _open_preferences(self) -> None:
         """Open the preferences dialog."""
-        # TODO: Implement settings dialog
-        self.status_bar.showMessage("Settings dialog not yet implemented", 3000)
+        from PrevisLib.gui.settings_dialog import SettingsDialog
+
+        dialog = SettingsDialog(self)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            # Settings were saved, update status
+            self.status_bar.showMessage("Settings saved successfully", 3000)
+        else:
+            self.status_bar.showMessage("Settings dialog cancelled", 2000)
 
     def _show_about(self) -> None:
         """Show the about dialog."""

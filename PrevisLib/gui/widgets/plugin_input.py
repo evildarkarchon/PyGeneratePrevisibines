@@ -11,8 +11,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from gui.styles.dark_theme import DarkTheme
 from PrevisLib.config.settings import Settings
+from PrevisLib.gui.styles.dark_theme import DarkTheme
 from PrevisLib.utils.validation import validate_plugin_name
 
 

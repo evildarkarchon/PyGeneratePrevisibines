@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from gui.styles.dark_theme import DarkTheme
+from PrevisLib.gui.styles.dark_theme import DarkTheme
 from PrevisLib.models.data_classes import BuildMode, BuildStep
 
 
