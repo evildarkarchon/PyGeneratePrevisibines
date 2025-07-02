@@ -3,91 +3,126 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-
 PyGeneratePrevisibines is a Python port of PJM's GeneratePrevisibines batch file for Fallout 4. It automates the generation of precombined meshes and previs data for Fallout 4 mods, which are essential for game performance optimization.
 
-## Development Commands
-
-### Setup and Dependencies
-```bash
-# Install all dependencies (including dev tools)
-poetry install
-
-# Install with Windows-specific features
-poetry install --with win32
-```
+## Common Development Commands
 
 ### Running the Application
 ```bash
-# Basic usage
-poetry run python previs_builder.py MyMod.esp --clean
+# Run CLI version
+poetry run python previs_builder.py <plugin_name> [options]
 
-# Available modes:
-# --clean     Full rebuild from scratch
-# --filtered  Resume from filtered cells step
-# --xbox      Optimized build for Xbox platform
+# Run GUI version (in development)
+poetry run python previs_gui.py
 ```
 
-### Testing
+### Testing Commands
 ```bash
 # Run all tests with coverage
-poetry run pytest --cov --cov-report=lcov:lcov.info --cov-report=term
+poetry run pytest --cov
 
 # Run specific test file
 poetry run pytest tests/test_config.py -v
 
+# Run single test
+poetry run pytest tests/test_config.py::TestConfigManager::test_load_config -v
+
 # Generate HTML coverage report
 poetry run pytest --cov --cov-report=html
+
+# Stop on first failure
+poetry run pytest -x
 ```
 
-### Code Quality
+### Code Quality Commands
 ```bash
-# Format code (line-length: 140)
-poetry run black .
-
-# Lint code
-poetry run ruff check .
-
 # Type checking
 poetry run mypy .
-poetry run pyright
+
+# Linting
+poetry run ruff check .
+
+# Auto-fix linting issues
+poetry run ruff check --fix .
+
+# Code formatting
+poetry run black .
+
+# Check formatting without changing files
+poetry run black --check .
 ```
 
-## Architecture Overview
+## High-Level Architecture
 
-The project is organized into a modular library structure under `PrevisLib/`:
+### Build Pipeline
+The tool executes an 8-step pipeline to generate precombined meshes and previs data:
 
-- **`config/`**: Settings management and Windows registry access for tool discovery
-- **`core/`**: Main builder orchestration and build step implementations
-- **`models/`**: Data models (enums, dataclasses) for build modes and steps
-- **`tools/`**: Wrappers for external tools (Creation Kit, xEdit, Archive2/BSArch)
-- **`utils/`**: File operations, logging, process execution, and validation
+1. **GENERATE_PRECOMBINED**: Creates precombined meshes using Creation Kit
+2. **MERGE_COMBINED_OBJECTS**: Merges CombinedObjects.esp into main plugin using xEdit
+3. **ARCHIVE_MESHES**: Packages meshes into .ba2 archive using Archive2/BSArch
+4. **COMPRESS_PSG**: Compresses PSG files (Clean mode only)
+5. **BUILD_CDX**: Builds CDX index file (Clean mode only)
+6. **GENERATE_PREVIS**: Generates previs data using Creation Kit
+7. **MERGE_PREVIS**: Merges Previs.esp into main plugin using xEdit
+8. **FINAL_PACKAGING**: Creates final archives and performs cleanup
 
-The build pipeline consists of 8 sequential steps that generate precombined meshes, merge ESP files, create archives, and generate previs data.
+### Core Components
 
-## Critical Development Rules
+**PrevisLib/core/builder.py**: Main orchestrator that manages the entire build process
+- Handles state management and step execution
+- Implements build modes (Clean, Filtered, Xbox)
+- Manages tool integration and error handling
 
-1. **Type Annotations are MANDATORY** - Use Python 3.12 style with `|` unions
-2. **85% Test Coverage Required** - Every function must have corresponding tests
-3. **Test Synchronization is TOP PRIORITY** - Update tests immediately when modifying code
-4. **Platform Handling** - This is Windows-focused; provide meaningful errors on other platforms
-5. **Exception Handling** - Use specific exceptions, never bare `except:`
-6. **Module Structure** - Follow established patterns in `PrevisLib/`
+**PrevisLib/config/**: Configuration management
+- `settings.py`: Manages user settings and paths
+- `registry.py`: Reads tool paths from Windows registry
 
-## Build Pipeline Steps
+**PrevisLib/tools/**: Tool wrappers
+- `creation_kit.py`: Creation Kit automation
+- `xedit.py`: xEdit/FO4Edit integration
+- `archive_tools.py`: Archive2/BSArch integration
+- `ckpe.py`: CKPE Configuration
 
-1. `GENERATE_PRECOMBINED` - Create precombined meshes using Creation Kit
-2. `MERGE_COMBINED_OBJECTS` - Merge CombinedObjects.esp into main plugin
-3. `ARCHIVE_MESHES` - Package meshes into .ba2 archive
-4. `COMPRESS_PSG` - Compress PSG files
-5. `BUILD_CDX` - Build CDX index file
-6. `GENERATE_PREVIS` - Generate previs data using Creation Kit
-7. `MERGE_PREVIS` - Merge Previs.esp into main plugin
-8. `FINAL_PACKAGING` - Final archive creation and cleanup
+**PrevisLib/models/**: Data structures
+- `data_classes.py`: Core data models (BuildMode, BuildStep, ProcessResult) and Enums (BuildStatus, BuildMode)
 
-## Tool Integration Notes
+## Development Standards (from copilot-instructions.md)
 
-- The project integrates with Creation Kit, xEdit/FO4Edit, and Archive2/BSArch
-- Tool paths are discovered via Windows registry or configuration files
-- CKPE (Creation Kit Platform Extended) support is included
-- MO2 (Mod Organizer 2) integration is supported
+### Type Annotations
+- **MANDATORY**: Use Python 3.12-style type annotations
+- Use `|` union syntax (e.g., `str | None`)
+- Import type hints under `TYPE_CHECKING` to avoid circular imports
+
+### Test Synchronization (TOP PRIORITY)
+- Every new function/method MUST have corresponding unit tests
+- Test files should mirror source structure in `tests/`
+- Minimum 85% test coverage requirement
+- Update tests immediately when modifying code
+
+### Exception Handling
+- Be specific with exception types
+- Avoid bare `except:` clauses
+- Always log exception details
+- Use context managers for resource management
+
+### Platform Considerations
+- Windows-focused tool for Fallout 4 modding
+- Handle platform-specific code gracefully
+- Provide meaningful error messages on non-Windows platforms
+
+## GUI Development Status
+The project is implementing a PyQt6 GUI (currently Phase 3/7 complete):
+- Main window with dark theme
+- Plugin input validation
+- Build controls and mode selection
+- Progress display with step tracking
+- Log output viewer (in progress)
+
+Entry point: `previs_gui.py` (GUI version), `previs_builder.py` (CLI version)
+GUI modules: `PrevisLib/gui/`
+
+## Important Notes
+- Always run commands through Poetry to ensure correct virtual environment
+- Test synchronization is TOP PRIORITY - no code without tests
+- The tool requires specific Fallout 4 modding tools to be installed
+- Registry access is used on Windows to find tool installations
