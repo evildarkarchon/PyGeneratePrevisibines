@@ -27,6 +27,14 @@ class BuildStep(Enum):
         return self.name.replace("_", " ").title()
 
 
+class BuildStatus(Enum):
+    PENDING = auto()
+    RUNNING = auto()
+    COMPLETED = auto()
+    FAILED = auto()
+    CANCELLED = auto()
+
+
 class ArchiveTool(Enum):
     ARCHIVE2 = "Archive2"
     BSARCH = "BSArch"

@@ -101,38 +101,38 @@
 - [x] Add BSArch path to configuration file schema
 - [x] Write tests for new BSArch path functionality
 
-## Phase 4: Build Process Integration
+## Phase 4: Build Process Integration [x]
 
 ### Build Thread (`PrevisLib/gui/build_thread.py`)
-- [ ] Create `BuildThread` class inheriting from `QThread`
-- [ ] Define Qt signals for:
-  - [ ] Step started
-  - [ ] Step progress (for xEdit steps, if information is available, for example, a log file.)
-  - [ ] Step completed
-  - [ ] Build completed
-  - [ ] Build failed
-  - [ ] Log message
-- [ ] Implement run() method to execute PrevisBuilder
-- [ ] Add cancellation support with proper cleanup
-- [ ] Handle exceptions and emit error signals
+- [x] Create `BuildThread` class inheriting from `QThread`
+- [x] Define Qt signals for:
+  - [x] Step started
+  - [x] Step progress (for xEdit steps, if information is available, for example, a log file.)
+  - [x] Step completed
+  - [x] Build completed
+  - [x] Build failed
+  - [x] Log message
+- [x] Implement run() method to execute PrevisBuilder
+- [x] Add cancellation support with proper cleanup
+- [x] Handle exceptions and emit error signals
 
 ### Progress Callback System
-- [ ] Modify `PrevisBuilder` to accept progress callback
-- [ ] Add callback invocations in each build step method
-- [ ] Create callback data structure with:
-  - [ ] Current step
-  - [ ] Step status
-  - [ ] Progress message
-  - [ ] Timestamp
-- [ ] Ensure thread-safe callback execution
+- [x] Modify `PrevisBuilder` to accept progress callback
+- [x] Add callback invocations in each build step method (partial - only in main build loop)
+- [x] Create callback data structure with:
+  - [x] Current step
+  - [x] Step status
+  - [x] Progress message
+  - [x] Timestamp (implicit in signal emission)
+- [x] Ensure thread-safe callback execution
 
 ### Build State Management
-- [ ] Track current build state in MainWindow
-- [ ] Implement UI updates based on build state
-- [ ] Disable controls during build
-- [ ] Enable stop button during build
-- [ ] Show completion dialog on success
-- [ ] Show error dialog on failure with details
+- [x] Track current build state in MainWindow
+- [x] Implement UI updates based on build state
+- [x] Disable controls during build
+- [x] Enable stop button during build
+- [x] Show completion dialog on success
+- [x] Show error dialog on failure with details
 
 ## Phase 5: Advanced Features
 

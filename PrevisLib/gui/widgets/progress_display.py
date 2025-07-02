@@ -1,7 +1,6 @@
 """Progress display widget for PyGeneratePrevisibines GUI."""
 
 from datetime import datetime
-from enum import Enum, auto
 
 from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtGui import QColor
@@ -16,16 +15,7 @@ from PyQt6.QtWidgets import (
 )
 
 from PrevisLib.gui.styles.dark_theme import DarkTheme
-from PrevisLib.models.data_classes import BuildStep
-
-
-class StepStatus(Enum):
-    """Status of a build step."""
-
-    PENDING = auto()
-    RUNNING = auto()
-    SUCCESS = auto()
-    FAILED = auto()
+from PrevisLib.models.data_classes import BuildStatus, BuildStep
 
 
 class ProgressDisplayWidget(QWidget):
@@ -41,7 +31,7 @@ class ProgressDisplayWidget(QWidget):
             parent: Parent widget
         """
         super().__init__(parent)
-        self._step_statuses: dict[BuildStep, StepStatus] = {}
+        self._step_statuses: dict[BuildStep, BuildStatus] = {}
         self._start_time: datetime | None = None
         self._current_step: BuildStep | None = None
         self._timer = QTimer()
@@ -132,7 +122,7 @@ class ProgressDisplayWidget(QWidget):
         # Initialize all steps as pending
         self._step_statuses.clear()
         for step in BuildStep:
-            self._step_statuses[step] = StepStatus.PENDING
+            self._step_statuses[step] = BuildStatus.PENDING
 
         self._current_step = None
         self._start_time = None
@@ -164,16 +154,16 @@ class ProgressDisplayWidget(QWidget):
         Returns:
             Status icon string
         """
-        status = self._step_statuses.get(step, StepStatus.PENDING)
+        status = self._step_statuses.get(step, BuildStatus.PENDING)
 
         match status:
-            case StepStatus.PENDING:
+            case BuildStatus.PENDING:
                 return "⏳"
-            case StepStatus.RUNNING:
+            case BuildStatus.RUNNING:
                 return "🔄"
-            case StepStatus.SUCCESS:
+            case BuildStatus.COMPLETED:
                 return "✅"
-            case StepStatus.FAILED:
+            case BuildStatus.FAILED | BuildStatus.CANCELLED:
                 return "❌"
             case _:
                 return "⏳"
@@ -187,16 +177,16 @@ class ProgressDisplayWidget(QWidget):
         Returns:
             Color string
         """
-        status = self._step_statuses.get(step, StepStatus.PENDING)
+        status = self._step_statuses.get(step, BuildStatus.PENDING)
 
         match status:
-            case StepStatus.PENDING:
+            case BuildStatus.PENDING:
                 return DarkTheme.TEXT_SECONDARY
-            case StepStatus.RUNNING:
+            case BuildStatus.RUNNING:
                 return DarkTheme.ACCENT
-            case StepStatus.SUCCESS:
+            case BuildStatus.COMPLETED:
                 return DarkTheme.SUCCESS
-            case StepStatus.FAILED:
+            case BuildStatus.FAILED | BuildStatus.CANCELLED:
                 return DarkTheme.ERROR
             case _:
                 return DarkTheme.TEXT_SECONDARY
@@ -256,10 +246,10 @@ class ProgressDisplayWidget(QWidget):
 
         # Reset all steps to pending
         for step in BuildStep:
-            self._step_statuses[step] = StepStatus.PENDING
+            self._step_statuses[step] = BuildStatus.PENDING
 
         # Set current step to running
-        self._step_statuses[starting_step] = StepStatus.RUNNING
+        self._step_statuses[starting_step] = BuildStatus.RUNNING
 
         # Update UI
         self.current_step_label.setText(f"Running: {starting_step!s}")
@@ -287,7 +277,7 @@ class ProgressDisplayWidget(QWidget):
         # Show the widget
         self.show()
 
-    def update_step_status(self, step: BuildStep, status: StepStatus) -> None:
+    def update_step_status(self, step: BuildStep, status: BuildStatus) -> None:
         """Update the status of a build step.
 
         Args:
@@ -297,7 +287,7 @@ class ProgressDisplayWidget(QWidget):
         self._step_statuses[step] = status
 
         # Update current step if this is the running step
-        if status == StepStatus.RUNNING:
+        if status == BuildStatus.RUNNING:
             self._current_step = step
             self.current_step_label.setText(f"Running: {step!s}")
             self.current_step_label.setStyleSheet(f"""

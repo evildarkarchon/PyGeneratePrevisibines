@@ -11,10 +11,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from PrevisLib.config.settings import Settings
+from PrevisLib.gui.build_thread import BuildThread
 from PrevisLib.gui.widgets.build_controls import BuildControlsWidget
 from PrevisLib.gui.widgets.plugin_input import PluginInputWidget
 from PrevisLib.gui.widgets.progress_display import ProgressDisplayWidget
-from PrevisLib.models.data_classes import BuildMode, BuildStep
+from PrevisLib.models.data_classes import BuildMode, BuildStatus, BuildStep, ToolPaths
 
 
 class MainWindow(QMainWindow):
@@ -26,6 +28,9 @@ class MainWindow(QMainWindow):
 
         # Settings for window state persistence
         self.settings = QSettings("PyGeneratePrevisibines", "MainWindow")
+        
+        # Build thread reference
+        self.build_thread: BuildThread | None = None
 
         # Initialize UI
         self._init_ui()
@@ -190,7 +195,33 @@ class MainWindow(QMainWindow):
         # Start progress display
         self.progress_display.start_build(step)
 
-        # TODO: Start actual build process
+        # Get tool paths from settings dialog or use defaults
+        tool_paths = self._get_tool_paths()
+        if not tool_paths:
+            QMessageBox.critical(self, "Configuration Error", "Tool paths not configured. Please configure in Settings.")
+            self._on_build_stopped()
+            return
+        
+        # Create settings for build
+        build_settings = Settings(
+            plugin_name=self.plugin_input.get_plugin_name(),
+            build_mode=mode,
+            tool_paths=tool_paths
+        )
+        
+        # Create and start build thread
+        self.build_thread = BuildThread(build_settings, step if step != BuildStep.GENERATE_PRECOMBINED else None)
+        
+        # Connect signals
+        self.build_thread.step_started.connect(self._on_step_started)
+        self.build_thread.step_progress.connect(self._on_step_progress)
+        self.build_thread.step_completed.connect(self._on_step_completed)
+        self.build_thread.build_completed.connect(self._on_build_completed)
+        self.build_thread.build_failed.connect(self._on_build_failed)
+        self.build_thread.log_message.connect(self._on_log_message)
+        
+        # Start the thread
+        self.build_thread.start()
 
     def _on_build_stopped(self) -> None:
         """Handle build stop signal."""
@@ -202,7 +233,101 @@ class MainWindow(QMainWindow):
         # Reset progress display
         self.progress_display.reset()
 
-        # TODO: Stop actual build process
+        # Stop the build thread if running
+        if self.build_thread and self.build_thread.isRunning():
+            self.build_thread.cancel()
+            self.build_thread.wait(5000)  # Wait up to 5 seconds
+            
+            if self.build_thread.isRunning():
+                # Force terminate if still running
+                self.build_thread.terminate()
+                self.build_thread.wait()
+                
+            self.build_thread = None
+
+    def _get_tool_paths(self) -> ToolPaths | None:
+        """Get tool paths from configuration.
+        
+        Returns:
+            ToolPaths object if configured, None otherwise
+        """
+        # TODO: This should come from settings dialog or config file
+        # For now, return None to trigger the error message
+        return None
+        
+    def _on_step_started(self, step: BuildStep) -> None:
+        """Handle step started signal.
+        
+        Args:
+            step: The build step that started
+        """
+        self.progress_display.update_step_status(step, BuildStatus.RUNNING)
+        
+    def _on_step_progress(self, step: BuildStep, _percentage: int, message: str) -> None:
+        """Handle step progress signal.
+        
+        Args:
+            step: Current build step
+            percentage: Progress percentage (0-100)
+            message: Progress message
+        """
+        # Update status bar with progress message
+        self.status_bar.showMessage(f"{step}: {message}")
+        
+    def _on_step_completed(self, step: BuildStep) -> None:
+        """Handle step completed signal.
+        
+        Args:
+            step: The build step that completed
+        """
+        self.progress_display.update_step_status(step, BuildStatus.COMPLETED)
+        
+    def _on_build_completed(self) -> None:
+        """Handle build completed signal."""
+        self.status_bar.showMessage("Build completed successfully!", 5000)
+        self.build_controls.set_building_state(False)
+        
+        # Show success dialog
+        QMessageBox.information(
+            self,
+            "Build Complete",
+            "Previs build completed successfully!"
+        )
+        
+        self.build_thread = None
+        
+    def _on_build_failed(self, step: BuildStep, error_message: str) -> None:
+        """Handle build failed signal.
+        
+        Args:
+            step: The step that failed
+            error_message: Error description
+        """
+        self.progress_display.update_step_status(step, BuildStatus.FAILED)
+        self.status_bar.showMessage(f"Build failed at {step}", 5000)
+        self.build_controls.set_building_state(False)
+        
+        # Show error dialog
+        QMessageBox.critical(
+            self,
+            "Build Failed",
+            f"Build failed at step: {step}\n\nError: {error_message}"
+        )
+        
+        self.build_thread = None
+        
+    def _on_log_message(self, _timestamp: str, level: str, message: str) -> None:
+        """Handle log message signal.
+        
+        Args:
+            timestamp: Message timestamp
+            level: Log level
+            message: Log message
+        """
+        # TODO: Add to log viewer widget when implemented
+        # For now, just update status bar for important messages
+        if level in ("ERROR", "WARNING", "SUCCESS"):
+            self.status_bar.showMessage(f"[{level}] {message}", 3000)
 
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         """Handle window close event."""

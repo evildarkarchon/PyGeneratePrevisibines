@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from PrevisLib.config.settings import Settings
-from PrevisLib.models.data_classes import ArchiveTool, BuildStep, CKPEConfig
+from PrevisLib.models.data_classes import ArchiveTool, BuildStep, BuildStatus, CKPEConfig
 from PrevisLib.tools import ArchiveWrapper, CKPEConfigHandler, CreationKitWrapper, XEditWrapper
 from PrevisLib.utils import file_system as fs
 from PrevisLib.utils.validation import validate_xedit_scripts
@@ -30,6 +30,10 @@ class PrevisBuilder:
 
         # Validate and store plugin base name
         self.plugin_base_name: str = self._get_plugin_base_name()
+        
+        # Progress callback for GUI integration
+        self.progress_callback: Callable[[BuildStep, BuildStatus, str], None] | None = None
+        self.cancel_requested = False
 
         # Type annotations for tool wrappers
         self.archive_wrapper: ArchiveWrapper
@@ -121,8 +125,16 @@ class PrevisBuilder:
 
         # Execute each step
         for step in steps_to_run:
+            if self.cancel_requested:
+                logger.warning("Build cancelled by user")
+                return False
+                
             self.current_step = step
             logger.info(f"Executing step: {step}")
+            
+            # Notify progress callback
+            if self.progress_callback:
+                self.progress_callback(step, BuildStatus.RUNNING, f"Starting {step}")
 
             try:
                 success: bool = self._execute_step(step)
@@ -130,9 +142,13 @@ class PrevisBuilder:
                 if success:
                     self.completed_steps.append(step)
                     logger.success(f"Completed step: {step}")
+                    if self.progress_callback:
+                        self.progress_callback(step, BuildStatus.COMPLETED, f"Completed {step}")
                 else:
                     self.failed_step = step
                     logger.error(f"Failed at step: {step}")
+                    if self.progress_callback:
+                        self.progress_callback(step, BuildStatus.FAILED, f"Failed at {step}")
                     return False
 
             except (KeyboardInterrupt, SystemExit):
@@ -140,6 +156,8 @@ class PrevisBuilder:
             except Exception as e:  # noqa: BLE001
                 self.failed_step = step
                 logger.error(f"Exception during step {step}: {e}")
+                if self.progress_callback:
+                    self.progress_callback(step, BuildStatus.FAILED, str(e))
                 return False
 
         # Build completed successfully
@@ -218,6 +236,10 @@ class PrevisBuilder:
 
         # Clean output directory
         fs.clean_directory(self.output_path)
+        
+        # Check for cancellation
+        if self.cancel_requested:
+            return False
 
         # Run Creation Kit
         success: bool = self.ck_wrapper.generate_precombined(self.data_path)
