@@ -41,7 +41,7 @@ class CreationKitWrapper:
         self._disable_graphics_dlls()
 
         try:
-            args: list[str] = [str(self.ck_path), f"-GeneratePrecombined:{self.plugin_name}"]
+            args: list[str] = [str(self.ck_path), "-GeneratePrecombined:CombinedObjects.esp"]
 
             if self.build_mode == BuildMode.CLEAN:
                 args.extend(["clean", "all"])

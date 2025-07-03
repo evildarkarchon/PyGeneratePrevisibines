@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unittest.mock
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -86,8 +87,9 @@ class TestMainWindow:
     def test_build_controls_signal_connections(self, main_window: MainWindow) -> None:
         """Test that build control signals are connected."""
         # Test that signals are connected (won't raise errors)
-        main_window.build_controls.buildStarted.emit(BuildMode.CLEAN, BuildStep.GENERATE_PREVIS)
-        main_window.build_controls.buildStopped.emit()
+        with patch("PyQt6.QtWidgets.QMessageBox.critical"):
+            main_window.build_controls.buildStarted.emit(BuildMode.CLEAN, BuildStep.GENERATE_PREVIS)
+            main_window.build_controls.buildStopped.emit()
 
     def test_progress_display_signal_connection(self, main_window: MainWindow) -> None:
         """Test that progress display signal is connected."""
@@ -114,11 +116,15 @@ class TestMainWindow:
         with (
             patch.object(main_window.build_controls, "set_building_state") as mock_set_state,
             patch.object(main_window.progress_display, "start_build") as mock_start_build,
+            patch("PyQt6.QtWidgets.QMessageBox.critical") as mock_dialog,
         ):
             main_window._on_build_started(mode, step)
 
-            mock_set_state.assert_called_once_with(True)
+            # Should be called twice: once with True, then with False due to missing tool paths
+            expected_calls = [unittest.mock.call(True), unittest.mock.call(False)]
+            mock_set_state.assert_has_calls(expected_calls)
             mock_start_build.assert_called_once_with(step)
+            mock_dialog.assert_called_once()  # Should show error dialog
 
     def test_on_build_stopped(self, main_window: MainWindow) -> None:
         """Test build stopped handler."""
@@ -289,8 +295,9 @@ class TestMainWindow:
         # Status bar should show error (we can't easily test exact message due to timing)
 
         # Test build started message
-        main_window._on_build_started(BuildMode.CLEAN, BuildStep.GENERATE_PREVIS)
-        # Status bar should show build started message
+        with patch("PyQt6.QtWidgets.QMessageBox.critical"):
+            main_window._on_build_started(BuildMode.CLEAN, BuildStep.GENERATE_PREVIS)
+            # Status bar should show build started message
 
         # Test build stopped message
         main_window._on_build_stopped()

@@ -33,6 +33,7 @@ class BuildStatus(Enum):
     COMPLETED = auto()
     FAILED = auto()
     CANCELLED = auto()
+    SUCCESS = auto()
 
 
 class ArchiveTool(Enum):

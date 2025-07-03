@@ -203,11 +203,15 @@ class TestMainCLI:
         """Test a successful build in non-interactive mode."""
         mock_settings = MagicMock()
         mock_settings.plugin_name = "MyMod.esp"
+        mock_settings.build_mode = BuildMode.CLEAN
+        mock_settings.archive_tool = ArchiveTool.ARCHIVE2
+        mock_settings.ckpe_config = None
         mock_settings.tool_paths.validate.return_value = []
         mock_settings_from_cli.return_value = mock_settings
 
         mock_builder = MagicMock()
         mock_builder.build.return_value = True
+        mock_builder.failed_step = None  # No previous failed build
         mock_previs_builder.return_value = mock_builder
 
         runner = CliRunner()
@@ -221,47 +225,55 @@ class TestMainCLI:
         mock_builder.build.assert_called_once()
 
     @patch("previs_builder.setup_logger")
-    @patch("previs_builder.Settings.from_cli_args")
+    @patch("previs_builder.sys.platform", "win32")
+    @patch("PrevisLib.utils.validation.validate_xedit_scripts")
+    @patch("PrevisLib.config.settings.find_tool_paths")
     def test_tool_validation_failure(
         self,
-        mock_settings_from_cli: MagicMock,
+        mock_find_tools: MagicMock,
+        mock_validate_scripts: MagicMock,
         mock_setup_logger: MagicMock,  # noqa: ARG002
     ) -> None:
         """Test that the application exits if tool validation fails."""
-        mock_settings = MagicMock()
-        mock_settings.tool_paths.validate.return_value = ["xEdit not found"]
-        mock_settings_from_cli.return_value = mock_settings
+        # Mock tool discovery to return empty ToolPaths
+        from PrevisLib.models.data_classes import ToolPaths
+        mock_tool_paths = ToolPaths()
+        mock_find_tools.return_value = mock_tool_paths
+        
+        # Mock script validation to pass
+        mock_validate_scripts.return_value = (True, "")
 
         runner = CliRunner()
         result = runner.invoke(main, ["MyMod.esp"])
 
         assert result.exit_code == 1
         assert "Tool Configuration Issues" in result.output
-        assert "xEdit not found" in result.output
+        assert "Creation Kit not found" in result.output
         assert "Cannot proceed without required tools" in result.output
 
-    @patch("previs_builder.setup_logger")
-    @patch("previs_builder.sys.platform", "linux")
-    @patch("previs_builder.platform.system", return_value="Linux")
-    @patch("previs_builder.Settings.from_cli_args")
-    @patch("previs_builder.run_build", return_value=True)
-    def test_non_windows_warning(
-        self,
-        mock_run_build: MagicMock,
-        mock_settings_from_cli: MagicMock,
-        mock_setup_logger: MagicMock,  # noqa: ARG002
-    ) -> None:
+    def test_non_windows_warning(self) -> None:
         """Test that a warning is shown on non-Windows platforms."""
-        mock_settings = MagicMock()
-        mock_settings.tool_paths.validate.return_value = []
-        mock_settings_from_cli.return_value = mock_settings
+        with (
+            patch("previs_builder.setup_logger"),
+            patch("previs_builder.sys.platform", "linux"),
+            patch("previs_builder.platform.system", return_value="Linux"),
+            patch("previs_builder.Settings.from_cli_args") as mock_settings_from_cli,
+            patch("previs_builder.run_build", return_value=True) as mock_run_build,
+        ):
+            mock_settings = MagicMock()
+            mock_settings.plugin_name = "MyMod.esp"
+            mock_settings.build_mode = BuildMode.CLEAN
+            mock_settings.archive_tool = ArchiveTool.ARCHIVE2
+            mock_settings.ckpe_config = None
+            mock_settings.tool_paths.validate.return_value = []
+            mock_settings_from_cli.return_value = mock_settings
 
-        runner = CliRunner()
-        result = runner.invoke(main, ["MyMod.esp"])
+            runner = CliRunner()
+            result = runner.invoke(main, ["MyMod.esp"])
 
-        assert result.exit_code == 0
-        assert "Running on non-Windows platform" in result.output
-        mock_run_build.assert_called_once()
+            assert result.exit_code == 0
+            assert "Running on non-Windows platform" in result.output
+            mock_run_build.assert_called_once()
 
     @patch("previs_builder.setup_logger")
     def test_help_message(self, mock_setup_logger: MagicMock) -> None:  # noqa: ARG002
@@ -312,11 +324,15 @@ class TestMainCLI:
         # 4. Confirm to proceed with build -> True
         mock_settings = MagicMock()
         mock_settings.plugin_name = ""  # Start with no plugin
+        mock_settings.build_mode = BuildMode.CLEAN
+        mock_settings.archive_tool = ArchiveTool.ARCHIVE2
+        mock_settings.ckpe_config = None
         mock_settings.tool_paths.validate.return_value = []
         mock_settings_from_cli.return_value = mock_settings
 
         mock_builder = MagicMock()
         mock_builder.build.return_value = True
+        mock_builder.failed_step = None  # No previous failed build
         mock_previs_builder.return_value = mock_builder
 
         mock_prompt_plugin.return_value = "MyInteractiveMod.esp"
@@ -348,6 +364,10 @@ class TestMainCLI:
     ) -> None:
         """Test the build resume flow."""
         mock_settings = MagicMock()
+        mock_settings.plugin_name = "MyMod.esp"
+        mock_settings.build_mode = BuildMode.CLEAN
+        mock_settings.archive_tool = ArchiveTool.ARCHIVE2
+        mock_settings.ckpe_config = None
         mock_settings.tool_paths.validate.return_value = []
         mock_settings_from_cli.return_value = mock_settings
 
@@ -399,6 +419,7 @@ class TestRunBuildErrorHandling:
         mock_settings.plugin_name = "test.esp"
         mock_settings.build_mode = BuildMode.CLEAN
         mock_settings.archive_tool = ArchiveTool.ARCHIVE2
+        mock_settings.ckpe_config = None
         mock_builder = MagicMock()
         mock_builder.failed_step = None
         mock_builder.build.side_effect = Exception("Unexpected error")
@@ -425,6 +446,7 @@ class TestRunBuildErrorHandling:
         mock_settings.plugin_name = "test.esp"
         mock_settings.build_mode = BuildMode.CLEAN
         mock_settings.archive_tool = ArchiveTool.ARCHIVE2
+        mock_settings.ckpe_config = None
         mock_builder = MagicMock()
         mock_builder.failed_step = None
         mock_builder.build.return_value = True
@@ -489,11 +511,15 @@ class TestMainCLIEdgeCases:
         # Setup
         mock_settings = MagicMock()
         mock_settings.plugin_name = ""
+        mock_settings.build_mode = BuildMode.CLEAN
+        mock_settings.archive_tool = ArchiveTool.ARCHIVE2
+        mock_settings.ckpe_config = None
         mock_settings.tool_paths.validate.return_value = []
         mock_settings_from_cli.return_value = mock_settings
 
         mock_builder = MagicMock()
         mock_builder.cleanup.return_value = True
+        mock_builder.failed_step = None  # No previous failed build
         mock_builder_class.return_value = mock_builder
 
         mock_prompt_plugin.return_value = "Cleaned.esp"

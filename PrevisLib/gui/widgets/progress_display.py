@@ -161,7 +161,7 @@ class ProgressDisplayWidget(QWidget):
                 return "⏳"
             case BuildStatus.RUNNING:
                 return "🔄"
-            case BuildStatus.COMPLETED:
+            case BuildStatus.SUCCESS | BuildStatus.COMPLETED:
                 return "✅"
             case BuildStatus.FAILED | BuildStatus.CANCELLED:
                 return "❌"
@@ -184,7 +184,7 @@ class ProgressDisplayWidget(QWidget):
                 return DarkTheme.TEXT_SECONDARY
             case BuildStatus.RUNNING:
                 return DarkTheme.ACCENT
-            case BuildStatus.COMPLETED:
+            case BuildStatus.SUCCESS | BuildStatus.COMPLETED:
                 return DarkTheme.SUCCESS
             case BuildStatus.FAILED | BuildStatus.CANCELLED:
                 return DarkTheme.ERROR

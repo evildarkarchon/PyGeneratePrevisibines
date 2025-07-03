@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from PrevisLib.models.data_classes import ArchiveTool, BuildMode, CKPEConfig
+from PrevisLib.models.data_classes import ArchiveTool, BuildMode, CKPEConfig, ToolPaths
 from PrevisLib.tools.archive import ArchiveWrapper
 from PrevisLib.tools.ckpe import CKPEConfigHandler
 from PrevisLib.tools.creation_kit import CreationKitWrapper
@@ -86,7 +86,7 @@ class TestCreationKit:
         # Check command arguments
         args = mock_runner.execute.call_args[0][0]
         assert str(wrapper.ck_path) in args
-        assert f"-GeneratePrecombined:{wrapper.plugin_name}" in args
+        assert "-GeneratePrecombined:CombinedObjects.esp" in args
         # Default build mode is CLEAN, so should have "clean" and "all"
         assert "clean" in args
         assert "all" in args

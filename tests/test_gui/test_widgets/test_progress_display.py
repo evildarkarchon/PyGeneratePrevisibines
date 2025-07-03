@@ -9,8 +9,8 @@ import pytest
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QWidget
 
-from PrevisLib.gui.widgets.progress_display import ProgressDisplayWidget, StepStatus
-from PrevisLib.models.data_classes import BuildStep
+from PrevisLib.gui.widgets.progress_display import ProgressDisplayWidget
+from PrevisLib.models.data_classes import BuildStatus, BuildStep
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ class TestProgressDisplayWidget:
         """Test widget initialization with default parameters."""
         assert len(widget._step_statuses) == len(BuildStep)
         for step in BuildStep:
-            assert widget._step_statuses[step] == StepStatus.PENDING
+            assert widget._step_statuses[step] == BuildStatus.PENDING
         assert widget._current_step is None
         assert widget._start_time is None
         assert not widget.isVisible()  # Initially hidden
@@ -73,7 +73,7 @@ class TestProgressDisplayWidget:
         # All should be pending initially
         for step, status in widget._step_statuses.items():
             assert isinstance(step, BuildStep)
-            assert status == StepStatus.PENDING
+            assert status == BuildStatus.PENDING
 
     def test_start_build(self, widget: ProgressDisplayWidget) -> None:
         """Test starting a build process."""
@@ -87,7 +87,7 @@ class TestProgressDisplayWidget:
 
             assert widget._start_time == mock_now
             assert widget._current_step == start_step
-            assert widget._step_statuses[start_step] == StepStatus.RUNNING
+            assert widget._step_statuses[start_step] == BuildStatus.RUNNING
             assert widget.isVisible()
 
     def test_start_build_updates_ui(self, widget: ProgressDisplayWidget) -> None:
@@ -111,14 +111,14 @@ class TestProgressDisplayWidget:
     def test_update_step_status(self, widget: ProgressDisplayWidget) -> None:
         """Test updating step status."""
         step = BuildStep.GENERATE_PREVIS
-        widget.update_step_status(step, StepStatus.SUCCESS)
+        widget.update_step_status(step, BuildStatus.SUCCESS)
 
-        assert widget._step_statuses[step] == StepStatus.SUCCESS
+        assert widget._step_statuses[step] == BuildStatus.SUCCESS
 
     def test_update_step_status_running(self, widget: ProgressDisplayWidget) -> None:
         """Test updating step status to running updates current step."""
         step = BuildStep.BUILD_CDX
-        widget.update_step_status(step, StepStatus.RUNNING)
+        widget.update_step_status(step, BuildStatus.RUNNING)
 
         assert widget._current_step == step
         assert f"Running: {step!s}" in widget.current_step_label.text()
@@ -162,32 +162,32 @@ class TestProgressDisplayWidget:
 
     def test_get_status_icon(self, widget: ProgressDisplayWidget) -> None:
         """Test getting status icons for different states."""
-        widget._step_statuses[BuildStep.GENERATE_PREVIS] = StepStatus.PENDING
+        widget._step_statuses[BuildStep.GENERATE_PREVIS] = BuildStatus.PENDING
         assert widget._get_status_icon(BuildStep.GENERATE_PREVIS) == "⏳"
 
-        widget._step_statuses[BuildStep.GENERATE_PREVIS] = StepStatus.RUNNING
+        widget._step_statuses[BuildStep.GENERATE_PREVIS] = BuildStatus.RUNNING
         assert widget._get_status_icon(BuildStep.GENERATE_PREVIS) == "🔄"
 
-        widget._step_statuses[BuildStep.GENERATE_PREVIS] = StepStatus.SUCCESS
+        widget._step_statuses[BuildStep.GENERATE_PREVIS] = BuildStatus.SUCCESS
         assert widget._get_status_icon(BuildStep.GENERATE_PREVIS) == "✅"
 
-        widget._step_statuses[BuildStep.GENERATE_PREVIS] = StepStatus.FAILED
+        widget._step_statuses[BuildStep.GENERATE_PREVIS] = BuildStatus.FAILED
         assert widget._get_status_icon(BuildStep.GENERATE_PREVIS) == "❌"
 
     def test_get_status_color(self, widget: ProgressDisplayWidget) -> None:
         """Test getting status colors for different states."""
         from PrevisLib.gui.styles.dark_theme import DarkTheme
 
-        widget._step_statuses[BuildStep.GENERATE_PREVIS] = StepStatus.PENDING
+        widget._step_statuses[BuildStep.GENERATE_PREVIS] = BuildStatus.PENDING
         assert widget._get_status_color(BuildStep.GENERATE_PREVIS) == DarkTheme.TEXT_SECONDARY
 
-        widget._step_statuses[BuildStep.GENERATE_PREVIS] = StepStatus.RUNNING
+        widget._step_statuses[BuildStep.GENERATE_PREVIS] = BuildStatus.RUNNING
         assert widget._get_status_color(BuildStep.GENERATE_PREVIS) == DarkTheme.ACCENT
 
-        widget._step_statuses[BuildStep.GENERATE_PREVIS] = StepStatus.SUCCESS
+        widget._step_statuses[BuildStep.GENERATE_PREVIS] = BuildStatus.SUCCESS
         assert widget._get_status_color(BuildStep.GENERATE_PREVIS) == DarkTheme.SUCCESS
 
-        widget._step_statuses[BuildStep.GENERATE_PREVIS] = StepStatus.FAILED
+        widget._step_statuses[BuildStep.GENERATE_PREVIS] = BuildStatus.FAILED
         assert widget._get_status_color(BuildStep.GENERATE_PREVIS) == DarkTheme.ERROR
 
     def test_get_current_step_number(self, widget: ProgressDisplayWidget) -> None:
@@ -244,7 +244,7 @@ class TestProgressDisplayWidget:
 
         # Update a step status
         step = BuildStep.GENERATE_PREVIS
-        widget._step_statuses[step] = StepStatus.SUCCESS
+        widget._step_statuses[step] = BuildStatus.SUCCESS
         widget._update_step_list_item(step)
 
         # Find the item for this step
@@ -306,14 +306,14 @@ class TestProgressDisplayWidget:
         assert widget.cancelConfirmed is not None
 
     def test_step_status_enum_values(self) -> None:
-        """Test that StepStatus enum has expected values."""
-        assert StepStatus.PENDING
-        assert StepStatus.RUNNING
-        assert StepStatus.SUCCESS
-        assert StepStatus.FAILED
+        """Test that BuildStatus enum has expected values."""
+        assert BuildStatus.PENDING
+        assert BuildStatus.RUNNING
+        assert BuildStatus.SUCCESS
+        assert BuildStatus.FAILED
 
         # Test enum values are unique
-        values = [status.value for status in StepStatus]
+        values = [status.value for status in BuildStatus]
         assert len(values) == len(set(values))
 
     def test_elapsed_time_formatting(self, widget: ProgressDisplayWidget) -> None:
