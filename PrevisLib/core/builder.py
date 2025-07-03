@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from PrevisLib.config.settings import Settings
-from PrevisLib.models.data_classes import ArchiveTool, BuildStep, BuildStatus, CKPEConfig
+from PrevisLib.models.data_classes import ArchiveTool, BuildStatus, BuildStep, CKPEConfig
 from PrevisLib.tools import ArchiveWrapper, CKPEConfigHandler, CreationKitWrapper, XEditWrapper
 from PrevisLib.utils import file_system as fs
 from PrevisLib.utils.validation import validate_xedit_scripts
@@ -71,7 +71,16 @@ class PrevisBuilder:
 
         # Paths
         self.fo4_path = settings.tool_paths.fallout4
-        self.data_path = self.fo4_path / "Data"
+        # Handle different path scenarios
+        if self.fo4_path.name.lower() == "fallout4.exe":
+            # Path points to exe, use parent directory
+            self.data_path = self.fo4_path.parent / "Data"
+        elif self.fo4_path.name.lower() == "data":
+            # Path already points to Data directory
+            self.data_path = self.fo4_path
+        else:
+            # Path points to game directory
+            self.data_path = self.fo4_path / "Data"
         self.output_path = self.data_path / "PreCombined"
         self.temp_path = self.data_path / "Temp"
 

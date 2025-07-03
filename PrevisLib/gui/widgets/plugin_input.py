@@ -123,7 +123,14 @@ class PluginInputWidget(QWidget):
 
         if is_valid and self.settings and self.settings.tool_paths.fallout4:
             # Check if plugin exists
-            data_path = self.settings.tool_paths.fallout4 / "Data"
+            fo4_path = self.settings.tool_paths.fallout4
+            # Handle different path scenarios
+            if fo4_path.name.lower() == "fallout4.exe":
+                data_path = fo4_path.parent / "Data"
+            elif fo4_path.name.lower() == "data":
+                data_path = fo4_path
+            else:
+                data_path = fo4_path / "Data"
             plugin_path = data_path / plugin_name
 
             if plugin_path.exists():

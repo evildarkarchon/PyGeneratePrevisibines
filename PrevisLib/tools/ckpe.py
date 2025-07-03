@@ -12,7 +12,13 @@ class CKPEConfigHandler:
 
     def __init__(self, fo4_path: Path) -> None:
         self.fo4_path = fo4_path
-        self.data_path = fo4_path / "Data"
+        # Handle different path scenarios
+        if fo4_path.name.lower() == "fallout4.exe":
+            self.data_path = fo4_path.parent / "Data"
+        elif fo4_path.name.lower() == "data":
+            self.data_path = fo4_path
+        else:
+            self.data_path = fo4_path / "Data"
 
     def load_config(self, plugin_name: str) -> CKPEConfig | None:
         """

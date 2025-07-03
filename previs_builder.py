@@ -78,7 +78,14 @@ def prompt_for_plugin(settings: Settings | None = None) -> str:
 
         # Check if plugin exists (if we have tool paths available)
         if settings and settings.tool_paths.fallout4:
-            data_path = settings.tool_paths.fallout4 / "Data"
+            fo4_path = settings.tool_paths.fallout4
+            # Handle different path scenarios
+            if fo4_path.name.lower() == "fallout4.exe":
+                data_path = fo4_path.parent / "Data"
+            elif fo4_path.name.lower() == "data":
+                data_path = fo4_path
+            else:
+                data_path = fo4_path / "Data"
             plugin_path = data_path / plugin_name
 
             if not plugin_path.exists():
